@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <functional>
 #include <cstdlib>
+#include <vector>
 
 class HelloTriangleApplication {
     public:
@@ -46,6 +47,8 @@ class HelloTriangleApplication {
         void cleanup() {
             glfwDestroyWindow(mWindow);
             glfwTerminate();
+
+            vkDestroyInstance(mInstance, nullptr);
         }
 
         void createInstance() {
@@ -69,6 +72,16 @@ class HelloTriangleApplication {
             createInfo.ppEnabledExtensionNames = glfwExtensions;
 
             createInfo.enabledLayerCount = 0;
+
+            uint32_t extensionCount = 0;
+            vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+            std::vector<VkExtensionProperties> extensionPropertiesList(extensionCount);
+            vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensionPropertiesList.data());
+
+            std::cout << "Available extensions:" << std::endl;
+            for(const auto& extensionProperties : extensionPropertiesList) {
+                std::cout << "\t" << extensionProperties.extensionName << std::endl;
+            }
 
             if(vkCreateInstance(&createInfo, nullptr, &mInstance) != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create Vulkan instance");
