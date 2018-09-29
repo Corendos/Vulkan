@@ -78,11 +78,12 @@ class HelloTriangleApplication {
             std::vector<VkExtensionProperties> extensionPropertiesList(extensionCount);
             vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensionPropertiesList.data());
 
+#ifdef DEBUG
             std::cout << "Available extensions:" << std::endl;
             for(const auto& extensionProperties : extensionPropertiesList) {
                 std::cout << "\t" << extensionProperties.extensionName << std::endl;
             }
-
+#endif
             if(vkCreateInstance(&createInfo, nullptr, &mInstance) != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create Vulkan instance");
             }

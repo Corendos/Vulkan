@@ -29,7 +29,13 @@ target_link_libraries(${CURRENT_PROJECT} PUBLIC glfw)
 # Include GLM 
 target_include_directories(${CURRENT_PROJECT} PUBLIC /usr/include/glm)
 
+# Set Debug flags
+if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    message("Debug option")
+    target_compile_definitions(${CURRENT_PROJECT} PUBLIC DEBUG)
+endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 
+# Set output location
 set_target_properties(${CURRENT_PROJECT}
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../lib"
