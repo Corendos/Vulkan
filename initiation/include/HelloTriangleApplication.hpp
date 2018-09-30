@@ -12,6 +12,7 @@
 #include <cstring>
 #include <vector>
 #include <optional>
+#include <set>
 
 VkResult createDebugUtilsMessengerEXT(
     VkInstance instance,
@@ -25,9 +26,10 @@ void destroyDebugUtilsMessengerEXT(
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
 
     bool isComplete() {
-        return graphicsFamily.has_value();
+        return graphicsFamily.has_value() && presentFamily.has_value();
     }
 };
 
@@ -40,7 +42,9 @@ class HelloTriangleApplication {
         VkInstance mInstance;                               // Vulkan instance
         VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;  // Vulkan physical device handler
         VkDevice mDevice;                                   // Vulkan logical device handler
-        VkQueue mGraphicsQueue;                             // Device queues
+        VkQueue mGraphicsQueue;                             // Device graphic queue
+        VkQueue mPresentQueue;                              // Device present queue
+        VkSurfaceKHR mSurface;                              // Vulkan surface handler 
 
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
@@ -78,6 +82,9 @@ class HelloTriangleApplication {
 
         // Create the logical device
         void createLogicalDevice();
+
+        // Create the window surface
+        void createSurface();
 
         // App main loop
         void mainLoop();
