@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <vector>
+#include <optional>
 
 VkResult createDebugUtilsMessengerEXT(
     VkInstance instance,
@@ -22,20 +23,29 @@ void destroyDebugUtilsMessengerEXT(
     VkDebugUtilsMessengerEXT pCallback,
     const VkAllocationCallbacks* pAllocator);
 
+struct QueueFamilyIndices {
+    std::optional<uint32_t> graphicsFamily;
+
+    bool isComplete() {
+        return graphicsFamily.has_value();
+    }
+};
+
 class HelloTriangleApplication {
     public:
         void run();
 
     private:
-        GLFWwindow* mWindow;                            // Window handler
-        VkInstance mInstance;                           // Vulkan instance
+        GLFWwindow* mWindow;                                // Window handler
+        VkInstance mInstance;                               // Vulkan instance
+        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;   // Vulkan physical device handler
 
-        VkDebugUtilsMessengerEXT mCallback;             // Message callback for validation layer
+        VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
         #ifdef DEBUG
-            const bool enableValidationLayers = true;   // We want the validation layer in debug mode
+            const bool enableValidationLayers = true;       // We want the validation layer in debug mode
         #else
-            const bool enableValidationLayers = false;  // We don't want the validation layer otherwise
+            const bool enableValidationLayers = false;      // We don't want the validation layer otherwise
         #endif
 
         // Wanted validation layers
@@ -54,6 +64,14 @@ class HelloTriangleApplication {
 
         // Setup the debug callback function
         void setupDebugCallback();
+
+        // Pick the physical device to use()
+        void pickPhysicalDevice();
+
+        // Check if the device is suitable for our use
+        bool isDeviceSuitable(VkPhysicalDevice device);
+
+        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
         // App main loop
         void mainLoop();
