@@ -38,6 +38,9 @@ void HelloTriangleApplication::initWindow() {
 
 // Initialize Vulkan
 void HelloTriangleApplication::initVulkan() {
+    #ifdef DEBUG
+    std::cout << "initVulkan()" << std::endl;
+    #endif
     createInstance();
     setupDebugCallback();
     createSurface();
@@ -48,6 +51,10 @@ void HelloTriangleApplication::initVulkan() {
 
 // Create Vulkan instance
 void HelloTriangleApplication::createInstance() {
+    #ifdef DEBUG
+    std::cout << "createInstance()" << std::endl;
+    #endif
+
     if (enableValidationLayers && !checkValidationLayerSupport()) {
         throw std::runtime_error("Validation layers requested, but not available");
     }
@@ -92,6 +99,9 @@ void HelloTriangleApplication::createInstance() {
 }
 
 void HelloTriangleApplication::pickPhysicalDevice() {
+    #ifdef DEBUG
+    std::cout << "pickPhysicalDevice()" << std::endl;
+    #endif
     uint32_t deviceCount{0};
     vkEnumeratePhysicalDevices(mInstance, &deviceCount, nullptr);
 
@@ -115,6 +125,10 @@ void HelloTriangleApplication::pickPhysicalDevice() {
 }
 
 bool HelloTriangleApplication::isDeviceSuitable(VkPhysicalDevice device) {
+    #ifdef DEBUG
+    std::cout << "isDeviceSuitable()" << std::endl;
+    #endif
+
     VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -138,6 +152,10 @@ bool HelloTriangleApplication::isDeviceSuitable(VkPhysicalDevice device) {
 }
 
 bool HelloTriangleApplication::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+    #ifdef DEBUG
+    std::cout << "checkDeviceExtensionSupport()" << std::endl;
+    #endif
+    
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
@@ -153,6 +171,10 @@ bool HelloTriangleApplication::checkDeviceExtensionSupport(VkPhysicalDevice devi
 }
 
 QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice device) {
+    #ifdef DEBUG
+    std::cout << "findQueueFamilies()" << std::endl;
+    #endif
+    
     QueueFamilyIndices indices;
     uint32_t queueFamilyCount;
 
@@ -184,6 +206,10 @@ QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice 
 }
 
 SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(VkPhysicalDevice device) {
+    #ifdef DEBUG
+    std::cout << "querySwapChainSupport()" << std::endl;
+    #endif
+    
     SwapChainSupportDetails details;
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, mSurface, &details.capabilities);
@@ -208,6 +234,10 @@ SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(VkPhysic
 }
 
 VkSurfaceFormatKHR HelloTriangleApplication::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+    #ifdef DEBUG
+    std::cout << "chooseSwapSurfaceFormat()" << std::endl;
+    #endif
+    
     if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED) {
         return {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
     }
@@ -222,6 +252,10 @@ VkSurfaceFormatKHR HelloTriangleApplication::chooseSwapSurfaceFormat(const std::
 }
 
 VkPresentModeKHR HelloTriangleApplication::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+    #ifdef DEBUG
+    std::cout << "chooseSwapPresentMode()" << std::endl;
+    #endif
+    
     VkPresentModeKHR bestMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     
     for (const auto& presentMode : availablePresentModes) {
@@ -236,6 +270,10 @@ VkPresentModeKHR HelloTriangleApplication::chooseSwapPresentMode(const std::vect
 }
 
 VkExtent2D HelloTriangleApplication::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+    #ifdef DEBUG
+    std::cout << "chooseSwapExtent()" << std::endl;
+    #endif
+    
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
         return capabilities.currentExtent;
     } else {
@@ -253,6 +291,9 @@ VkExtent2D HelloTriangleApplication::chooseSwapExtent(const VkSurfaceCapabilitie
 }
 
 void HelloTriangleApplication::createLogicalDevice() {
+    #ifdef DEBUG
+    std::cout << "createLogicalDevice()" << std::endl;
+    #endif
     QueueFamilyIndices indices = findQueueFamilies(mPhysicalDevice);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -299,6 +340,9 @@ void HelloTriangleApplication::createLogicalDevice() {
 }
 
 void HelloTriangleApplication::createSwapChain() {
+    #ifdef DEBUG
+    std::cout << "createSwapChain()" << std::endl;
+    #endif
     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(mPhysicalDevice);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -346,6 +390,9 @@ void HelloTriangleApplication::createSwapChain() {
 }
 
 void HelloTriangleApplication::createSurface() {
+    #ifdef DEBUG
+    std::cout << "createSurface()" << std::endl;
+    #endif
     if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create the window surface");
     }
@@ -353,6 +400,9 @@ void HelloTriangleApplication::createSurface() {
 
 // Setup the debug callback function
 void HelloTriangleApplication::setupDebugCallback() {
+    #ifdef DEBUG
+    std::cout << "setupDebugCallback()" << std::endl;
+    #endif
     if (!enableValidationLayers) return;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
@@ -397,6 +447,10 @@ void HelloTriangleApplication::cleanup() {
 
 // Check that the wanted validation layers are available
 bool HelloTriangleApplication::checkValidationLayerSupport() {
+    #ifdef DEBUG
+    std::cout << "checkValidationLayerSupport()" << std::endl;
+    #endif
+    
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
     std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -422,6 +476,10 @@ bool HelloTriangleApplication::checkValidationLayerSupport() {
 
 // Retrieve the required extensions
 std::vector<const char*> HelloTriangleApplication::getRequiredExtensions() {
+    #ifdef DEBUG
+    std::cout << "getRequiredExtensions()" << std::endl;
+    #endif
+    
     uint32_t glfwExtensionCount{0};
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
