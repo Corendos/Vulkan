@@ -59,6 +59,11 @@ class HelloTriangleApplication {
             "VK_LAYER_LUNARG_standard_validation"
         };
 
+        // Required device extensions
+        const std::vector<const char*> deviceExtension = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        };
+
         // Initialize Window
         void initWindow();
 
@@ -76,6 +81,9 @@ class HelloTriangleApplication {
 
         // Check if the device is suitable for our use
         bool isDeviceSuitable(VkPhysicalDevice device);
+
+        // Check that the device support the required extension
+        bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
         // Retrieve the device's queue families
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);

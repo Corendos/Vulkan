@@ -122,10 +122,28 @@ bool HelloTriangleApplication::isDeviceSuitable(VkPhysicalDevice device) {
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
     QueueFamilyIndices indices = findQueueFamilies(device);
 
+    bool extensionSupported = checkDeviceExtensionSupport(device);
+
     return (
         deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ||
         deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) &&
-        deviceFeatures.geometryShader && indices.isComplete();
+        deviceFeatures.geometryShader && indices.isComplete() &&
+        extensionSupported;
+}
+
+bool HelloTriangleApplication::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+    std::set<std::string> requiredExtension(deviceExtension.begin(), deviceExtension.end());
+
+    for (const auto& extension : availableExtensions) {
+        requiredExtension.erase(extension.extensionName);
+    }
+
+    return requiredExtension.empty();
 }
 
 QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice device) {
@@ -187,7 +205,9 @@ void HelloTriangleApplication::createLogicalDevice() {
 
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
-    deviceCreateInfo.enabledExtensionCount = 0;
+    deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtension.size());
+    deviceCreateInfo.ppEnabledExtensionNames = deviceExtension.data();
+
     if (enableValidationLayers) {
         deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
