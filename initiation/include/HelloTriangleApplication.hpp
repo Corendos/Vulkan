@@ -33,6 +33,12 @@ struct QueueFamilyIndices {
     }
 };
 
+struct SwapChainSupportDetails {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentMode;
+};
+
 class HelloTriangleApplication {
     public:
         void run();
@@ -45,6 +51,7 @@ class HelloTriangleApplication {
         VkQueue mGraphicsQueue;                             // Device graphic queue
         VkQueue mPresentQueue;                              // Device present queue
         VkSurfaceKHR mSurface;                              // Vulkan surface handler 
+        VkSwapchainKHR mSwapChain;                          // Vulkan swap chain handler
 
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
@@ -53,6 +60,9 @@ class HelloTriangleApplication {
         #else
             const bool enableValidationLayers = false;      // We don't want the validation layer otherwise
         #endif
+
+        const unsigned int WIDTH{800};
+        const unsigned int HEIGHT{600};
 
         // Wanted validation layers
         const std::vector<const char*> validationLayers = {
@@ -88,8 +98,23 @@ class HelloTriangleApplication {
         // Retrieve the device's queue families
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
+        // Get the swap chain support
+        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+
+        // Choose the best swap surface format
+        VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+
+        // Choose the best swap present mode
+        VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+
+        // Choose the swap extent
+        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
         // Create the logical device
         void createLogicalDevice();
+
+        // Create the swap chain
+        void createSwapChain();
 
         // Create the window surface
         void createSurface();
