@@ -38,7 +38,9 @@ class HelloTriangleApplication {
     private:
         GLFWwindow* mWindow;                                // Window handler
         VkInstance mInstance;                               // Vulkan instance
-        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;   // Vulkan physical device handler
+        VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;  // Vulkan physical device handler
+        VkDevice mDevice;                                   // Vulkan logical device handler
+        VkQueue mGraphicsQueue;                             // Device queues
 
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
@@ -71,7 +73,11 @@ class HelloTriangleApplication {
         // Check if the device is suitable for our use
         bool isDeviceSuitable(VkPhysicalDevice device);
 
+        // Retrieve the device's queue families
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
+        // Create the logical device
+        void createLogicalDevice();
 
         // App main loop
         void mainLoop();

@@ -28,8 +28,8 @@ void HelloTriangleApplication::run() {
 
 // Initialize the window
 void HelloTriangleApplication::initWindow() {
-    const int WIDTH = 800;
-    const int HEIGHT = 600;
+    const int WIDTH{800};
+    const int HEIGHT{600};
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -43,6 +43,7 @@ void HelloTriangleApplication::initVulkan() {
     createInstance();
     setupDebugCallback();
     pickPhysicalDevice();
+    createLogicalDevice();
 }
 
 // Create Vulkan instance
@@ -51,7 +52,7 @@ void HelloTriangleApplication::createInstance() {
         throw std::runtime_error("Validation layers requested, but not available");
     }
 
-    VkApplicationInfo appInfo = {};
+    VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Vulkan Api";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -59,7 +60,7 @@ void HelloTriangleApplication::createInstance() {
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_0;
 
-    VkInstanceCreateInfo createInfo = {};
+    VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
@@ -74,7 +75,7 @@ void HelloTriangleApplication::createInstance() {
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
-    uint32_t extensionCount = 0;
+    uint32_t extensionCount{0};
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
     std::vector<VkExtensionProperties> extensionPropertiesList(extensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensionPropertiesList.data());
@@ -91,7 +92,7 @@ void HelloTriangleApplication::createInstance() {
 }
 
 void HelloTriangleApplication::pickPhysicalDevice() {
-    uint32_t deviceCount = 0;
+    uint32_t deviceCount{0};
     vkEnumeratePhysicalDevices(mInstance, &deviceCount, nullptr);
 
     if (deviceCount == 0) {
@@ -103,12 +104,12 @@ void HelloTriangleApplication::pickPhysicalDevice() {
 
     for (const auto& device : devices) {
         if (isDeviceSuitable(device)) {
-            physicalDevice = device;
+            mPhysicalDevice = device;
             break;
         }
     }
 
-    if (physicalDevice == VK_NULL_HANDLE) {
+    if (mPhysicalDevice == VK_NULL_HANDLE) {
         throw std::runtime_error("Failed to find a suitable GPU");
     }
 }
@@ -134,7 +135,7 @@ QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice 
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
-    int i = 0;
+    int i{0};
     for (const auto& queueFamily : queueFamilies) {
         if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             indices.graphicsFamily = i;
@@ -150,11 +151,46 @@ QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice 
     return indices;
 }
 
+void HelloTriangleApplication::createLogicalDevice() {
+    QueueFamilyIndices indices = findQueueFamilies(mPhysicalDevice);
+
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+    queueCreateInfo.queueCount = 1;
+
+    float queuePriority{1.0f};
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+
+    VkDeviceCreateInfo deviceCreateInfo{};
+    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+    deviceCreateInfo.queueCreateInfoCount = 1;
+
+    deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+
+    deviceCreateInfo.enabledExtensionCount = 0;
+    if (enableValidationLayers) {
+        deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+    } else {
+        deviceCreateInfo.enabledLayerCount = 0;
+    }
+
+    if(vkCreateDevice(mPhysicalDevice, &deviceCreateInfo, nullptr, &mDevice) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create logical device");
+    }
+
+    vkGetDeviceQueue(mDevice, indices.graphicsFamily.value(), 0, &mGraphicsQueue);
+}
+
 // Setup the debug callback function
 void HelloTriangleApplication::setupDebugCallback() {
     if (!enableValidationLayers) return;
 
-    VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
+    VkDebugUtilsMessengerCreateInfoEXT createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     createInfo.messageSeverity =
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
@@ -188,6 +224,7 @@ void HelloTriangleApplication::cleanup() {
     glfwDestroyWindow(mWindow);
     glfwTerminate();
 
+    vkDestroyDevice(mDevice, nullptr);
     vkDestroyInstance(mInstance, nullptr);
 }
 
@@ -218,7 +255,7 @@ bool HelloTriangleApplication::checkValidationLayerSupport() {
 
 // Retrieve the required extensions
 std::vector<const char*> HelloTriangleApplication::getRequiredExtensions() {
-    uint32_t glfwExtensionCount = 0;
+    uint32_t glfwExtensionCount{0};
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
