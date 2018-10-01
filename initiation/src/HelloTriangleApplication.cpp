@@ -47,6 +47,7 @@ void HelloTriangleApplication::initVulkan() {
     pickPhysicalDevice();
     createLogicalDevice();
     createSwapChain();
+    createImageViews();
 }
 
 // Create Vulkan instance
@@ -290,6 +291,37 @@ VkExtent2D HelloTriangleApplication::chooseSwapExtent(const VkSurfaceCapabilitie
     }
 }
 
+void HelloTriangleApplication::createImageViews() {
+    #ifdef DEBUG
+    std::cout << "createImageViews()" << std::endl;
+    #endif
+
+    mSwapChainImageViews.resize(mSwapChainImages.size());
+
+    for (size_t i{0}; i < mSwapChainImages.size();++i) {
+        VkImageViewCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.image = mSwapChainImages[i];
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.format = mSwapChainImageFormat;
+
+        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        createInfo.subresourceRange.baseMipLevel = 0;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = 1;
+
+        if (vkCreateImageView(mDevice, &createInfo, nullptr, &mSwapChainImageViews[i]) != VK_SUCCESS) {
+            std::runtime_error("Failed to create image views");
+        }
+    }
+}
+
 void HelloTriangleApplication::createLogicalDevice() {
     #ifdef DEBUG
     std::cout << "createLogicalDevice()" << std::endl;
@@ -387,6 +419,13 @@ void HelloTriangleApplication::createSwapChain() {
     if (vkCreateSwapchainKHR(mDevice, &createInfo, nullptr, &mSwapChain) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create swap chain");
     }
+
+    vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, nullptr);
+    mSwapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, mSwapChainImages.data());
+
+    mSwapChainImageFormat = surfaceFormat.format;
+    mSwapChainExtent = extent;
 }
 
 void HelloTriangleApplication::createSurface() {
@@ -442,6 +481,10 @@ void HelloTriangleApplication::cleanup() {
 
     glfwDestroyWindow(mWindow);
     glfwTerminate();
+
+    for (auto imageView : mSwapChainImageViews) {
+        vkDestroyImageView(mDevice, imageView, nullptr);
+    }
 
     vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
     vkDestroySurfaceKHR(mInstance, mSurface, nullptr);

@@ -55,6 +55,7 @@ class HelloTriangleApplication {
         std::vector<VkImage> mSwapChainImages;              // Vulkan swap chain images
         VkFormat mSwapChainImageFormat;                     // Vulkan swap chain image format
         VkExtent2D mSwapChainExtent;                        // Vulkan swap chain extent
+        std::vector<VkImageView> mSwapChainImageViews;      // vulkan swap chain image views
 
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
@@ -112,6 +113,9 @@ class HelloTriangleApplication {
 
         // Choose the swap extent
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+        // Create the image views to use the images as color targets
+        void createImageViews();
 
         // Create the logical device
         void createLogicalDevice();
