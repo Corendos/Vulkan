@@ -1,11 +1,6 @@
 #ifndef HELLOTRIANGLEAPPLICATION
 #define HELLOTRIANGLEAPPLICATION
 
-#include <vulkan/vulkan.h>
-
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
@@ -15,30 +10,12 @@
 #include <set>
 #include <fstream>
 
-VkResult createDebugUtilsMessengerEXT(
-    VkInstance instance,
-    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-    const VkAllocationCallbacks* pAllocator,
-    VkDebugUtilsMessengerEXT* pCallback);
-void destroyDebugUtilsMessengerEXT(
-    VkInstance instance,
-    VkDebugUtilsMessengerEXT pCallback,
-    const VkAllocationCallbacks* pAllocator);
+#include <vulkan/vulkan.h>
 
-struct QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 
-    bool isComplete() {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
-
-struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentMode;
-};
+#include "utils.hpp"
 
 class HelloTriangleApplication {
     public:
@@ -74,8 +51,8 @@ class HelloTriangleApplication {
             const bool enableValidationLayers{false};      // We don't want the validation layer otherwise
         #endif
 
-        const unsigned int WIDTH{800};
-        const unsigned int HEIGHT{600};
+        const unsigned int WIDTH{3200};
+        const unsigned int HEIGHT{1800};
 
         // Wanted validation layers
         const std::vector<const char*> validationLayers = {

@@ -1,31 +1,16 @@
 #include "HelloTriangleApplication.hpp"
+#include "utils.hpp"
 
-// Proxy to get the extension function
-VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-    const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pCallback) {
-        auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-        if (func != nullptr) {
-            return func(instance, pCreateInfo, pAllocator, pCallback);
-        } else {
-            return VK_ERROR_EXTENSION_NOT_PRESENT;
-        }
-    }
-
-// Proxy to get the extension function
-void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT pCallback, const VkAllocationCallbacks* pAllocator) {
-        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-        if (func != nullptr) {
-            func(instance, pCallback, pAllocator);
-        }
-    }
-
+#pragma region Public Methods
 void HelloTriangleApplication::run() {
     initWindow();
     initVulkan();
     mainLoop();
     cleanup();
 }
+#pragma endregion
 
+#pragma region Private Methods
 void HelloTriangleApplication::drawFrame() {
     uint32_t imageIndex;
     vkAcquireNextImageKHR(mDevice, mSwapChain, std::numeric_limits<uint64_t>::max(),
@@ -925,7 +910,10 @@ std::vector<const char*> HelloTriangleApplication::getRequiredExtensions() {
         return extensions;
 }
 
-// Debug message callback
+#pragma endregion
+
+#pragma region Static Functions
+
 VKAPI_ATTR VkBool32 VKAPI_CALL HelloTriangleApplication::debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -951,3 +939,5 @@ std::vector<char> HelloTriangleApplication::readFile(const std::string& filename
 
     return buffer;
 }
+
+#pragma endregion
