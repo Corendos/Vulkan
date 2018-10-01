@@ -50,6 +50,9 @@ void HelloTriangleApplication::initVulkan() {
     createImageViews();
     createRenderPass();
     createGraphicsPipeline();
+    createFrameBuffers();
+    createCommandPool();
+    createCommandBuffers();
 }
 
 // Create Vulkan instance
@@ -332,19 +335,19 @@ void HelloTriangleApplication::createGraphicsPipeline() {
     auto vertexShaderCode = readFile("../shaders/build/vert.spv");
     auto fragmentShaderCode = readFile("../shaders/build/frag.spv");
 
-    mVertexShaderModule = createShaderModule(vertexShaderCode);
-    mFragmentShaderModule = createShaderModule(fragmentShaderCode);
+    VkShaderModule vertexShaderModule = createShaderModule(vertexShaderCode);
+    VkShaderModule fragmentShaderModule = createShaderModule(fragmentShaderCode);
 
     VkPipelineShaderStageCreateInfo vertexShaderStageInfo{};
     vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertexShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertexShaderStageInfo.module = mVertexShaderModule;
+    vertexShaderStageInfo.module = vertexShaderModule;
     vertexShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragmentShaderStageInfo{};
     fragmentShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragmentShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragmentShaderStageInfo.module = mFragmentShaderModule;
+    fragmentShaderStageInfo.module = fragmentShaderModule;
     fragmentShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {
@@ -473,6 +476,9 @@ void HelloTriangleApplication::createGraphicsPipeline() {
         mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mGraphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create the graphics pipeline");
     }
+
+    vkDestroyShaderModule(mDevice, vertexShaderModule, nullptr);
+    vkDestroyShaderModule(mDevice, fragmentShaderModule, nullptr);
 }
 
 void HelloTriangleApplication::createRenderPass() {
@@ -510,6 +516,96 @@ void HelloTriangleApplication::createRenderPass() {
 
     if (vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPass) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create the render pass");
+    }
+}
+
+void HelloTriangleApplication::createFrameBuffers() {
+    mSwapChainFrameBuffers.resize(mSwapChainImageViews.size());
+
+    for (size_t i{0}; i < mSwapChainImageViews.size();++i) {
+        VkImageView attachments[] = {
+            mSwapChainImageViews[i]
+        };
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = mRenderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = mSwapChainExtent.width;
+        framebufferInfo.height = mSwapChainExtent.height;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mSwapChainFrameBuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create framebuffers");
+        }
+    }
+}
+
+void HelloTriangleApplication::createCommandPool() {
+    #ifdef DEBUG
+    std::cout << "createCommandPool()" << std::endl;
+    #endif
+
+    QueueFamilyIndices queueFamilyIndices= findQueueFamilies(mPhysicalDevice);
+
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+    poolInfo.flags = 0;
+
+    if (vkCreateCommandPool(mDevice, &poolInfo, nullptr, &mCommandPool) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create command pool");
+    }
+}
+
+void HelloTriangleApplication::createCommandBuffers() {
+    #ifdef DEBUG
+    std::cout << "createCommandBuffers()" << std::endl;
+    #endif
+
+    mCommandBuffers.resize(mSwapChainFrameBuffers.size());
+
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = mCommandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = (uint32_t) mCommandBuffers.size();
+
+    if (vkAllocateCommandBuffers(mDevice, &allocInfo, mCommandBuffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create command buffers");
+    }
+
+    for(size_t i{0};i < mCommandBuffers.size();++i) {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        beginInfo.pInheritanceInfo = nullptr;
+
+        if (vkBeginCommandBuffer(mCommandBuffers[i], &beginInfo) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to begin recording command info");
+        }
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = mRenderPass;
+        renderPassInfo.framebuffer = mSwapChainFrameBuffers[i];
+
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = mSwapChainExtent;
+
+        VkClearValue clearColor{0.0f, 0.0f, 0.0f, 1.0f};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+
+        vkCmdBeginRenderPass(mCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline);
+        vkCmdDraw(mCommandBuffers[i], 3, 1, 0, 0);
+        vkCmdEndRenderPass(mCommandBuffers[i]);
+
+        if (vkEndCommandBuffer(mCommandBuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to record command buffers");
+        }
     }
 }
 
@@ -673,12 +769,15 @@ void HelloTriangleApplication::cleanup() {
     glfwDestroyWindow(mWindow);
     glfwTerminate();
 
+    for (auto framebuffer : mSwapChainFrameBuffers) {
+        vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
+    }
+
     for (auto imageView : mSwapChainImageViews) {
         vkDestroyImageView(mDevice, imageView, nullptr);
     }
-    
-    vkDestroyShaderModule(mDevice, mVertexShaderModule, nullptr);
-    vkDestroyShaderModule(mDevice, mFragmentShaderModule, nullptr);
+
+    vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
 
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyPipeline(mDevice, mGraphicsPipeline, nullptr);
