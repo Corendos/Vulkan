@@ -46,19 +46,22 @@ class HelloTriangleApplication {
     private:
         GLFWwindow* mWindow;                                // Window handler
         VkInstance mInstance;                               // Vulkan instance
-        VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;  // Vulkan physical device handler
+        VkPhysicalDevice mPhysicalDevice{VK_NULL_HANDLE};   // Vulkan physical device handler
         VkDevice mDevice;                                   // Vulkan logical device handler
         VkQueue mGraphicsQueue;                             // Device graphic queue
         VkQueue mPresentQueue;                              // Device present queue
         VkSurfaceKHR mSurface;                              // Vulkan surface handler 
         VkSwapchainKHR mSwapChain;                          // Vulkan swap chain handler
+        std::vector<VkImage> mSwapChainImages;              // Vulkan swap chain images
+        VkFormat mSwapChainImageFormat;                     // Vulkan swap chain image format
+        VkExtent2D mSwapChainExtent;                        // Vulkan swap chain extent
 
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
         #ifdef DEBUG
-            const bool enableValidationLayers = true;       // We want the validation layer in debug mode
+            const bool enableValidationLayers{true};       // We want the validation layer in debug mode
         #else
-            const bool enableValidationLayers = false;      // We don't want the validation layer otherwise
+            const bool enableValidationLayers{false};      // We don't want the validation layer otherwise
         #endif
 
         const unsigned int WIDTH{800};

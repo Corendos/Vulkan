@@ -432,6 +432,10 @@ void HelloTriangleApplication::mainLoop() {
 
 // Cleanup function
 void HelloTriangleApplication::cleanup() {
+    #ifdef DEBUG
+    std::cout << "cleanup()" << std::endl;
+    #endif
+
     if (enableValidationLayers) {
         destroyDebugUtilsMessengerEXT(mInstance, mCallback, nullptr);
     }
