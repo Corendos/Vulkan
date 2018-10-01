@@ -13,6 +13,7 @@
 #include <vector>
 #include <optional>
 #include <set>
+#include <fstream>
 
 VkResult createDebugUtilsMessengerEXT(
     VkInstance instance,
@@ -55,7 +56,10 @@ class HelloTriangleApplication {
         std::vector<VkImage> mSwapChainImages;              // Vulkan swap chain images
         VkFormat mSwapChainImageFormat;                     // Vulkan swap chain image format
         VkExtent2D mSwapChainExtent;                        // Vulkan swap chain extent
-        std::vector<VkImageView> mSwapChainImageViews;      // vulkan swap chain image views
+        std::vector<VkImageView> mSwapChainImageViews;      // Vulkan swap chain image views
+        VkShaderModule mVertexShaderModule;                 // The vertex shader module 
+        VkShaderModule mFragmentShaderModule;               // The fragment shader module
+        VkPipelineLayout mPipelineLayout;                   // Vulkan pipeline layout handler
 
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
@@ -114,6 +118,9 @@ class HelloTriangleApplication {
         // Choose the swap extent
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
+        // Create the graphics pipeline
+        void createGraphicsPipeline();
+
         // Create the image views to use the images as color targets
         void createImageViews();
 
@@ -134,6 +141,9 @@ class HelloTriangleApplication {
 
         // Check that the wanted validation layers are available
         bool checkValidationLayerSupport();
+
+        // Create a shader module from the given code
+        VkShaderModule createShaderModule(const std::vector<char>& code);
         
         // Retrieve the required extensions
         std::vector<const char*> getRequiredExtensions();
@@ -144,6 +154,8 @@ class HelloTriangleApplication {
             VkDebugUtilsMessageTypeFlagsEXT messageType,
             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
             void* pUserData);
+        
+        static std::vector<char> readFile(const std::string& filename);
 };
 
 #endif
