@@ -26,6 +26,44 @@ void HelloTriangleApplication::run() {
     cleanup();
 }
 
+void HelloTriangleApplication::drawFrame() {
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(mDevice, mSwapChain, std::numeric_limits<uint64_t>::max(),
+        mImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore waitSemaphores[] = {mImageAvailableSemaphore};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &mCommandBuffers[imageIndex];
+
+    VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphore};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    if (vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to submit draw command buffer");
+    }
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+
+    VkSwapchainKHR swapChains[] = {mSwapChain};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pResults = nullptr;
+
+    vkQueuePresentKHR(mGraphicsQueue, &presentInfo);
+}
+
 // Initialize the window
 void HelloTriangleApplication::initWindow() {
     glfwInit();
@@ -41,6 +79,7 @@ void HelloTriangleApplication::initVulkan() {
     #ifdef DEBUG
     std::cout << "initVulkan()" << std::endl;
     #endif
+
     createInstance();
     setupDebugCallback();
     createSurface();
@@ -53,6 +92,7 @@ void HelloTriangleApplication::initVulkan() {
     createFrameBuffers();
     createCommandPool();
     createCommandBuffers();
+    createSemaphores();
 }
 
 // Create Vulkan instance
@@ -507,12 +547,22 @@ void HelloTriangleApplication::createRenderPass() {
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
 
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = 1;
     renderPassInfo.pAttachments = &colorAttachment;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
 
     if (vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPass) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create the render pass");
@@ -520,6 +570,9 @@ void HelloTriangleApplication::createRenderPass() {
 }
 
 void HelloTriangleApplication::createFrameBuffers() {
+    #ifdef DEBUG
+    std::cout << "createFrameBuffers()" << std::endl;
+    #endif
     mSwapChainFrameBuffers.resize(mSwapChainImageViews.size());
 
     for (size_t i{0}; i < mSwapChainImageViews.size();++i) {
@@ -662,6 +715,7 @@ void HelloTriangleApplication::createSwapChain() {
     #ifdef DEBUG
     std::cout << "createSwapChain()" << std::endl;
     #endif
+
     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(mPhysicalDevice);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -715,6 +769,21 @@ void HelloTriangleApplication::createSwapChain() {
     mSwapChainExtent = extent;
 }
 
+void HelloTriangleApplication::createSemaphores() {
+    #ifdef DEBUG
+    std::cout << "createSemaphores()" << std::endl;
+    #endif
+
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    
+    if (
+        (vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mImageAvailableSemaphore) != VK_SUCCESS) ||
+        (vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mRenderFinishedSemaphore) != VK_SUCCESS)) {
+            throw std::runtime_error("Failed to create semaphores");
+        }
+}
+
 void HelloTriangleApplication::createSurface() {
     #ifdef DEBUG
     std::cout << "createSurface()" << std::endl;
@@ -753,6 +822,7 @@ void HelloTriangleApplication::setupDebugCallback() {
 void HelloTriangleApplication::mainLoop() {
     while(!glfwWindowShouldClose(mWindow)) {
         glfwPollEvents();
+        drawFrame();
     }
 }
 
@@ -776,6 +846,9 @@ void HelloTriangleApplication::cleanup() {
     for (auto imageView : mSwapChainImageViews) {
         vkDestroyImageView(mDevice, imageView, nullptr);
     }
+
+    vkDestroySemaphore(mDevice, mImageAvailableSemaphore, nullptr);
+    vkDestroySemaphore(mDevice, mRenderFinishedSemaphore, nullptr);
 
     vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
 

@@ -63,6 +63,8 @@ class HelloTriangleApplication {
         std::vector<VkFramebuffer> mSwapChainFrameBuffers;  // Vulkan framebuffers handlers
         VkCommandPool mCommandPool;                         // Vulkan command pool
         std::vector<VkCommandBuffer> mCommandBuffers;       // Vulkan command buffers
+        VkSemaphore mImageAvailableSemaphore;               // Semaphore handling image availability
+        VkSemaphore mRenderFinishedSemaphore;               // Semaphore handling rendering
 
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
@@ -148,8 +150,14 @@ class HelloTriangleApplication {
         // Create the window surface
         void createSurface();
 
+        // Create the semaphores
+        void createSemaphores();
+
         // App main loop
         void mainLoop();
+
+        // Draw the frame to the screen
+        void drawFrame();
 
         // Cleanup function
         void cleanup();
