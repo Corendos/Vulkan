@@ -59,7 +59,9 @@ class HelloTriangleApplication {
         std::vector<VkImageView> mSwapChainImageViews;      // Vulkan swap chain image views
         VkShaderModule mVertexShaderModule;                 // The vertex shader module 
         VkShaderModule mFragmentShaderModule;               // The fragment shader module
+        VkRenderPass mRenderPass;                           // Vulkan render pass handler
         VkPipelineLayout mPipelineLayout;                   // Vulkan pipeline layout handler
+        VkPipeline mGraphicsPipeline;                       // Vulkan pipeline handler
 
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
@@ -120,6 +122,9 @@ class HelloTriangleApplication {
 
         // Create the graphics pipeline
         void createGraphicsPipeline();
+
+        // Create the render pass
+        void createRenderPass();
 
         // Create the image views to use the images as color targets
         void createImageViews();
