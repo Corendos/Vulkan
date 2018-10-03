@@ -16,6 +16,7 @@
 #include <GLFW/glfw3.h>
 
 #include "utils.hpp"
+#include "BasicLogger.hpp"
 
 class HelloTriangleApplication {
     public:
@@ -45,14 +46,18 @@ class HelloTriangleApplication {
 
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
+        BasicLogger mOutLogger{"../out.log"};
+        BasicLogger mErrLogger{"../err.log"};
+
         #ifdef DEBUG
             const bool enableValidationLayers{true};       // We want the validation layer in debug mode
         #else
             const bool enableValidationLayers{false};      // We don't want the validation layer otherwise
         #endif
 
-        const unsigned int WIDTH{3200};
-        const unsigned int HEIGHT{1800};
+        const unsigned int WIDTH{800};
+        const unsigned int HEIGHT{600};
+        const std::string shaderPath = "/home/corentin/dev/C++/Vulkan/initiation/shaders/build/";
 
         // Wanted validation layers
         const std::vector<const char*> validationLayers = {
