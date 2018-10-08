@@ -43,11 +43,14 @@ class HelloTriangleApplication {
         std::vector<VkCommandBuffer> mCommandBuffers;       // Vulkan command buffers
         VkSemaphore mImageAvailableSemaphore;               // Semaphore handling image availability
         VkSemaphore mRenderFinishedSemaphore;               // Semaphore handling rendering
+        QueueFamilyIndices mIndices;
 
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
         BasicLogger mOutLogger{"../out.log"};
         BasicLogger mErrLogger{"../err.log"};
+
+        bool mWindowResized{false};
 
         #ifdef DEBUG
             const bool enableValidationLayers{true};       // We want the validation layer in debug mode
@@ -57,7 +60,7 @@ class HelloTriangleApplication {
 
         const unsigned int WIDTH{800};
         const unsigned int HEIGHT{600};
-        const std::string shaderPath = "/home/corentin/dev/C++/Vulkan/initiation/shaders/build/";
+        const std::string shaderPath{"/home/corentin/dev/C++/Vulkan/initiation/shaders/build/"};
 
         // Wanted validation layers
         const std::vector<const char*> validationLayers = {
@@ -144,6 +147,12 @@ class HelloTriangleApplication {
         // Cleanup function
         void cleanup();
 
+        // Recreate the swap chain
+        void recreateSwapChain();
+
+        // Clean the swap chain
+        void cleanupSwapChain();
+
         // Check that the wanted validation layers are available
         bool checkValidationLayerSupport();
 
@@ -161,6 +170,8 @@ class HelloTriangleApplication {
             void* pUserData);
         
         static std::vector<char> readFile(const std::string& filename);
+
+        static void windowResizedCallback(GLFWwindow* window, int width, int height);
 };
 
 #endif
