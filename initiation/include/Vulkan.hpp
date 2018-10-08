@@ -1,0 +1,106 @@
+#ifndef VULKAN
+#define VULKAN
+
+#include <iostream>
+#include <stdexcept>
+#include <cstdlib>
+#include <cstring>
+#include <vector>
+#include <optional>
+#include <set>
+#include <fstream>
+
+#include <vulkan/vulkan.h>
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+#include "utils.hpp"
+
+class Vulkan {
+    public:
+    void init(GLFWwindow* window, int width, int height);
+    void cleanup();
+    void drawFrame();
+    void requestResize();
+
+    VkDevice& getDevice();
+    VkSwapchainKHR& getSwapChain();
+
+    private:
+        GLFWwindow* mWindow;
+        VkInstance mInstance;                               // Vulkan instance
+        VkPhysicalDevice mPhysicalDevice{VK_NULL_HANDLE};   // Vulkan physical device handler
+        VkDevice mDevice;                                   // Vulkan logical device handler
+        VkQueue mGraphicsQueue;                             // Device graphic queue
+        VkQueue mPresentQueue;                              // Device present queue
+        VkSurfaceKHR mSurface;                              // Vulkan surface handler 
+        VkSwapchainKHR mSwapChain;                          // Vulkan swap chain handler
+        std::vector<VkImage> mSwapChainImages;              // Vulkan swap chain images
+        VkFormat mSwapChainImageFormat;                     // Vulkan swap chain image format
+        VkExtent2D mSwapChainExtent;                        // Vulkan swap chain extent
+        std::vector<VkImageView> mSwapChainImageViews;      // Vulkan swap chain image views
+        VkRenderPass mRenderPass;                           // Vulkan render pass handler
+        VkPipelineLayout mPipelineLayout;                   // Vulkan pipeline layout handler
+        VkPipeline mGraphicsPipeline;                       // Vulkan pipeline handler
+        std::vector<VkFramebuffer> mSwapChainFrameBuffers;  // Vulkan framebuffers handlers
+        VkCommandPool mCommandPool;                         // Vulkan command pool
+        std::vector<VkCommandBuffer> mCommandBuffers;       // Vulkan command buffers
+        VkSemaphore mImageAvailableSemaphore;               // Semaphore handling image availability
+        VkSemaphore mRenderFinishedSemaphore;               // Semaphore handling rendering
+        QueueFamilyIndices mIndices;
+        VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
+        
+        VkRect2D mWindowSize;
+        bool mResizeRequested{false};
+
+        const std::string shaderPath{"/home/corentin/dev/C++/Vulkan/initiation/shaders/build/"};
+        const std::vector<const char*> validationLayers = {
+            "VK_LAYER_LUNARG_standard_validation"
+        };
+        const std::vector<const char*> deviceExtension = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        };
+
+        #ifdef DEBUG
+            const bool enableValidationLayers{true};       // We want the validation layer in debug mode
+        #else
+            const bool enableValidationLayers{false};      // We don't want the validation layer otherwise
+        #endif
+
+        void createInstance();
+        void setupDebugCallback();
+        void pickPhysicalDevice();
+        bool isDeviceSuitable(VkPhysicalDevice device);
+        bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+        VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+        VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+        void createGraphicsPipeline();
+        void createRenderPass();
+        void createFrameBuffers();
+        void createCommandPool();
+        void createCommandBuffers();
+        void createImageViews();
+        void createLogicalDevice();
+        void createSwapChain();
+        void createSurface();
+        void createSemaphores();
+        void recreateSwapChain();
+        void cleanupSwapChain();
+        bool checkValidationLayerSupport();
+        VkShaderModule createShaderModule(const std::vector<char>& code);
+        std::vector<const char*> getRequiredExtensions();
+
+        static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+            VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+            VkDebugUtilsMessageTypeFlagsEXT messageType,
+            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+            void* pUserData);
+
+        static std::vector<char> readFile(const std::string& filename);
+};
+
+#endif
