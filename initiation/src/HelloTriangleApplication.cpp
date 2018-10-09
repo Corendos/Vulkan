@@ -2,16 +2,12 @@
 #include "utils.hpp"
 #include "PhysicalDevicePicker.hpp"
 
-#pragma region Public Methods
 void HelloTriangleApplication::run() {
-    initWindow();
-    initVulkan();
+    init();
     mainLoop();
     cleanup();
 }
-#pragma endregion
 
-#pragma region Private Methods
 void HelloTriangleApplication::mainLoop() {
     while(!glfwWindowShouldClose(mWindow)) {
         glfwPollEvents();
@@ -25,7 +21,7 @@ void HelloTriangleApplication::cleanup() {
     glfwTerminate();
 }
 
-void HelloTriangleApplication::initWindow() {
+void HelloTriangleApplication::init() {
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -33,19 +29,11 @@ void HelloTriangleApplication::initWindow() {
     mWindow = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan API", nullptr, nullptr);
     glfwSetFramebufferSizeCallback(mWindow, windowResizedCallback);
     glfwSetWindowUserPointer(mWindow, this);
-}
 
-void HelloTriangleApplication::initVulkan() {
     mVulkan.init(mWindow, WIDTH, HEIGHT);
 }
-
-#pragma endregion
-
-#pragma region Static Functions
 
 void HelloTriangleApplication::windowResizedCallback(GLFWwindow* window, int width, int height) {
     auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
     app->mVulkan.requestResize();
 }
-
-#pragma endregion

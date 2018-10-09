@@ -33,8 +33,7 @@ class HelloTriangleApplication {
         const unsigned int WIDTH{800};
         const unsigned int HEIGHT{600};
 
-        void initWindow();
-        void initVulkan();
+        void init();
         void mainLoop();
         void drawFrame();
         void cleanup();

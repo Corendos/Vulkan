@@ -50,6 +50,8 @@ class Vulkan {
         VkSemaphore mRenderFinishedSemaphore;               // Semaphore handling rendering
         QueueFamilyIndices mIndices;
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
+        VkBuffer mVertexBuffer;
+        VkDeviceMemory mVertexBufferMemory;
         
         VkRect2D mWindowSize;
         bool mResizeRequested{false};
@@ -70,7 +72,23 @@ class Vulkan {
 
         void createInstance();
         void setupDebugCallback();
+        void createSurface();
         void pickPhysicalDevice();
+        void createLogicalDevice();
+        void createSwapChain();
+        void createImageViews();
+        void createRenderPass();
+        void createGraphicsPipeline();
+        void createFrameBuffers();
+        void createCommandPool();
+        void createVertexBuffer();
+        void createCommandBuffers();
+        void createSemaphores();
+
+        void recreateSwapChain();
+        void cleanupSwapChain();
+        bool checkValidationLayerSupport();
+
         bool isDeviceSuitable(VkPhysicalDevice device);
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
@@ -78,21 +96,9 @@ class Vulkan {
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
         VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-        void createGraphicsPipeline();
-        void createRenderPass();
-        void createFrameBuffers();
-        void createCommandPool();
-        void createCommandBuffers();
-        void createImageViews();
-        void createLogicalDevice();
-        void createSwapChain();
-        void createSurface();
-        void createSemaphores();
-        void recreateSwapChain();
-        void cleanupSwapChain();
-        bool checkValidationLayerSupport();
         VkShaderModule createShaderModule(const std::vector<char>& code);
         std::vector<const char*> getRequiredExtensions();
+        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
