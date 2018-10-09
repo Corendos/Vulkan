@@ -88,6 +88,9 @@ class Vulkan {
         void recreateSwapChain();
         void cleanupSwapChain();
         bool checkValidationLayerSupport();
+        void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+            VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memoryBuffer);
+        void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
         bool isDeviceSuitable(VkPhysicalDevice device);
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
