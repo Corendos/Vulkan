@@ -3,6 +3,7 @@
 #include "BasicLogger.hpp"
 #include "PhysicalDevicePicker.hpp"
 #include "Vertex.hpp"
+#include "PrintHelper.hpp"
 
 void Vulkan::init(GLFWwindow* window, int width, int height) {
     mWindowSize = {width, height};
@@ -20,8 +21,10 @@ void Vulkan::init(GLFWwindow* window, int width, int height) {
     createFrameBuffers();
     createCommandPool();
     createVertexBuffer();
+    createIndicesBuffer();
     createCommandBuffers();
     createSemaphores();
+    test();
 }
 
 void Vulkan::cleanup() {
@@ -30,6 +33,9 @@ void Vulkan::cleanup() {
 
     vkDestroyBuffer(mDevice, mVertexBuffer, nullptr);
     vkFreeMemory(mDevice, mVertexBufferMemory, nullptr);
+
+    vkDestroyBuffer(mDevice, mIndicesBuffer, nullptr);
+    vkFreeMemory(mDevice, mIndicesBufferMemory, nullptr);
 
     if (enableValidationLayers) {
         destroyDebugUtilsMessengerEXT(mInstance, mCallback, nullptr);
@@ -569,6 +575,32 @@ void Vulkan::createVertexBuffer() {
     vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
 }
 
+void Vulkan::createIndicesBuffer() {
+    VkDeviceSize size = sizeof(indices[0]) * indices.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    createBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer, stagingBufferMemory);
+    
+    void* data;
+    vkMapMemory(mDevice, stagingBufferMemory, 0, size, 0, &data);
+    memcpy(data, indices.data(), (size_t)size);
+    vkUnmapMemory(mDevice, stagingBufferMemory);
+
+    createBuffer(size,
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        mIndicesBuffer, mIndicesBufferMemory);
+
+    copyBuffer(stagingBuffer, mIndicesBuffer, size);
+
+    vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
+    vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
+}
+
 void Vulkan::createCommandBuffers() {
 
     mCommandBuffers.resize(mSwapChainFrameBuffers.size());
@@ -611,8 +643,9 @@ void Vulkan::createCommandBuffers() {
         VkBuffer vertexBuffers[] = {mVertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(mCommandBuffers[i], mIndicesBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-        vkCmdDraw(mCommandBuffers[i], static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+        vkCmdDrawIndexed(mCommandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
         vkCmdEndRenderPass(mCommandBuffers[i]);
 
         if (vkEndCommandBuffer(mCommandBuffers[i]) != VK_SUCCESS) {
@@ -951,4 +984,10 @@ std::vector<char> Vulkan::readFile(const std::string& filename) {
     file.close();
 
     return buffer;
+}
+
+void Vulkan::test() {
+    VkPhysicalDeviceMemoryProperties properties;
+    vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &properties);
+    std::cout << PrintHelper::toString(properties) << std::endl;
 }

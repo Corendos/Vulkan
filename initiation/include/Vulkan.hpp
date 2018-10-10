@@ -52,6 +52,8 @@ class Vulkan {
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
         VkBuffer mVertexBuffer;
         VkDeviceMemory mVertexBufferMemory;
+        VkBuffer mIndicesBuffer;
+        VkDeviceMemory mIndicesBufferMemory;
         
         VkRect2D mWindowSize;
         bool mResizeRequested{false};
@@ -82,8 +84,11 @@ class Vulkan {
         void createFrameBuffers();
         void createCommandPool();
         void createVertexBuffer();
+        void createIndicesBuffer();
         void createCommandBuffers();
         void createSemaphores();
+
+        void test();
 
         void recreateSwapChain();
         void cleanupSwapChain();
