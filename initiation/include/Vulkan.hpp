@@ -16,9 +16,12 @@
 #include <GLFW/glfw3.h>
 
 #include "utils.hpp"
+#include "memory/MemoryManager.hpp"
 
 class Vulkan {
     public:
+    Vulkan();
+
     void init(GLFWwindow* window, int width, int height);
     void cleanup();
     void drawFrame();
@@ -42,6 +45,7 @@ class Vulkan {
         std::vector<VkImageView> mSwapChainImageViews;      // Vulkan swap chain image views
         VkRenderPass mRenderPass;                           // Vulkan render pass handler
         VkPipelineLayout mPipelineLayout;                   // Vulkan pipeline layout handler
+        VkDescriptorSetLayout mDescriptorSetLayout;
         VkPipeline mGraphicsPipeline;                       // Vulkan pipeline handler
         std::vector<VkFramebuffer> mSwapChainFrameBuffers;  // Vulkan framebuffers handlers
         VkCommandPool mCommandPool;                         // Vulkan command pool
@@ -54,6 +58,12 @@ class Vulkan {
         VkDeviceMemory mVertexBufferMemory;
         VkBuffer mIndicesBuffer;
         VkDeviceMemory mIndicesBufferMemory;
+        std::vector<VkBuffer> mUniformBuffers;
+        std::vector<VkDeviceMemory> mUniformBuffersMemory;
+        VkDescriptorPool mDescriptorPool;
+        std::vector<VkDescriptorSet> mDescriptorSets;
+
+        MemoryManager mMemoryManager;
         
         VkRect2D mWindowSize;
         bool mResizeRequested{false};
@@ -80,15 +90,19 @@ class Vulkan {
         void createSwapChain();
         void createImageViews();
         void createRenderPass();
+        void createDescriptorSetLayout();
         void createGraphicsPipeline();
         void createFrameBuffers();
         void createCommandPool();
         void createVertexBuffer();
         void createIndicesBuffer();
+        void createUniformBuffer();
+        void createDescriptorPool();
+        void createDescriptorSets();
         void createCommandBuffers();
         void createSemaphores();
-
-        void test();
+        
+        void updateUniformData(uint32_t imageIndex);
 
         void recreateSwapChain();
         void cleanupSwapChain();

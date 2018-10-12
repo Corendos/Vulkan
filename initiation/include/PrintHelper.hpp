@@ -14,6 +14,7 @@ typedef enum {
 class PrintHelper {
     public:
         static char fill;
+        static size_t tabStep;
         static std::string toString(VkPhysicalDeviceMemoryProperties& properties, size_t tabCount = 0);
 
         static std::string toString(VkMemoryHeap memoryHeap, size_t tabCount = 0);

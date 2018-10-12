@@ -1,5 +1,5 @@
 file(
-    GLOB
+    GLOB_RECURSE
     src
     *.cpp
 )

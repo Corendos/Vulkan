@@ -1,6 +1,7 @@
 #include "PrintHelper.hpp"
 
-char PrintHelper::fill = '.';
+char PrintHelper::fill = ' ';
+size_t PrintHelper::tabStep = 2;
 
 std::string PrintHelper::toString(VkPhysicalDeviceMemoryProperties& properties, size_t tabCount) {
     std::ostringstream stream;
@@ -8,10 +9,10 @@ std::string PrintHelper::toString(VkPhysicalDeviceMemoryProperties& properties, 
         << "PhysicalDeviceMemoryProperties" << std::endl
         << std::string(tabCount, PrintHelper::fill) << "Memory Heap Count: " << properties.memoryHeapCount << std::endl
         << std::string(tabCount, PrintHelper::fill) << "Memory Heap:" << std::endl
-        << PrintHelper::toString(properties.memoryHeaps, properties.memoryHeapCount, tabCount + 4)
+        << PrintHelper::toString(properties.memoryHeaps, properties.memoryHeapCount, tabCount + PrintHelper::tabStep)
         << std::string(tabCount, PrintHelper::fill) << "Memory Type Count: " << properties.memoryTypeCount << std::endl
         << std::string(tabCount, PrintHelper::fill) << "Memory Type:" << std::endl
-        << PrintHelper::toString(properties.memoryTypes, properties.memoryTypeCount, tabCount + 4);
+        << PrintHelper::toString(properties.memoryTypes, properties.memoryTypeCount, tabCount + PrintHelper::tabStep);
     return stream.str();
 }
 
@@ -20,7 +21,7 @@ std::string PrintHelper::toString(VkMemoryHeap memoryHeap, size_t tabCount) {
     stream
         << std::string(tabCount, PrintHelper::fill) << "Size: " << memoryHeap.size << std::endl
         << std::string(tabCount, PrintHelper::fill) << "Flags: " << std::endl
-        << PrintHelper::toStringVkMemoryHeapFlags(memoryHeap.flags, tabCount + 4);
+        << PrintHelper::toStringVkMemoryHeapFlags(memoryHeap.flags, tabCount + PrintHelper::tabStep);
     return stream.str();
 }
 
@@ -38,14 +39,14 @@ std::string PrintHelper::toString(VkMemoryType memoryType, size_t tabCount) {
     stream
         << std::string(tabCount, PrintHelper::fill) << "Heap Index: " << memoryType.heapIndex << std::endl
         << std::string(tabCount, PrintHelper::fill) << "Property Flags:" << std::endl
-        << PrintHelper::toStringVkMemoryPropertyFlags(memoryType.propertyFlags, tabCount + 4);
+        << PrintHelper::toStringVkMemoryPropertyFlags(memoryType.propertyFlags, tabCount + PrintHelper::tabStep);
     return stream.str();
 }
 
 std::string PrintHelper::toString(VkMemoryType* memoryType, size_t count, size_t tabCount) {
     std::ostringstream stream;
     for (size_t i{0};i < count;++i) {
-        stream << PrintHelper::toString(memoryType[i], tabCount + 4);
+        stream << PrintHelper::toString(memoryType[i], tabCount + PrintHelper::tabStep);
     }
     return stream.str();
 }

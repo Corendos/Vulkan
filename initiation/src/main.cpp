@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "HelloTriangleApplication.hpp"
+#include "BinaryTree.hpp"
 
 int main() {
     HelloTriangleApplication app;
@@ -16,6 +17,5 @@ int main() {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
-
     return EXIT_SUCCESS;
 }
