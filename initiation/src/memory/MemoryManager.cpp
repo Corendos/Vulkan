@@ -5,8 +5,12 @@
 #include "PrintHelper.hpp"
 #include "utils.hpp"
 
+uint32_t MemoryManager::initialAllocationSize = 256 * mega;
+
 MemoryManager::MemoryManager(VkPhysicalDevice& physicalDevice, VkDevice& device) :
-    mDevice(device), mPhysicalDevice(physicalDevice) {}
+    mDevice(device), mPhysicalDevice(physicalDevice) {
+    mMemoryOccupation.resize(initialAllocationSize / (4 * kilo));
+}
 
 void MemoryManager::init() {
     findSuitableMemoryHeap();
@@ -35,7 +39,7 @@ void MemoryManager::initialAllocation() {
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.memoryTypeIndex = mMemoryTypeIndex;
-    allocInfo.allocationSize = 1 * giga;
+    allocInfo.allocationSize = initialAllocationSize;
 
     if (vkAllocateMemory(mDevice, &allocInfo, nullptr, &mMemory) != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate memory");

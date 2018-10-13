@@ -1,6 +1,8 @@
 #ifndef MEMORYMANAGER
 #define MEMORYMANAGER
 
+#include <vector>
+
 #include <vulkan/vulkan.h>
 
 class MemoryManager {
@@ -20,6 +22,9 @@ class MemoryManager {
         VkDeviceMemory mMemory;
         uint32_t mMemoryHeapIndex;
         uint32_t mMemoryTypeIndex;
+
+        std::vector<bool> mMemoryOccupation;
+        static uint32_t initialAllocationSize;
 
         void findSuitableMemoryHeap();
         void initialAllocation();
