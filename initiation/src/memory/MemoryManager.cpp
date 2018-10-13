@@ -40,6 +40,10 @@ void MemoryManager::memoryCheckLog() {
     file.open("./memory.log", std::ios::out | std::ios::trunc);
 
     for (size_t i{0};i < mMemoryProperties.memoryHeapCount;++i) {
+        file << "Memory Heap #" << i << " : " << mDeviceMemoryAllocation[i].size() << " allocation(s)" << std::endl;
+    }
+
+    for (size_t i{0};i < mMemoryProperties.memoryHeapCount;++i) {
         for (size_t j{0};j < mMemoryHeapOccupations[i].size();++j) {
             for (size_t blockIndex{0};blockIndex < mMemoryHeapOccupations[i][j].blocks.size();++blockIndex) {
                 if (mMemoryHeapOccupations[i][j].blocks[blockIndex]) {
@@ -48,7 +52,6 @@ void MemoryManager::memoryCheckLog() {
                         << ") not freed" << std::endl;
                 }
             }
-            file << std::endl;
         }
     }
     file.close();
