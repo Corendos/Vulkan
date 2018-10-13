@@ -25,6 +25,8 @@ class MemoryManager {
         void mapMemory(VkBuffer& buffer, VkDeviceSize size, void** data);
         void unmapMemory(VkBuffer& buffer);
 
+        void memoryCheckLog();
+
     private:
         VkDevice& mDevice;
         VkPhysicalDevice& mPhysicalDevice;

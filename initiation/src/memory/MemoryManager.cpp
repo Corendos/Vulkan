@@ -1,13 +1,14 @@
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 
 #include "memory/MemoryManager.hpp"
 
 #include "PrintHelper.hpp"
 #include "utils.hpp"
 
-uint32_t MemoryManager::initialAllocationSize = 256 * mega;
-uint32_t MemoryManager::pageSize = 4 * kilo;
+uint32_t MemoryManager::initialAllocationSize = 256;
+uint32_t MemoryManager::pageSize = 128;
 
 MemoryManager::MemoryManager(VkPhysicalDevice& physicalDevice, VkDevice& device) :
     mDevice(device), mPhysicalDevice(physicalDevice) {
@@ -28,13 +29,19 @@ void MemoryManager::printInfo() {
             << "    " << freeBlock << " free blocks" << std::endl
             << "    " << occupiedBlock << " occupied blocks" << std::endl;
     }
+}
 
+void MemoryManager::memoryCheckLog() {
     std::ofstream file;
     file.open("./memory.log", std::ios::out | std::ios::trunc);
+
     for (size_t i{0};i < mMemoryProperties.memoryHeapCount;++i) {
-        file << "Memory Heap #" << i << std::endl;
         for (size_t blockIndex{0};blockIndex < mMemoryOccupations[i].size();++blockIndex) {
-            file << mMemoryOccupations[i][blockIndex] ? "1" : "0";
+            if (mMemoryOccupations[i][blockIndex]) {
+                file << "Memory Block #" << blockIndex << std::hex << " (0x"
+                    << blockIndex * pageSize << " - 0x" << (blockIndex + 1) * pageSize
+                    << ") not freed" << std::endl;
+            }
         }
         file << std::endl;
     }

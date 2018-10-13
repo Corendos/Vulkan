@@ -46,9 +46,9 @@ void Vulkan::cleanup() {
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 
-    for (size_t i{0};i < mUniformBuffers.size();++i) {
+    /*for (size_t i{0};i < mUniformBuffers.size();++i) {
         mMemoryManager.freeBuffer(mUniformBuffers[i]);
-    }
+    }*/
 
     mMemoryManager.freeBuffer(mVertexBuffer);
     mMemoryManager.freeBuffer(mIndicesBuffer);
@@ -59,7 +59,7 @@ void Vulkan::cleanup() {
 
 
     mMemoryManager.cleanup();
-    mMemoryManager.printInfo();
+    mMemoryManager.memoryCheckLog();
 
     vkDestroySemaphore(mDevice, mImageAvailableSemaphore, nullptr);
     vkDestroySemaphore(mDevice, mRenderFinishedSemaphore, nullptr);
