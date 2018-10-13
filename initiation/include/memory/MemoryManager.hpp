@@ -3,10 +3,12 @@
 
 #include <vector>
 #include <map>
+#include <tuple>
 
 #include <vulkan/vulkan.h>
 
 #include "MemoryBlock.hpp"
+#include "MemoryHeapOccupation.hpp"
 #include "BufferInfo.hpp"
 
 class MemoryManager {
@@ -31,17 +33,18 @@ class MemoryManager {
         VkDevice& mDevice;
         VkPhysicalDevice& mPhysicalDevice;
         VkPhysicalDeviceMemoryProperties mMemoryProperties;
-        std::vector<VkDeviceMemory> mMemoryHeaps;
+        std::vector<std::vector<VkDeviceMemory>> mDeviceMemoryAllocation;
 
-        std::vector<std::vector<MemoryBlock>> mMemoryOccupations;
+        std::vector<std::vector<MemoryHeapOccupation>> mMemoryHeapOccupations;
         std::map<VkBuffer, BufferInfo> mBuffersInfo;
-        static uint32_t initialAllocationSize;
+        static uint32_t allocationSize;
         static uint32_t pageSize;
 
         void initialAllocation();
+        void allocate(uint32_t memoryTypeIndex);
         int32_t findMemoryType(VkMemoryRequirements& memoryRequirements);
-        int32_t findSuitableMemoryBlock(uint32_t blockCount, uint32_t memoryHeapIndex);
-
+        std::tuple<int32_t, int32_t> findSuitableMemoryBlock(uint32_t blockCount, uint32_t memoryHeapIndex);
+        int32_t findSuitableMemoryBlock(uint32_t blockCount, uint32_t memoryHeapIndex, uint32_t memoryHeapOffset);
         static uint32_t getBlockCount(uint32_t requiredSize);
 };
 
