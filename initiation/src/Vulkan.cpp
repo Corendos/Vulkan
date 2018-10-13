@@ -855,6 +855,8 @@ void Vulkan::createBuffer(
     VkMemoryRequirements memoryRequirements{};
     vkGetBufferMemoryRequirements(mDevice, buffer, &memoryRequirements);
 
+    mMemoryManager.allocateForBuffer(buffer, memoryRequirements);
+
     VkMemoryAllocateInfo allocateInfo{};
     allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocateInfo.allocationSize = memoryRequirements.size;

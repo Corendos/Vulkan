@@ -16,18 +16,20 @@ class MemoryManager {
         void printInfo();
         void cleanup();
 
+        void allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& memoryRequirements);
+
     private:
         VkDevice& mDevice;
         VkPhysicalDevice& mPhysicalDevice;
-        VkDeviceMemory mMemory;
-        uint32_t mMemoryHeapIndex;
-        uint32_t mMemoryTypeIndex;
+        VkPhysicalDeviceMemoryProperties mMemoryProperties;
+        std::vector<VkDeviceMemory> mMemoryHeaps;
 
-        std::vector<bool> mMemoryOccupation;
+        std::vector<std::vector<bool>> mMemoryOccupations;
         static uint32_t initialAllocationSize;
+        static uint32_t pageSize;
 
-        void findSuitableMemoryHeap();
         void initialAllocation();
+        static uint32_t getBlockCount(uint32_t requiredSize);
 };
 
 #endif
