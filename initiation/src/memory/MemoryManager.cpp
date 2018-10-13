@@ -7,8 +7,8 @@
 #include "PrintHelper.hpp"
 #include "utils.hpp"
 
-uint32_t MemoryManager::allocationSize = 256;
-uint32_t MemoryManager::pageSize = 128;
+uint32_t MemoryManager::allocationSize = 256 * mega;
+uint32_t MemoryManager::pageSize = 4 * kilo;
 
 MemoryManager::MemoryManager(VkPhysicalDevice& physicalDevice, VkDevice& device) :
     mDevice(device), mPhysicalDevice(physicalDevice) {
