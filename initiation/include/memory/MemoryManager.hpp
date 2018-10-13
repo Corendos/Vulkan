@@ -2,8 +2,12 @@
 #define MEMORYMANAGER
 
 #include <vector>
+#include <map>
 
 #include <vulkan/vulkan.h>
+
+#include "MemoryBlock.hpp"
+#include "BufferInfo.hpp"
 
 class MemoryManager {
     public:
@@ -17,6 +21,9 @@ class MemoryManager {
         void cleanup();
 
         void allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& memoryRequirements);
+        void freeBuffer(VkBuffer& buffer);
+        void mapMemory(VkBuffer& buffer, VkDeviceSize size, void** data);
+        void unmapMemory(VkBuffer& buffer);
 
     private:
         VkDevice& mDevice;
@@ -24,11 +31,15 @@ class MemoryManager {
         VkPhysicalDeviceMemoryProperties mMemoryProperties;
         std::vector<VkDeviceMemory> mMemoryHeaps;
 
-        std::vector<std::vector<bool>> mMemoryOccupations;
+        std::vector<std::vector<MemoryBlock>> mMemoryOccupations;
+        std::map<VkBuffer, BufferInfo> mBuffersInfo;
         static uint32_t initialAllocationSize;
         static uint32_t pageSize;
 
         void initialAllocation();
+        int32_t findMemoryType(VkMemoryRequirements& memoryRequirements);
+        int32_t findSuitableMemoryBlock(uint32_t blockCount, uint32_t memoryHeapIndex);
+
         static uint32_t getBlockCount(uint32_t requiredSize);
 };
 

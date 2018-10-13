@@ -22,10 +22,7 @@ void Vulkan::init(GLFWwindow* window, int width, int height) {
     createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
-
     mMemoryManager.init();
-    mMemoryManager.printInfo();
-
     createSwapChain();
     createImageViews();
     createRenderPass();
@@ -46,25 +43,23 @@ void Vulkan::cleanup() {
     vkDeviceWaitIdle(mDevice);
     cleanupSwapChain();
 
-    mMemoryManager.cleanup();
-
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 
     for (size_t i{0};i < mUniformBuffers.size();++i) {
-        vkDestroyBuffer(mDevice, mUniformBuffers[i], nullptr);
-        vkFreeMemory(mDevice, mUniformBuffersMemory[i], nullptr);
+        mMemoryManager.freeBuffer(mUniformBuffers[i]);
     }
 
-    vkDestroyBuffer(mDevice, mVertexBuffer, nullptr);
-    vkFreeMemory(mDevice, mVertexBufferMemory, nullptr);
-
-    vkDestroyBuffer(mDevice, mIndicesBuffer, nullptr);
-    vkFreeMemory(mDevice, mIndicesBufferMemory, nullptr);
+    mMemoryManager.freeBuffer(mVertexBuffer);
+    mMemoryManager.freeBuffer(mIndicesBuffer);
 
     if (enableValidationLayers) {
         destroyDebugUtilsMessengerEXT(mInstance, mCallback, nullptr);
     }
+
+
+    mMemoryManager.cleanup();
+    mMemoryManager.printInfo();
 
     vkDestroySemaphore(mDevice, mImageAvailableSemaphore, nullptr);
     vkDestroySemaphore(mDevice, mRenderFinishedSemaphore, nullptr);
@@ -599,63 +594,58 @@ void Vulkan::createVertexBuffer() {
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
     VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer, stagingBufferMemory);
+        stagingBuffer);
 
     void* data;
-    vkMapMemory(mDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+    mMemoryManager.mapMemory(stagingBuffer, bufferSize, &data);
     memcpy(data, vertices.data(), (size_t)bufferSize);
-    vkUnmapMemory(mDevice, stagingBufferMemory);
+    mMemoryManager.unmapMemory(stagingBuffer);
 
     createBuffer(bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        mVertexBuffer, mVertexBufferMemory);
+        mVertexBuffer);
     
     copyBuffer(stagingBuffer, mVertexBuffer, bufferSize);
 
-    vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
-    vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
+    mMemoryManager.freeBuffer(stagingBuffer);
 }
 
 void Vulkan::createIndicesBuffer() {
     VkDeviceSize size = sizeof(indices[0]) * indices.size();
 
     VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
 
     createBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer, stagingBufferMemory);
+        stagingBuffer);
     
     void* data;
-    vkMapMemory(mDevice, stagingBufferMemory, 0, size, 0, &data);
+    mMemoryManager.mapMemory(stagingBuffer, size, &data);
     memcpy(data, indices.data(), (size_t)size);
-    vkUnmapMemory(mDevice, stagingBufferMemory);
+    mMemoryManager.unmapMemory(stagingBuffer);
 
     createBuffer(size,
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        mIndicesBuffer, mIndicesBufferMemory);
+        mIndicesBuffer);
 
     copyBuffer(stagingBuffer, mIndicesBuffer, size);
 
-    vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
-    vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
+    mMemoryManager.freeBuffer(stagingBuffer);
 }
 
 void Vulkan::createUniformBuffer() {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
     mUniformBuffers.resize(mSwapChainImages.size());
-    mUniformBuffersMemory.resize(mSwapChainImages.size());
 
     for (size_t i{0};i < mSwapChainImages.size();++i) {
         createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            mUniformBuffers[i], mUniformBuffersMemory[i]);
+            mUniformBuffers[i]);
     }
 }
 
@@ -841,7 +831,7 @@ bool Vulkan::checkValidationLayerSupport() {
 
 void Vulkan::createBuffer(
     VkDeviceSize size, VkBufferUsageFlags usage,
-    VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memoryBuffer) {
+    VkMemoryPropertyFlags properties, VkBuffer& buffer) {
     
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -856,18 +846,6 @@ void Vulkan::createBuffer(
     vkGetBufferMemoryRequirements(mDevice, buffer, &memoryRequirements);
 
     mMemoryManager.allocateForBuffer(buffer, memoryRequirements);
-
-    VkMemoryAllocateInfo allocateInfo{};
-    allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocateInfo.allocationSize = memoryRequirements.size;
-    allocateInfo.memoryTypeIndex = findMemoryType(memoryRequirements.memoryTypeBits,
-        properties);
-
-    if (vkAllocateMemory(mDevice, &allocateInfo, nullptr, &memoryBuffer) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate memory");
-    }
-
-    vkBindBufferMemory(mDevice, buffer, memoryBuffer, 0);
 }
 
 void Vulkan::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
@@ -1113,7 +1091,7 @@ void Vulkan::updateUniformData(uint32_t imageIndex) {
     ubo.proj = glm::vulkanPerspective(glm::radians(45.0f), mSwapChainExtent.width / (float)mSwapChainExtent.height, 0.1f, 10.0f);
 
     void* data;
-    vkMapMemory(mDevice, mUniformBuffersMemory[imageIndex], 0, sizeof(ubo), 0, &data);
+    mMemoryManager.mapMemory(mUniformBuffers[imageIndex], sizeof(ubo), &data);
     memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(mDevice, mUniformBuffersMemory[imageIndex]);
+    mMemoryManager.unmapMemory(mUniformBuffers[imageIndex]);
 }

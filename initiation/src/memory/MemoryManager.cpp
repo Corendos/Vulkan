@@ -70,48 +70,90 @@ void MemoryManager::cleanup() {
 }
 
 void MemoryManager::allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& memoryRequirements) {
+    int32_t memoryTypeIndex = findMemoryType(memoryRequirements);
+
+    if (memoryTypeIndex == -1) {
+        throw std::runtime_error("Unable to find a suitable memory type");
+    }
+
+    uint32_t blockCount = getBlockCount(memoryRequirements.size);
+    uint32_t memoryHeapIndex = mMemoryProperties.memoryTypes[memoryTypeIndex].heapIndex;
+
+    int32_t offset = findSuitableMemoryBlock(blockCount, memoryHeapIndex);
+
+    if (offset == -1) {
+        throw std::runtime_error("Unable to find enough space");
+    }
+
+    for (uint32_t i{static_cast<uint32_t>(offset)};i < offset + blockCount;++i) {
+        mMemoryOccupations[memoryHeapIndex][i] = true;
+        mMemoryOccupations[memoryHeapIndex][i].buffer = buffer;
+    }
+
+    mBuffersInfo[buffer] = {memoryHeapIndex, offset, blockCount};
+
+    vkBindBufferMemory(mDevice, buffer, mMemoryHeaps[memoryHeapIndex], offset * pageSize);
+}
+
+void MemoryManager::freeBuffer(VkBuffer& buffer) {
+    BufferInfo bufferInfo = mBuffersInfo[buffer];
+
+    for (uint32_t i{0};i < bufferInfo.blockCount;i++) {
+        mMemoryOccupations[bufferInfo.memoryHeapIndex][bufferInfo.offset + i].buffer = VK_NULL_HANDLE;
+        mMemoryOccupations[bufferInfo.memoryHeapIndex][bufferInfo.offset + i].occupied = false;
+    }
+
+    vkDestroyBuffer(mDevice, buffer, nullptr);
+}
+
+void MemoryManager::mapMemory(VkBuffer& buffer, VkDeviceSize size, void** data) {
+    BufferInfo bufferInfo = mBuffersInfo[buffer];
+    vkMapMemory(
+        mDevice,
+        mMemoryHeaps[bufferInfo.memoryHeapIndex],
+        bufferInfo.offset * pageSize,
+        size, 0, data);
+}
+
+void MemoryManager::unmapMemory(VkBuffer& buffer) {
+    BufferInfo bufferInfo = mBuffersInfo[buffer];
+    vkUnmapMemory(mDevice, mMemoryHeaps[bufferInfo.memoryHeapIndex]);
+}
+
+int32_t MemoryManager::findMemoryType(VkMemoryRequirements& memoryRequirements) {
     int32_t memoryTypeIndex = -1;
+
     for (size_t i{0};i < mMemoryProperties.memoryTypeCount;++i) {
         if (memoryRequirements.memoryTypeBits & (1 << i)) {
             memoryTypeIndex = i;
         }
     }
-    if (memoryTypeIndex == -1) {
-        throw std::runtime_error("Unable to find a suitable memory type");
-    }
 
-    std::cout   << "Required size: " << memoryRequirements.size << std::endl
-                << "Block count: " << getBlockCount(memoryRequirements.size) << std::endl;
+    return memoryTypeIndex;
+}
 
-    uint32_t blockCount = getBlockCount(memoryRequirements.size);
-    uint32_t memoryHeapIndex = mMemoryProperties.memoryTypes[memoryTypeIndex].heapIndex;
-    
+int32_t MemoryManager::findSuitableMemoryBlock(uint32_t blockCount, uint32_t memoryHeapIndex) {
     size_t i = 0;
-    size_t offset;
-    bool found = false;
+
     while(i < mMemoryOccupations[memoryHeapIndex].size()) {
-        offset = i;
-        size_t count = 0;
-        while (count < blockCount && !mMemoryOccupations[memoryHeapIndex][i]) {
-            count++;
-            i++;
+        uint32_t start = i;
+        uint32_t end = i + blockCount;
+
+        bool enough = true;
+        for (uint32_t j{start};j < end;++j) {
+            if (mMemoryOccupations[memoryHeapIndex][j]) {
+                i = j + 1;
+                enough = false;
+                break;
+            }
         }
 
-        if (count == blockCount) {
-            found = true;
-            break;
+        if (enough) {
+            return static_cast<int32_t>(start);
         }
-        i++;
     }
 
-    if (!found) {
-        throw std::runtime_error("Failed to find free blocks");
-    }
-
-    for (size_t i{offset};i < offset + blockCount;++i) {
-        mMemoryOccupations[memoryHeapIndex][i] = true;
-    }
-    printInfo();
+    return -1;
 }
 
 uint32_t MemoryManager::getBlockCount(uint32_t requiredSize) {
