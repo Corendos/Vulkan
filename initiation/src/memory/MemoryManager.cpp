@@ -61,19 +61,7 @@ void MemoryManager::initialAllocation() {
     mMemoryHeapOccupations.resize(mMemoryProperties.memoryHeapCount);
 
     for (size_t i{0};i < mMemoryProperties.memoryTypeCount;++i) {
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.memoryTypeIndex = i;
-        allocInfo.allocationSize = allocationSize;
-
-        uint32_t memoryHeapIndex = mMemoryProperties.memoryTypes[i].heapIndex;
-        VkDeviceMemory memoryAllocation;
-
-        if (vkAllocateMemory(mDevice, &allocInfo, nullptr, &memoryAllocation) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate memory");
-        }
-        mDeviceMemoryAllocation[memoryHeapIndex].push_back(memoryAllocation);
-        mMemoryHeapOccupations[memoryHeapIndex].push_back(MemoryHeapOccupation(allocationSize / pageSize));
+        allocate(i);
     }
 }
 
