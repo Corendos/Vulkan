@@ -122,6 +122,34 @@ void MemoryManager::allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& me
     vkBindBufferMemory(mDevice, buffer, mDeviceMemoryAllocation[memoryHeapIndex][memoryHeapOffset], offset * pageSize);
 }
 
+void MemoryManager::allocateForImage(VkImage& image, VkMemoryRequirements& memoryRequirements) {
+    int32_t memoryTypeIndex = findMemoryType(memoryRequirements);
+
+    if (memoryTypeIndex == -1) {
+        throw std::runtime_error("Unable to find a suitable memory type");
+    }
+
+    uint32_t blockCount = getBlockCount(memoryRequirements.size);
+    uint32_t memoryHeapIndex = mMemoryProperties.memoryTypes[memoryTypeIndex].heapIndex;
+
+    int32_t memoryHeapOffset, offset;
+    std::tie<int32_t, int32_t>(memoryHeapOffset, offset) = findSuitableMemoryBlock(blockCount, memoryHeapIndex);
+
+    if (memoryHeapOffset == -1) {
+        // TODO FIXME: Do another allocation
+        allocate(memoryTypeIndex);
+        std::tie<int32_t, int32_t>(memoryHeapOffset, offset) = findSuitableMemoryBlock(blockCount, memoryHeapIndex);
+    }
+
+    for (uint32_t i{static_cast<uint32_t>(offset)};i < offset + blockCount;++i) {
+        mMemoryHeapOccupations[memoryHeapIndex][memoryHeapOffset].blocks[offset] = true;
+        mMemoryHeapOccupations[memoryHeapIndex][memoryHeapOffset].blocks[offset].image = image;
+    }
+
+    mImagesInfo[image] = {memoryHeapIndex, memoryHeapOffset, offset, blockCount};
+    vkBindImageMemory(mDevice, image, mDeviceMemoryAllocation[memoryHeapIndex][memoryHeapOffset], offset * pageSize);
+}
+
 void MemoryManager::freeBuffer(VkBuffer& buffer) {
     BufferInfo bufferInfo = mBuffersInfo[buffer];
 
@@ -131,6 +159,17 @@ void MemoryManager::freeBuffer(VkBuffer& buffer) {
     }
 
     vkDestroyBuffer(mDevice, buffer, nullptr);
+}
+
+void MemoryManager::freeImage(VkImage& image) {
+    BufferInfo imageInfo = mImagesInfo[image];
+
+    for (uint32_t i{0};i < imageInfo.blockCount;i++) {
+        mMemoryHeapOccupations[imageInfo.memoryHeapIndex][imageInfo.memoryHeapOffset].blocks[imageInfo.offset + i].buffer = VK_NULL_HANDLE;
+        mMemoryHeapOccupations[imageInfo.memoryHeapIndex][imageInfo.memoryHeapOffset].blocks[imageInfo.offset + i].occupied = false;
+    }
+    
+    vkDestroyImage(mDevice, image, nullptr);
 }
 
 void MemoryManager::mapMemory(VkBuffer& buffer, VkDeviceSize size, void** data) {

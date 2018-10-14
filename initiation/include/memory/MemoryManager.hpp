@@ -23,7 +23,9 @@ class MemoryManager {
         void cleanup();
 
         void allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& memoryRequirements);
+        void allocateForImage(VkImage& image, VkMemoryRequirements& memoryRequirements);
         void freeBuffer(VkBuffer& buffer);
+        void freeImage(VkImage& image);
         void mapMemory(VkBuffer& buffer, VkDeviceSize size, void** data);
         void unmapMemory(VkBuffer& buffer);
 
@@ -37,6 +39,7 @@ class MemoryManager {
 
         std::vector<std::vector<MemoryHeapOccupation>> mMemoryHeapOccupations;
         std::map<VkBuffer, BufferInfo> mBuffersInfo;
+        std::map<VkImage, BufferInfo> mImagesInfo;
         static uint32_t allocationSize;
         static uint32_t pageSize;
 

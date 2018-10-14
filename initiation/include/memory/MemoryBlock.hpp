@@ -5,6 +5,7 @@
 
 struct MemoryBlock {
     VkBuffer buffer = VK_NULL_HANDLE;
+    VkImage image = VK_NULL_HANDLE;
     bool occupied = false;
 
     operator bool() {

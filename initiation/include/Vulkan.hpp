@@ -62,6 +62,7 @@ class Vulkan {
         std::vector<VkDeviceMemory> mUniformBuffersMemory;
         VkDescriptorPool mDescriptorPool;
         std::vector<VkDescriptorSet> mDescriptorSets;
+        VkImage mTextureImage;
 
         MemoryManager mMemoryManager;
         
@@ -94,6 +95,7 @@ class Vulkan {
         void createGraphicsPipeline();
         void createFrameBuffers();
         void createCommandPool();
+        void createTextureImage();
         void createVertexBuffer();
         void createIndicesBuffer();
         void createUniformBuffer();
@@ -110,6 +112,11 @@ class Vulkan {
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
             VkMemoryPropertyFlags properties, VkBuffer& buffer);
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+        void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
+        VkCommandBuffer beginSingleTimeCommands();
+        void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+        void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
         bool isDeviceSuitable(VkPhysicalDevice device);
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
