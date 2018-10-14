@@ -37,7 +37,7 @@ class MemoryManager {
         VkPhysicalDeviceMemoryProperties mMemoryProperties;
         std::vector<std::vector<VkDeviceMemory>> mDeviceMemoryAllocation;
 
-        std::vector<std::vector<MemoryHeapOccupation>> mMemoryHeapOccupations;
+        std::vector<std::vector<MemoryHeapOccupation>> mMemoryTypeOccupations;
         std::map<VkBuffer, BufferInfo> mBuffersInfo;
         std::map<VkImage, BufferInfo> mImagesInfo;
         static uint32_t allocationSize;
