@@ -15,6 +15,11 @@ MemoryManager::MemoryManager(VkPhysicalDevice& physicalDevice, VkDevice& device)
 }
 
 void MemoryManager::init() {
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(mPhysicalDevice, &properties);
+
+    pageSize = properties.limits.bufferImageGranularity;
+
     initialAllocation();
 }
 
