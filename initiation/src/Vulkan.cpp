@@ -1206,7 +1206,25 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData) {
-    std::cout << "Validation layer: " << pCallbackData->pMessage << std::endl;
+        std::cout << "Validation layer(";
+        switch(messageSeverity) {
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+                std::cout << "ERROR): ";
+            break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+                std::cout << "INFO): ";
+            break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+                std::cout << "VERBOSE): ";
+            break;
+            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+                std::cout << "WARNING): ";
+            break;
+            default:
+                std::cout << "UNKNOWN): ";
+            break;
+        }
+    std::cout << pCallbackData->pMessage << std::endl;
 
     return VK_FALSE;
 }
