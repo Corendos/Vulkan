@@ -18,7 +18,9 @@ void MemoryManager::init() {
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(mPhysicalDevice, &properties);
 
-    pageSize = properties.limits.bufferImageGranularity;
+    if (pageSize < properties.limits.bufferImageGranularity) {
+        pageSize = properties.limits.bufferImageGranularity;
+    }
 
     initialAllocation();
 }
@@ -64,8 +66,6 @@ void MemoryManager::memoryCheckLog() {
 
 void MemoryManager::initialAllocation() {
     vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &mMemoryProperties);
-
-    std::cout << PrintHelper::toString(mMemoryProperties) << std::endl;
 
     mDeviceMemoryAllocation.resize(mMemoryProperties.memoryTypeCount);
     mMemoryTypeOccupations.resize(mMemoryProperties.memoryTypeCount);
@@ -122,7 +122,11 @@ void MemoryManager::allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& me
         mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i].buffer = buffer;
     }
 
-    mBuffersInfo[buffer] = {memoryTypeIndex, memoryTypeOffset, offset, blockCount};
+    mBuffersInfo[buffer] = {
+        static_cast<uint32_t>(memoryTypeIndex),
+        static_cast<uint32_t>(memoryTypeOffset),
+        static_cast<uint32_t>(offset),
+        blockCount};
 
     vkBindBufferMemory(mDevice, buffer, mDeviceMemoryAllocation[memoryTypeIndex][memoryTypeOffset], offset * pageSize);
 }
@@ -150,7 +154,12 @@ void MemoryManager::allocateForImage(VkImage& image, VkMemoryRequirements& memor
         mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i].image = image;
     }
 
-    mImagesInfo[image] = {memoryTypeIndex, memoryTypeOffset, offset, blockCount};
+    mImagesInfo[image] = {
+        static_cast<uint32_t>(memoryTypeIndex),
+        static_cast<uint32_t>(memoryTypeOffset),
+        static_cast<uint32_t>(offset),
+        blockCount
+    };
     vkBindImageMemory(mDevice, image, mDeviceMemoryAllocation[memoryTypeIndex][memoryTypeOffset], offset * pageSize);
 }
 

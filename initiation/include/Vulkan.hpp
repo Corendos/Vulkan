@@ -17,6 +17,7 @@
 
 #include "utils.hpp"
 #include "memory/MemoryManager.hpp"
+#include "environment.hpp"
 
 class Vulkan {
     public:
@@ -69,7 +70,7 @@ class Vulkan {
         VkRect2D mWindowSize;
         bool mResizeRequested{false};
 
-        const std::string shaderPath{"/home/corentin/dev/C++/Vulkan/initiation/shaders/build/"};
+        const std::string shaderPath = std::string(ROOT_PATH) + std::string("shaders/build/");
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_LUNARG_standard_validation"
         };

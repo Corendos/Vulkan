@@ -597,7 +597,8 @@ void Vulkan::createCommandPool() {
 
 void Vulkan::createTextureImage() {
     int textureWidth, textureHeight, textureChannels;
-    stbi_uc* pixels = stbi_load("/home/corentin/dev/C++/Vulkan/initiation/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+    std::string filePath = std::string(ROOT_PATH) + std::string("textures/texture.jpg");
+    stbi_uc* pixels = stbi_load(filePath.c_str(), &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = textureWidth * textureHeight * 4;
 
     if (!pixels) {
