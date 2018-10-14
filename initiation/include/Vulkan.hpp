@@ -67,6 +67,9 @@ class Vulkan {
         VkImageView mTextureImageView;
         VkSampler mTextureSampler;
 
+        VkImage mDepthImage;
+        VkImageView mDepthImageView;
+
         MemoryManager mMemoryManager;
         
         VkRect2D mWindowSize;
@@ -98,6 +101,7 @@ class Vulkan {
         void createGraphicsPipeline();
         void createFrameBuffers();
         void createCommandPool();
+        void createDepthResources();
         void createTextureImage();
         void createTextureImageView();
         void createTextureSampler();
@@ -116,6 +120,7 @@ class Vulkan {
         bool checkValidationLayerSupport();
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
             VkMemoryPropertyFlags properties, VkBuffer& buffer);
+        void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image);
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
         void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
@@ -123,7 +128,7 @@ class Vulkan {
         void endSingleTimeCommands(VkCommandBuffer commandBuffer);
         void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
-        VkImageView createImageView(VkImage image, VkFormat format);
+        VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
         bool isDeviceSuitable(VkPhysicalDevice device);
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
@@ -135,6 +140,9 @@ class Vulkan {
         VkShaderModule createShaderModule(const std::vector<char>& code);
         std::vector<const char*> getRequiredExtensions();
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+        VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+        VkFormat findDepthFormat();
+        bool hasStencilComponent(VkFormat format);
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
