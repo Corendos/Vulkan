@@ -31,7 +31,7 @@ std::vector<PhysicalDeviceInfo> PhysicalDevicePicker::getSuitableDevices() {
 
     auto end = std::remove_if(physicalDevices.begin(), physicalDevices.end(),
         [](PhysicalDeviceInfo& info) -> bool {
-            return !info.queueFamilyIndices.isComplete();
+            return !info.queueFamilyIndices.isComplete() || !info.features.samplerAnisotropy;
     });
 
     physicalDevices.erase(end, physicalDevices.end());
