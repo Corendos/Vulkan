@@ -65,6 +65,8 @@ void MemoryManager::memoryCheckLog() {
 void MemoryManager::initialAllocation() {
     vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &mMemoryProperties);
 
+    std::cout << PrintHelper::toString(mMemoryProperties) << std::endl;
+
     mDeviceMemoryAllocation.resize(mMemoryProperties.memoryHeapCount);
     mMemoryHeapOccupations.resize(mMemoryProperties.memoryHeapCount);
 
@@ -98,8 +100,8 @@ void MemoryManager::cleanup() {
     }
 }
 
-void MemoryManager::allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& memoryRequirements) {
-    int32_t memoryTypeIndex = findMemoryType(memoryRequirements);
+void MemoryManager::allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags properties) {
+    int32_t memoryTypeIndex = findMemoryType(memoryRequirements, properties);
 
     if (memoryTypeIndex == -1) {
         throw std::runtime_error("Unable to find a suitable memory type");
@@ -118,8 +120,8 @@ void MemoryManager::allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& me
     }
 
     for (uint32_t i{static_cast<uint32_t>(offset)};i < offset + blockCount;++i) {
-        mMemoryHeapOccupations[memoryHeapIndex][memoryHeapOffset].blocks[offset] = true;
-        mMemoryHeapOccupations[memoryHeapIndex][memoryHeapOffset].blocks[offset].buffer = buffer;
+        mMemoryHeapOccupations[memoryHeapIndex][memoryHeapOffset].blocks[i] = true;
+        mMemoryHeapOccupations[memoryHeapIndex][memoryHeapOffset].blocks[i].buffer = buffer;
     }
 
     mBuffersInfo[buffer] = {memoryHeapIndex, memoryHeapOffset, offset, blockCount};
@@ -127,8 +129,8 @@ void MemoryManager::allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& me
     vkBindBufferMemory(mDevice, buffer, mDeviceMemoryAllocation[memoryHeapIndex][memoryHeapOffset], offset * pageSize);
 }
 
-void MemoryManager::allocateForImage(VkImage& image, VkMemoryRequirements& memoryRequirements) {
-    int32_t memoryTypeIndex = findMemoryType(memoryRequirements);
+void MemoryManager::allocateForImage(VkImage& image, VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags properties) {
+    int32_t memoryTypeIndex = findMemoryType(memoryRequirements, properties);
 
     if (memoryTypeIndex == -1) {
         throw std::runtime_error("Unable to find a suitable memory type");
@@ -147,8 +149,8 @@ void MemoryManager::allocateForImage(VkImage& image, VkMemoryRequirements& memor
     }
 
     for (uint32_t i{static_cast<uint32_t>(offset)};i < offset + blockCount;++i) {
-        mMemoryHeapOccupations[memoryHeapIndex][memoryHeapOffset].blocks[offset] = true;
-        mMemoryHeapOccupations[memoryHeapIndex][memoryHeapOffset].blocks[offset].image = image;
+        mMemoryHeapOccupations[memoryHeapIndex][memoryHeapOffset].blocks[i] = true;
+        mMemoryHeapOccupations[memoryHeapIndex][memoryHeapOffset].blocks[i].image = image;
     }
 
     mImagesInfo[image] = {memoryHeapIndex, memoryHeapOffset, offset, blockCount};
@@ -191,12 +193,15 @@ void MemoryManager::unmapMemory(VkBuffer& buffer) {
     vkUnmapMemory(mDevice, mDeviceMemoryAllocation[bufferInfo.memoryHeapIndex][bufferInfo.memoryHeapOffset]);
 }
 
-int32_t MemoryManager::findMemoryType(VkMemoryRequirements& memoryRequirements) {
+int32_t MemoryManager::findMemoryType(VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags& properties) {
     int32_t memoryTypeIndex = -1;
 
     for (size_t i{0};i < mMemoryProperties.memoryTypeCount;++i) {
         if (memoryRequirements.memoryTypeBits & (1 << i)) {
-            memoryTypeIndex = i;
+            if ((properties & mMemoryProperties.memoryTypes[i].propertyFlags) == properties){
+                memoryTypeIndex = i;
+                break;
+            }
         }
     }
 

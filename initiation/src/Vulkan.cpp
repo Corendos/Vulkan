@@ -597,7 +597,7 @@ void Vulkan::createCommandPool() {
 
 void Vulkan::createTextureImage() {
     int textureWidth, textureHeight, textureChannels;
-    stbi_uc* pixels = stbi_load("/home/corentin/dev/C++/Vulkan/initiation/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load("/home/corendos/dev/C++/Vulkan/initiation/textures/texture.jpg", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = textureWidth * textureHeight * 4;
 
     if (!pixels) {
@@ -606,7 +606,7 @@ void Vulkan::createTextureImage() {
 
     VkBuffer stagingBuffer;
     createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
         stagingBuffer);
     
     void* data;
@@ -639,7 +639,7 @@ void Vulkan::createTextureImage() {
     VkMemoryRequirements memoryRequirements;
     vkGetImageMemoryRequirements(mDevice, mTextureImage, &memoryRequirements);
 
-    mMemoryManager.allocateForImage(mTextureImage, memoryRequirements);
+    mMemoryManager.allocateForImage(mTextureImage, memoryRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     transitionImageLayout(
         mTextureImage, VK_FORMAT_R8G8B8A8_UNORM,
@@ -913,7 +913,7 @@ void Vulkan::createBuffer(
     VkMemoryRequirements memoryRequirements{};
     vkGetBufferMemoryRequirements(mDevice, buffer, &memoryRequirements);
 
-    mMemoryManager.allocateForBuffer(buffer, memoryRequirements);
+    mMemoryManager.allocateForBuffer(buffer, memoryRequirements, properties);
 }
 
 void Vulkan::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
