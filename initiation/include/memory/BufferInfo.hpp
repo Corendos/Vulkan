@@ -6,7 +6,8 @@
 struct BufferInfo {
     uint32_t memoryTypeIndex;
     uint32_t memoryTypeOffset;
-    uint32_t offset;
+    uint32_t pageOffset;
+    uint32_t alignment;
     uint32_t blockCount;
 };
 

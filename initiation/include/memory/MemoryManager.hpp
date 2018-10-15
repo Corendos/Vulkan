@@ -48,7 +48,8 @@ class MemoryManager {
         int32_t findMemoryType(VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags& properties);
         std::tuple<int32_t, int32_t> findSuitableMemoryBlock(uint32_t blockCount, uint32_t memoryHeapIndex);
         int32_t findSuitableMemoryBlock(uint32_t blockCount, uint32_t memoryHeapIndex, uint32_t memoryHeapOffset);
-        static uint32_t getBlockCount(uint32_t requiredSize);
+        static uint32_t getBlockCount(VkMemoryRequirements memoryRequirements);
+        static uint32_t getAlignment(VkMemoryRequirements memoryRequirements);
 };
 
 #endif
