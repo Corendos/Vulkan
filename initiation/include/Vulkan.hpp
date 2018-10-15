@@ -18,6 +18,7 @@
 #include "utils.hpp"
 #include "memory/MemoryManager.hpp"
 #include "environment.hpp"
+#include "shaders/Shader.hpp"
 
 class Vulkan {
     public:
@@ -69,6 +70,9 @@ class Vulkan {
 
         VkImage mDepthImage;
         VkImageView mDepthImageView;
+
+        Shader mFragmentShader;
+        Shader mVertexShader;
 
         MemoryManager mMemoryManager;
         

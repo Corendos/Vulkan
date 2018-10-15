@@ -71,6 +71,8 @@ void Vulkan::cleanup() {
         destroyDebugUtilsMessengerEXT(mInstance, mCallback, nullptr);
     }
 
+    mVertexShader.clean();
+    mFragmentShader.clean();
 
     mMemoryManager.cleanup();
     mMemoryManager.memoryCheckLog();
@@ -440,28 +442,15 @@ void Vulkan::createDescriptorSetLayout() {
 }
 
 void Vulkan::createGraphicsPipeline() {
-    
-    auto vertexShaderCode = readFile(shaderPath + "vert.spv");
-    auto fragmentShaderCode = readFile(shaderPath + "frag.spv");
+    mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
+    mFragmentShader = Shader(shaderPath + "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
 
-    VkShaderModule vertexShaderModule = createShaderModule(vertexShaderCode);
-    VkShaderModule fragmentShaderModule = createShaderModule(fragmentShaderCode);
-
-    VkPipelineShaderStageCreateInfo vertexShaderStageInfo{};
-    vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertexShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertexShaderStageInfo.module = vertexShaderModule;
-    vertexShaderStageInfo.pName = "main";
-
-    VkPipelineShaderStageCreateInfo fragmentShaderStageInfo{};
-    fragmentShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragmentShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragmentShaderStageInfo.module = fragmentShaderModule;
-    fragmentShaderStageInfo.pName = "main";
+    mVertexShader.createModule(mDevice);
+    mFragmentShader.createModule(mDevice);
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {
-        vertexShaderStageInfo,
-        fragmentShaderStageInfo
+        mVertexShader.getCreateInfo(),
+        mFragmentShader.getCreateInfo()
     };
 
     auto bindingDescription = Vertex::getBindingDescription();
@@ -600,9 +589,6 @@ void Vulkan::createGraphicsPipeline() {
         mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mGraphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create the graphics pipeline");
     }
-
-    vkDestroyShaderModule(mDevice, vertexShaderModule, nullptr);
-    vkDestroyShaderModule(mDevice, fragmentShaderModule, nullptr);
 }
 
 void Vulkan::createFrameBuffers() {
