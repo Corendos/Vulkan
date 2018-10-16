@@ -442,11 +442,11 @@ void Vulkan::createDescriptorSetLayout() {
 }
 
 void Vulkan::createGraphicsPipeline() {
-    mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
-    mFragmentShader = Shader(shaderPath + "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
+    mVertexShader = Shader(mDevice, shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
+    mFragmentShader = Shader(mDevice, shaderPath + "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
 
-    mVertexShader.createModule(mDevice);
-    mFragmentShader.createModule(mDevice);
+    mVertexShader.createModule();
+    mFragmentShader.createModule();
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {
         mVertexShader.getCreateInfo(),

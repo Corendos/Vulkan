@@ -7,8 +7,8 @@
 
 Shader::Shader() {}
 
-Shader::Shader(std::string filename, VkShaderStageFlagBits shaderStage, std::string entryPointName) :
-mStage(shaderStage), mEntryPointName(entryPointName), mFilename(filename) {
+Shader::Shader(VkDevice device, std::string filename, VkShaderStageFlagBits shaderStage, std::string entryPointName) :
+    mDevice(device), mStage(shaderStage), mEntryPointName(entryPointName), mFilename(filename) {
     mCode = File::readFile(mFilename);
 
     mModuleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -35,10 +35,8 @@ Shader& Shader::operator=(Shader&& other) {
     return *this;
 }
 
-VkShaderModule Shader::createModule(VkDevice& device) {
-    mDevice = &device;
-
-    if (vkCreateShaderModule(*mDevice, &mModuleInfo, nullptr, &mModule) != VK_SUCCESS) {
+VkShaderModule Shader::createModule() {
+    if (vkCreateShaderModule(mDevice, &mModuleInfo, nullptr, &mModule) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create shader module");
     }
 
@@ -59,13 +57,13 @@ VkPipelineShaderStageCreateInfo Shader::getCreateInfo() {
 
 void Shader::clean() {
     if (mCreated) {
-        vkDestroyShaderModule(*mDevice, mModule, nullptr);
+        vkDestroyShaderModule(mDevice, mModule, nullptr);
     }
     mCreated = false;
 }
 
 Shader::~Shader() {
     if (mCreated) {
-        vkDestroyShaderModule(*mDevice, mModule, nullptr);
+        vkDestroyShaderModule(mDevice, mModule, nullptr);
     }
 }
