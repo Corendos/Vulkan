@@ -10,7 +10,7 @@
 #include "Vulkan.hpp"
 
 #include "BasicLogger.hpp"
-#include "PhysicalDevicePicker.hpp"
+#include "device/BasicPhysicalDevicePicker.hpp"
 #include "Vertex.hpp"
 #include "UniformBufferObject.hpp"
 #include "PrintHelper.hpp"
@@ -214,17 +214,16 @@ void Vulkan::createSurface() {
 }
 
 void Vulkan::pickPhysicalDevice() {
-
-    PhysicalDevicePicker devicePicker{mInstance, mSurface};
+    BasicPhysicalDevicePicker devicePicker{mInstance, mSurface};
 
     auto pickedDevice = devicePicker.pick();
 
-    if (!pickedDevice) {
-        throw std::runtime_error("Failed to find GPUs with Vulkan support");
+    if (!pickedDevice.isComplete()) {
+        throw std::runtime_error("Failed to find GPUs with required features");
     }
 
-    mPhysicalDevice = pickedDevice.value().physicalDevice;
-    mIndices = pickedDevice.value().queueFamilyIndices;
+    mPhysicalDevice = pickedDevice.physicalDevice;
+    mIndices = pickedDevice.queueFamilyIndices;
 }
 
 void Vulkan::createLogicalDevice() {
@@ -1158,8 +1157,7 @@ VkImageView Vulkan::createImageView(VkImage image, VkFormat format, VkImageAspec
     return imageView;
 }
 
-bool Vulkan::checkDeviceExtensionSupport(VkPhysicalDevice device) {
-    
+bool Vulkan::checkDeviceExtensionSupport(VkPhysicalDevice device) {    
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);

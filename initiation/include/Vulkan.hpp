@@ -19,6 +19,7 @@
 #include "memory/MemoryManager.hpp"
 #include "environment.hpp"
 #include "shaders/Shader.hpp"
+#include "device/QueueFamilyIndices.hpp"
 
 class Vulkan {
     public:
@@ -134,7 +135,6 @@ class Vulkan {
 
         VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
-        bool isDeviceSuitable(VkPhysicalDevice device);
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
         SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);

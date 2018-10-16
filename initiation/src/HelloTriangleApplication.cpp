@@ -1,6 +1,5 @@
 #include "HelloTriangleApplication.hpp"
 #include "utils.hpp"
-#include "PhysicalDevicePicker.hpp"
 
 void HelloTriangleApplication::run() {
     init();
