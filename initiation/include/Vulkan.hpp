@@ -153,8 +153,6 @@ class Vulkan {
             VkDebugUtilsMessageTypeFlagsEXT messageType,
             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
             void* pUserData);
-
-        static std::vector<char> readFile(const std::string& filename);
 };
 
 #endif

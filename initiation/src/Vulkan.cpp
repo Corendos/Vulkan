@@ -214,7 +214,7 @@ void Vulkan::createSurface() {
 }
 
 void Vulkan::pickPhysicalDevice() {
-    BasicPhysicalDevicePicker devicePicker{mInstance, mSurface};
+    BasicPhysicalDevicePicker devicePicker{mInstance, mSurface, deviceExtension};
 
     auto pickedDevice = devicePicker.pick();
 
@@ -1350,7 +1350,6 @@ void Vulkan::requestResize() {
     mResizeRequested = true;
 }
 
-
 VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -1377,22 +1376,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
     std::cout << pCallbackData->pMessage << std::endl;
 
     return VK_FALSE;
-}
-
-std::vector<char> Vulkan::readFile(const std::string& filename) {
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-    if (!file.is_open()) {
-        throw std::runtime_error("Failed to open file");
-    }
-
-    size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-    file.close();
-
-    return buffer;
 }
 
 void Vulkan::updateUniformData(uint32_t imageIndex) {

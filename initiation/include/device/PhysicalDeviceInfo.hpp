@@ -10,6 +10,7 @@ struct PhysicalDeviceInfo {
     VkPhysicalDeviceProperties properties;
     VkPhysicalDeviceFeatures features;
     QueueFamilyIndices queueFamilyIndices;
+    std::vector<std::string> supportedExtensions;
 };
 
 #endif

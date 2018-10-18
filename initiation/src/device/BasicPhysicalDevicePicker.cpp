@@ -1,13 +1,22 @@
 #include "device/BasicPhysicalDevicePicker.hpp"
 
-BasicPhysicalDevicePicker::BasicPhysicalDevicePicker(VkInstance instance, VkSurfaceKHR surface)
-    : mInstance(instance), mSurface(surface) {}
+BasicPhysicalDevicePicker::BasicPhysicalDevicePicker(VkInstance instance, VkSurfaceKHR surface, std::vector<const char*> requiredExtensions)
+    : mInstance(instance), mSurface(surface) {
+    mRequiredExtensions = std::vector<std::string>(requiredExtensions.size());
+    std::transform(
+        requiredExtensions.begin(), requiredExtensions.end(),
+        mRequiredExtensions.begin(), [](const char* name) { return std::string(name); });
+    std::sort(mRequiredExtensions.begin(), mRequiredExtensions.end());
+}
 
 PhysicalDeviceChoice BasicPhysicalDevicePicker::pick() {
     PhysicalDeviceChoice choice;
     std::vector<PhysicalDeviceInfo> deviceList = getDeviceInfoList();
 
-    auto endIt = std::remove_if(deviceList.begin(), deviceList.end(), isPhysicalDeviceNotSuitable);
+    using namespace std::placeholders;
+
+    auto endIt = std::remove_if(deviceList.begin(), deviceList.end(),
+        std::bind(isPhysicalDeviceNotSuitable, _1, *this));
     deviceList.erase(endIt, deviceList.end());
     auto bestPhysicalDeviceInfo = std::max_element(
         deviceList.begin(), deviceList.end(), PhysicalDeviceComparator());
@@ -33,6 +42,7 @@ std::vector<PhysicalDeviceInfo> BasicPhysicalDevicePicker::getDeviceInfoList() {
         devicesInfo[i].properties = getDeviceProperties(devicesInfo[i].device);
         devicesInfo[i].features = getDeviceFeatures(devicesInfo[i].device);
         devicesInfo[i].queueFamilyIndices = getFamiliesIndices(devicesInfo[i].device);
+        devicesInfo[i].supportedExtensions = getSupportedExtensions(devicesInfo[i].device);
     }
 
     return devicesInfo;
@@ -80,6 +90,22 @@ QueueFamilyIndices BasicPhysicalDevicePicker::getFamiliesIndices(VkPhysicalDevic
     return queueFamilyIndices;
 }
 
+std::vector<std::string> BasicPhysicalDevicePicker::getSupportedExtensions(VkPhysicalDevice physicalDevice) {
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
+
+    std::vector<std::string> availableExtensionsName(extensionCount);
+    std::transform(
+        availableExtensions.begin(), availableExtensions.end(),
+        availableExtensionsName.begin(), [](VkExtensionProperties& prop) { return prop.extensionName; });
+
+    std::sort(availableExtensionsName.begin(), availableExtensionsName.end());
+
+    return availableExtensionsName;
+}
+
 bool BasicPhysicalDevicePicker::hasGraphicsSupport(VkQueueFamilyProperties properties) {
     return properties.queueCount > 0 && properties.queueFlags & VK_QUEUE_GRAPHICS_BIT;
 }
@@ -91,6 +117,9 @@ bool BasicPhysicalDevicePicker::hasPresentSupport(VkQueueFamilyProperties proper
     return properties.queueCount > 0 && supported;
 }
 
-bool BasicPhysicalDevicePicker::isPhysicalDeviceNotSuitable(PhysicalDeviceInfo info) {
-    return !(info.queueFamilyIndices.isComplete() && info.features.samplerAnisotropy);
+bool BasicPhysicalDevicePicker::isPhysicalDeviceNotSuitable(PhysicalDeviceInfo info, BasicPhysicalDevicePicker& picker) {
+    bool extensionSupported = std::includes(
+        info.supportedExtensions.begin(), info.supportedExtensions.end(),
+        picker.mRequiredExtensions.begin(), picker.mRequiredExtensions.end());
+    return !(info.queueFamilyIndices.isComplete() && info.features.samplerAnisotropy && extensionSupported);
 }
