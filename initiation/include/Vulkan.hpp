@@ -20,6 +20,7 @@
 #include "environment.hpp"
 #include "shaders/Shader.hpp"
 #include "device/QueueFamilyIndices.hpp"
+#include "SwapChain.hpp"
 
 class Vulkan {
     public:
@@ -31,7 +32,6 @@ class Vulkan {
     void requestResize();
 
     VkDevice& getDevice();
-    VkSwapchainKHR& getSwapChain();
 
     private:
         GLFWwindow* mWindow;
@@ -40,12 +40,7 @@ class Vulkan {
         VkDevice mDevice;                                   // Vulkan logical device handler
         VkQueue mGraphicsQueue;                             // Device graphic queue
         VkQueue mPresentQueue;                              // Device present queue
-        VkSurfaceKHR mSurface;                              // Vulkan surface handler 
-        VkSwapchainKHR mSwapChain;                          // Vulkan swap chain handler
-        std::vector<VkImage> mSwapChainImages;              // Vulkan swap chain images
-        VkFormat mSwapChainImageFormat;                     // Vulkan swap chain image format
-        VkExtent2D mSwapChainExtent;                        // Vulkan swap chain extent
-        std::vector<VkImageView> mSwapChainImageViews;      // Vulkan swap chain image views
+        VkSurfaceKHR mSurface;                              // Vulkan surface handler
         VkRenderPass mRenderPass;                           // Vulkan render pass handler
         VkPipelineLayout mPipelineLayout;                   // Vulkan pipeline layout handler
         VkDescriptorSetLayout mDescriptorSetLayout;
@@ -68,6 +63,8 @@ class Vulkan {
         VkImage mTextureImage;
         VkImageView mTextureImageView;
         VkSampler mTextureSampler;
+
+        SwapChain mSwapChain;
 
         VkImage mDepthImage;
         VkImageView mDepthImageView;
@@ -135,13 +132,6 @@ class Vulkan {
 
         VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
-        bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-        VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-        VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-        VkShaderModule createShaderModule(const std::vector<char>& code);
         std::vector<const char*> getRequiredExtensions();
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
         VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);

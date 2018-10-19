@@ -17,12 +17,6 @@ void destroyDebugUtilsMessengerEXT(
     VkDebugUtilsMessengerEXT pCallback,
     const VkAllocationCallbacks* pAllocator);
 
-struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentMode;
-};
-
 namespace glm {
     template<typename T>
     mat4 vulkanPerspective(T fovy, T aspect, T zNear, T zFar) {

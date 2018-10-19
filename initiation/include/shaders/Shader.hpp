@@ -8,7 +8,7 @@
 class Shader {
     public:
         Shader();
-        Shader(VkDevice device, std::string filename, VkShaderStageFlagBits shaderStage, std::string entryPointName);
+        Shader(std::string filename, VkShaderStageFlagBits shaderStage, std::string entryPointName);
         
         Shader(Shader& other) = delete;
         Shader& operator=(Shader& other) = delete;
@@ -18,12 +18,13 @@ class Shader {
         
         ~Shader();
 
+        void create(VkDevice device);
+        void destroy(VkDevice device);
+
         VkShaderModule createModule();
         VkPipelineShaderStageCreateInfo getCreateInfo();
-        void clean();
 
     private:
-        VkDevice mDevice;
         VkShaderModule mModule;
         VkShaderStageFlagBits mStage;
         VkShaderModuleCreateInfo mModuleInfo{};
