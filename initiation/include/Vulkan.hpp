@@ -20,6 +20,7 @@
 #include "environment.hpp"
 #include "shaders/Shader.hpp"
 #include "device/QueueFamilyIndices.hpp"
+#include "device/Image.hpp"
 #include "SwapChain.hpp"
 
 class Vulkan {
@@ -122,7 +123,6 @@ class Vulkan {
         bool checkValidationLayerSupport();
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
             VkMemoryPropertyFlags properties, VkBuffer& buffer);
-        void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image);
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
         void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 

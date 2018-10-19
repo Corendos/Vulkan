@@ -271,7 +271,8 @@ void Vulkan::createSwapChain() {
 void Vulkan::createDepthResources() {
     VkFormat format = findDepthFormat();
 
-    createImage(
+    Image::create(
+        mDevice, mMemoryManager,
         mSwapChain.getExtent().width, mSwapChain.getExtent().height,
         format, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -581,7 +582,8 @@ void Vulkan::createTextureImage() {
 
     stbi_image_free(pixels);
 
-    createImage(
+    Image::create(
+        mDevice, mMemoryManager,
         static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight),
         VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -906,33 +908,6 @@ void Vulkan::createBuffer(
     vkGetBufferMemoryRequirements(mDevice, buffer, &memoryRequirements);
 
     mMemoryManager.allocateForBuffer(buffer, memoryRequirements, properties);
-}
-
-void Vulkan::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image) {
-    VkImageCreateInfo imageInfo{};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent.width = width;
-    imageInfo.extent.height = height;
-    imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
-    imageInfo.format = format;
-    imageInfo.tiling = tiling;
-    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = usage;
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageInfo.flags = 0;
-
-    if (vkCreateImage(mDevice, &imageInfo, nullptr, &image) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create image");
-    }
-
-    VkMemoryRequirements memoryRequirements;
-    vkGetImageMemoryRequirements(mDevice, image, &memoryRequirements);
-
-    mMemoryManager.allocateForImage(image, memoryRequirements, properties);
 }
 
 void Vulkan::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
