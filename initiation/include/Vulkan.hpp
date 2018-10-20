@@ -21,6 +21,7 @@
 #include "shaders/Shader.hpp"
 #include "device/QueueFamilyIndices.hpp"
 #include "device/Image.hpp"
+#include "device/CommandPool.hpp"
 #include "SwapChain.hpp"
 
 class Vulkan {
@@ -47,7 +48,6 @@ class Vulkan {
         VkDescriptorSetLayout mDescriptorSetLayout;
         VkPipeline mGraphicsPipeline;                       // Vulkan pipeline handler
         std::vector<VkFramebuffer> mSwapChainFrameBuffers;  // Vulkan framebuffers handlers
-        VkCommandPool mCommandPool;                         // Vulkan command pool
         std::vector<VkCommandBuffer> mCommandBuffers;       // Vulkan command buffers
         VkSemaphore mImageAvailableSemaphore;               // Semaphore handling image availability
         VkSemaphore mRenderFinishedSemaphore;               // Semaphore handling rendering
@@ -66,6 +66,7 @@ class Vulkan {
         VkSampler mTextureSampler;
 
         SwapChain mSwapChain;
+        CommandPool mCommandPool;
 
         VkImage mDepthImage;
         VkImageView mDepthImageView;
@@ -97,13 +98,11 @@ class Vulkan {
         void createSurface();
         void pickPhysicalDevice();
         void createLogicalDevice();
-        void createSwapChain();
         void createImageViews();
         void createRenderPass();
         void createDescriptorSetLayout();
         void createGraphicsPipeline();
         void createFrameBuffers();
-        void createCommandPool();
         void createDepthResources();
         void createTextureImage();
         void createTextureImageView();

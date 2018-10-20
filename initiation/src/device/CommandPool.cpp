@@ -13,6 +13,8 @@ void CommandPool::create(VkDevice device, QueueFamilyIndices indices) {
     if (vkCreateCommandPool(device, &poolInfo, nullptr, &mHandler) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create command pool");
     }
+
+    mCreated = true;
 }
 
 void CommandPool::destroy(VkDevice device) {

@@ -30,8 +30,8 @@ void Vulkan::init(GLFWwindow* window, int width, int height) {
     pickPhysicalDevice();
     createLogicalDevice();
     mMemoryManager.init();
-    createSwapChain();
-    createCommandPool();
+    mSwapChain.create(mPhysicalDevice, mDevice, mWindow, mSurface, mIndices);
+    mCommandPool.create(mDevice, mIndices);
     createDepthResources();
     createImageViews();
     createRenderPass();
@@ -82,7 +82,7 @@ void Vulkan::cleanup() {
     vkDestroySemaphore(mDevice, mImageAvailableSemaphore, nullptr);
     vkDestroySemaphore(mDevice, mRenderFinishedSemaphore, nullptr);
 
-    vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
+    mCommandPool.destroy(mDevice);
     vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
     vkDestroyDevice(mDevice, nullptr);
     vkDestroyInstance(mInstance, nullptr);
@@ -262,10 +262,6 @@ void Vulkan::createLogicalDevice() {
 
     vkGetDeviceQueue(mDevice, mIndices.graphicsFamily.value(), 0, &mGraphicsQueue);
     vkGetDeviceQueue(mDevice, mIndices.presentFamily.value(), 0, &mPresentQueue);
-}
-
-void Vulkan::createSwapChain() {
-    mSwapChain.create(mPhysicalDevice, mDevice, mWindow, mSurface, mIndices);
 }
 
 void Vulkan::createDepthResources() {
@@ -548,17 +544,6 @@ void Vulkan::createFrameBuffers() {
     }
 }
 
-void Vulkan::createCommandPool() {
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = mIndices.graphicsFamily.value();
-    poolInfo.flags = 0;
-
-    if (vkCreateCommandPool(mDevice, &poolInfo, nullptr, &mCommandPool) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create command pool");
-    }
-}
-
 void Vulkan::createTextureImage() {
     int textureWidth, textureHeight, textureChannels;
     std::string filePath = std::string(ROOT_PATH) + std::string("textures/texture.jpg");
@@ -765,7 +750,7 @@ void Vulkan::createCommandBuffers() {
 
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = mCommandPool;
+    allocInfo.commandPool = mCommandPool.getHandler();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = (uint32_t) mCommandBuffers.size();
 
@@ -857,7 +842,7 @@ void Vulkan::cleanupSwapChain() {
     mMemoryManager.freeImage(mDepthImage);
     vkDestroyImageView(mDevice, mDepthImageView, nullptr);
 
-    vkFreeCommandBuffers(mDevice, mCommandPool,
+    vkFreeCommandBuffers(mDevice, mCommandPool.getHandler(),
         static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
 
     vkDestroyPipeline(mDevice, mGraphicsPipeline, nullptr);
@@ -947,7 +932,7 @@ VkCommandBuffer Vulkan::beginSingleTimeCommands() {
     VkCommandBufferAllocateInfo allocateInfo{};
     allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocateInfo.commandPool = mCommandPool;
+    allocateInfo.commandPool = mCommandPool.getHandler();
     allocateInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer{};
@@ -973,7 +958,7 @@ void Vulkan::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
     vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(mGraphicsQueue);
 
-    vkFreeCommandBuffers(mDevice, mCommandPool, 1, &commandBuffer);
+    vkFreeCommandBuffers(mDevice, mCommandPool.getHandler(), 1, &commandBuffer);
 }
 
 void Vulkan::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
