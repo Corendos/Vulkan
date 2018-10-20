@@ -549,7 +549,6 @@ void Vulkan::createFrameBuffers() {
 }
 
 void Vulkan::createCommandPool() {
-
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = mIndices.graphicsFamily.value();
