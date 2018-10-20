@@ -1,7 +1,7 @@
 #ifndef COMMANDPOOL
 #define COMMANDPOOL
 
-#include <exception>
+#include <stdexcept>
 
 #include <vulkan/vulkan.h>
 

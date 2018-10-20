@@ -22,6 +22,7 @@
 #include "device/QueueFamilyIndices.hpp"
 #include "device/Image.hpp"
 #include "device/CommandPool.hpp"
+#include "device/RenderPass.hpp"
 #include "SwapChain.hpp"
 
 class Vulkan {
@@ -43,7 +44,6 @@ class Vulkan {
         VkQueue mGraphicsQueue;                             // Device graphic queue
         VkQueue mPresentQueue;                              // Device present queue
         VkSurfaceKHR mSurface;                              // Vulkan surface handler
-        VkRenderPass mRenderPass;                           // Vulkan render pass handler
         VkPipelineLayout mPipelineLayout;                   // Vulkan pipeline layout handler
         VkDescriptorSetLayout mDescriptorSetLayout;
         VkPipeline mGraphicsPipeline;                       // Vulkan pipeline handler
@@ -67,6 +67,7 @@ class Vulkan {
 
         SwapChain mSwapChain;
         CommandPool mCommandPool;
+        RenderPass mRenderPass;
 
         VkImage mDepthImage;
         VkImageView mDepthImageView;
