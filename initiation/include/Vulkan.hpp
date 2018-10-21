@@ -23,6 +23,9 @@
 #include "device/Image.hpp"
 #include "device/CommandPool.hpp"
 #include "device/RenderPass.hpp"
+#include "device/ColorAttachment.hpp"
+#include "device/DepthAttachment.hpp"
+#include "device/Subpass.hpp"
 #include "SwapChain.hpp"
 
 class Vulkan {

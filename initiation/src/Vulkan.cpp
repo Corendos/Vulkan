@@ -286,45 +286,36 @@ void Vulkan::createImageViews() {
 }
 
 void Vulkan::createRenderPass() {
-    VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = mSwapChain.getFormat();
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    ColorAttachment colorAttachment;
+    colorAttachment.setFormat(mSwapChain.getFormat());
+    colorAttachment.setSamples(VK_SAMPLE_COUNT_1_BIT);
+    colorAttachment.setLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+    colorAttachment.setStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
+    colorAttachment.setStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+    colorAttachment.setStencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
+    colorAttachment.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+    colorAttachment.setFinalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    colorAttachment.setReferenceIndex(0);
 
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    DepthAttachment depthAttachment;
+    depthAttachment.setFormat(findDepthFormat());
+    depthAttachment.setSamples(VK_SAMPLE_COUNT_1_BIT);
+    depthAttachment.setLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+    depthAttachment.setStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
+    depthAttachment.setStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+    depthAttachment.setStencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
+    depthAttachment.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+    depthAttachment.setFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    depthAttachment.setReferenceIndex(1);
 
-    mRenderPass.addAttachment(colorAttachment, colorAttachmentRef);
+    mRenderPass.addAttachment(colorAttachment.getDescription(), colorAttachment.getReference());
+    mRenderPass.addAttachment(depthAttachment.getDescription(), depthAttachment.getReference());
 
-    VkAttachmentDescription depthAttachment{};
-    depthAttachment.format = findDepthFormat();
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    Subpass subpass;
+    subpass.setBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
+    subpass.addAttachment(colorAttachment, depthAttachment);
 
-    VkAttachmentReference depthAttachmentRef{};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    mRenderPass.addAttachment(depthAttachment, depthAttachmentRef);
-
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-    mRenderPass.addSubpass(subpass);
+    mRenderPass.addSubpass(subpass.getDescription());
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
