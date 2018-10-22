@@ -33,7 +33,6 @@ void Vulkan::init(GLFWwindow* window, int width, int height) {
     mSwapChain.create(mPhysicalDevice, mDevice, mWindow, mSurface, mIndices);
     mCommandPool.create(mDevice, mIndices);
     createDepthResources();
-    createImageViews();
     createRenderPass();
     createDescriptorSetLayout();
     createGraphicsPipeline();
@@ -53,7 +52,7 @@ void Vulkan::init(GLFWwindow* window, int width, int height) {
 void Vulkan::cleanup() {
     vkDeviceWaitIdle(mDevice);
     cleanupSwapChain();
-    mSwapChain.destroy();
+    mSwapChain.destroy(mDevice);
 
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
@@ -369,9 +368,9 @@ void Vulkan::createGraphicsPipeline() {
 }
 
 void Vulkan::createFrameBuffers() {
-    mSwapChainFrameBuffers.resize(mSwapChain.getImagesView().size());
+    mSwapChainFrameBuffers.resize(mSwapChain.getImageCount());
 
-    for (size_t i{0}; i < mSwapChain.getImagesView().size();++i) {
+    for (size_t i{0}; i < mSwapChain.getImageCount();++i) {
         std::array<VkImageView, 2> attachments = {
             mSwapChain.getImagesView()[i],
             mDepthImageView
@@ -517,9 +516,9 @@ void Vulkan::createIndicesBuffer() {
 void Vulkan::createUniformBuffer() {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-    mUniformBuffers.resize(mSwapChain.getImagesView().size());
+    mUniformBuffers.resize(mSwapChain.getImageCount());
 
-    for (size_t i{0};i < mSwapChain.getImagesView().size();++i) {
+    for (size_t i{0};i < mSwapChain.getImageCount();++i) {
         createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             mUniformBuffers[i]);
@@ -529,15 +528,15 @@ void Vulkan::createUniformBuffer() {
 void Vulkan::createDescriptorPool() {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(mSwapChain.getImagesView().size());
+    poolSizes[0].descriptorCount = static_cast<uint32_t>(mSwapChain.getImageCount());
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(mSwapChain.getImagesView().size());
+    poolSizes[1].descriptorCount = static_cast<uint32_t>(mSwapChain.getImageCount());
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType= VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(mSwapChain.getImagesView().size());
+    poolInfo.maxSets = static_cast<uint32_t>(mSwapChain.getImageCount());
 
     if (vkCreateDescriptorPool(mDevice, &poolInfo, nullptr, &mDescriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -545,19 +544,19 @@ void Vulkan::createDescriptorPool() {
 }
 
 void Vulkan::createDescriptorSets() {
-    std::vector<VkDescriptorSetLayout> layouts{mSwapChain.getImagesView().size(), mDescriptorSetLayout};
+    std::vector<VkDescriptorSetLayout> layouts{mSwapChain.getImageCount(), mDescriptorSetLayout};
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = mDescriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(mSwapChain.getImagesView().size());
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(mSwapChain.getImageCount());
     allocInfo.pSetLayouts = layouts.data();
 
-    mDescriptorSets.resize(mSwapChain.getImagesView().size());
+    mDescriptorSets.resize(mSwapChain.getImageCount());
     if (vkAllocateDescriptorSets(mDevice, &allocInfo, mDescriptorSets.data()) != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate descriptor sets");
     }
 
-    for (size_t i{0};i < mSwapChain.getImagesView().size();++i) {
+    for (size_t i{0};i < mSwapChain.getImageCount();++i) {
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = mUniformBuffers[i];
         bufferInfo.offset = 0;
@@ -673,9 +672,8 @@ void Vulkan::recreateSwapChain() {
 
     cleanupSwapChain();
 
-    mSwapChain.recreate();
+    mSwapChain.create(mPhysicalDevice, mDevice, mWindow, mSurface, mIndices);
     createDepthResources();
-    createImageViews();
     createRenderPass();
     createGraphicsPipeline();
     createFrameBuffers();
@@ -695,6 +693,7 @@ void Vulkan::cleanupSwapChain() {
 
     mGraphicsPipeline.destroy(mDevice),
     mRenderPass.destroy(mDevice);
+    mSwapChain.destroy(mDevice);
 }
 
 bool Vulkan::checkValidationLayerSupport() {

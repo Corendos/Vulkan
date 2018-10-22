@@ -21,22 +21,15 @@ class SwapChain {
         SwapChain();
 
         void create(VkPhysicalDevice physicalDevice, VkDevice device, GLFWwindow* window, VkSurfaceKHR surface, QueueFamilyIndices indices);
-        void create();
-        void recreate();
-        void destroy();
+        void destroy(VkDevice device);
 
         VkExtent2D getExtent() const;
-        std::vector<VkImageView>& getImagesView();
         VkFormat getFormat() const;
         VkSwapchainKHR getHandler() const;
+        uint32_t getImageCount() const;
+        std::vector<VkImageView>& getImagesView();
 
     private:
-        VkDevice mDevice;
-        VkPhysicalDevice mPhysicalDevice;
-        GLFWwindow* mWindow;
-        VkSurfaceKHR mSurface;
-        QueueFamilyIndices mQueueIndices;
-
         VkSwapchainKHR mSwapChain;
 
         std::vector<VkImage> mImages;
@@ -45,11 +38,13 @@ class SwapChain {
         VkFormat mImageFormat;
         uint32_t mImageCount;
 
-        SwapChainSupportDetails querySupport();
+        bool mCreated{false};
+
+        SwapChainSupportDetails querySupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
         VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-        VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+        VkExtent2D chooseSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& capabilities);
+        VkImageView createImageView(VkDevice device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 };
 
 #endif
