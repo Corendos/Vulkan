@@ -103,7 +103,6 @@ class Vulkan {
         void createSurface();
         void pickPhysicalDevice();
         void createLogicalDevice();
-        void createImageViews();
         void createRenderPass();
         void createDescriptorSetLayout();
         void createGraphicsPipeline();

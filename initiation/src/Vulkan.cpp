@@ -282,9 +282,6 @@ void Vulkan::createDepthResources() {
         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
-void Vulkan::createImageViews() {
-}
-
 void Vulkan::createRenderPass() {
     ColorAttachment colorAttachment;
     colorAttachment.setFormat(mSwapChain.getFormat());

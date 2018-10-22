@@ -34,7 +34,6 @@ class GraphicsPipeline {
         PipelineLayout mLayout;
 
         bool mCreated{false};
-        bool mLayoutCreated{false};
 };
 
 #endif
