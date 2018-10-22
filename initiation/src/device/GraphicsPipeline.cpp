@@ -129,7 +129,7 @@ void GraphicsPipeline::create(VkDevice device) {
     mInfo.pColorBlendState = &colorBlending;
     mInfo.pDynamicState = nullptr;
     mInfo.layout = mLayout.getHandler();
-    mInfo.renderPass = mRenderPass.getHandler();
+    mInfo.renderPass = mRenderPass->getHandler();
     mInfo.subpass = 0;
     mInfo.basePipelineHandle = VK_NULL_HANDLE;
     mInfo.basePipelineIndex = -1;
@@ -155,7 +155,7 @@ void GraphicsPipeline::addShader(Shader& shader) {
 }
 
 void GraphicsPipeline::setRenderPass(RenderPass& renderPass) {
-    mRenderPass = renderPass;
+    mRenderPass = &renderPass;
 }
 
 void GraphicsPipeline::setExtent(VkExtent2D extent) {

@@ -27,7 +27,7 @@ class GraphicsPipeline {
         VkPipeline mHandler;
         VkGraphicsPipelineCreateInfo mInfo{};
         std::vector<Shader*> mShaders;
-        RenderPass mRenderPass;
+        RenderPass* mRenderPass;
 
         VkExtent2D mExtent;
 
