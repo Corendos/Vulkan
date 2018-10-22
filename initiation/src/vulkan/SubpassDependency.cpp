@@ -1,4 +1,4 @@
-#include "device/SubpassDependency.hpp"
+#include "vulkan/SubpassDependency.hpp"
 
 VkSubpassDependency SubpassDependency::getDependency() const {
     return mDependency;

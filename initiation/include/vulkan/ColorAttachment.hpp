@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "device/Attachment.hpp"
+#include "vulkan/Attachment.hpp"
 
 class ColorAttachment : public Attachment {
     public:

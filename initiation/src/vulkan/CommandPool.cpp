@@ -1,4 +1,4 @@
-#include "device/CommandPool.hpp"
+#include "vulkan/CommandPool.hpp"
 
 void CommandPool::create(VkDevice device, QueueFamilyIndices indices) {
     if (mCreated) {

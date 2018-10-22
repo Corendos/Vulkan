@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "device/QueueFamilyIndices.hpp"
+#include "vulkan/QueueFamilyIndices.hpp"
 
 class CommandPool {
     public:

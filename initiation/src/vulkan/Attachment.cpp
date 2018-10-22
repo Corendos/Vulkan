@@ -1,4 +1,4 @@
-#include "device/Attachment.hpp"
+#include "vulkan/Attachment.hpp"
 
 VkAttachmentDescription Attachment::getDescription() const {
     return mDescription;

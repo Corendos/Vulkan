@@ -1,4 +1,4 @@
-#include "device/Subpass.hpp"
+#include "vulkan/Subpass.hpp"
 
 void Subpass::setBindPoint(VkPipelineBindPoint bindPoint) {
     mDescription.pipelineBindPoint = bindPoint;

@@ -1,4 +1,4 @@
-#include "device/PipelineLayout.hpp"
+#include "vulkan/PipelineLayout.hpp"
 
 PipelineLayout::PipelineLayout() {
     mInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

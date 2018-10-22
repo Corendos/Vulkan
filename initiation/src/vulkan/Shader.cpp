@@ -1,7 +1,7 @@
 #include <vector>
 #include <iostream>
 
-#include "shaders/Shader.hpp"
+#include "vulkan/Shader.hpp"
 
 #include "files/File.hpp"
 

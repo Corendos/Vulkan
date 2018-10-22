@@ -5,10 +5,10 @@
 #include <algorithm>
 
 #include <vulkan/vulkan.h>
-#include "device/PipelineLayout.hpp"
-#include "device/RenderPass.hpp"
-#include "shaders/Shader.hpp"
-#include "Vertex.hpp"
+#include "vulkan/PipelineLayout.hpp"
+#include "vulkan/RenderPass.hpp"
+#include "vulkan/Shader.hpp"
+#include "vulkan/Vertex.hpp"
 
 class GraphicsPipeline {
     public:

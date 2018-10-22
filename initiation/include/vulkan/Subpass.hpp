@@ -5,8 +5,8 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "device/ColorAttachment.hpp"
-#include "device/DepthAttachment.hpp"
+#include "vulkan/ColorAttachment.hpp"
+#include "vulkan/DepthAttachment.hpp"
 
 class Subpass {
     public:

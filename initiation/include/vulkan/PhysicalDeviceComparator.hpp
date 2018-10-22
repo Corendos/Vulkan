@@ -1,7 +1,7 @@
 #ifndef PHYSICALDEVICECOMPARATOR
 #define PHYSICALDEVICECOMPARATOR
 
-#include "device/PhysicalDeviceInfo.hpp"
+#include "vulkan/PhysicalDeviceInfo.hpp"
 
 class PhysicalDeviceComparator {
     public:

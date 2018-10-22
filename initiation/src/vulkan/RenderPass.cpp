@@ -1,4 +1,4 @@
-#include "device/RenderPass.hpp"
+#include "vulkan/RenderPass.hpp"
 
 void RenderPass::create(VkDevice device) {
     if (mCreated) {

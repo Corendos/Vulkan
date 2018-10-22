@@ -1,4 +1,4 @@
-#include "device/GraphicsPipeline.hpp"
+#include "vulkan/GraphicsPipeline.hpp"
 
 GraphicsPipeline::GraphicsPipeline() {
     mInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

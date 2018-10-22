@@ -7,10 +7,10 @@
 
 #include <vulkan/vulkan.h>
 
-#include "device/PhysicalDeviceInfo.hpp"
-#include "device/PhysicalDeviceChoice.hpp"
-#include "device/QueueFamilyIndices.hpp"
-#include "device/PhysicalDeviceComparator.hpp"
+#include "vulkan/PhysicalDeviceInfo.hpp"
+#include "vulkan/PhysicalDeviceChoice.hpp"
+#include "vulkan/QueueFamilyIndices.hpp"
+#include "vulkan/PhysicalDeviceComparator.hpp"
 
 class BasicPhysicalDevicePicker {
     public:

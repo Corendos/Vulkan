@@ -1,4 +1,4 @@
-#include "device/Image.hpp"
+#include "vulkan/Image.hpp"
 
 void Image::create(VkDevice device, MemoryManager& manager,
                   uint32_t width, uint32_t height,

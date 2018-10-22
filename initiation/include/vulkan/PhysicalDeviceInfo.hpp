@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "device/QueueFamilyIndices.hpp"
+#include "vulkan/QueueFamilyIndices.hpp"
 
 struct PhysicalDeviceInfo {
     VkPhysicalDevice device;

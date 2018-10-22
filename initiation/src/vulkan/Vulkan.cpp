@@ -7,13 +7,13 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "Vulkan.hpp"
 
 #include "BasicLogger.hpp"
-#include "device/BasicPhysicalDevicePicker.hpp"
-#include "Vertex.hpp"
-#include "UniformBufferObject.hpp"
 #include "PrintHelper.hpp"
+#include "vulkan/Vulkan.hpp"
+#include "vulkan/BasicPhysicalDevicePicker.hpp"
+#include "vulkan/Vertex.hpp"
+#include "vulkan/UniformBufferObject.hpp"
 
 Vulkan::Vulkan() : mMemoryManager(mPhysicalDevice, mDevice) {
     mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
@@ -721,9 +721,8 @@ bool Vulkan::checkValidationLayerSupport() {
     return true;
 }
 
-void Vulkan::createBuffer(
-    VkDeviceSize size, VkBufferUsageFlags usage,
-    VkMemoryPropertyFlags properties, VkBuffer& buffer) {
+void Vulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                          VkMemoryPropertyFlags properties, VkBuffer& buffer) {
     
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
