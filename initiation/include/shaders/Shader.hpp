@@ -22,7 +22,7 @@ class Shader {
         void destroy(VkDevice device);
 
         VkShaderModule createModule();
-        VkPipelineShaderStageCreateInfo getCreateInfo();
+        VkPipelineShaderStageCreateInfo getCreateInfo() const;
 
     private:
         VkShaderModule mModule;

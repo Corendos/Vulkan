@@ -114,8 +114,12 @@ void GraphicsPipeline::create(VkDevice device) {
     stencilInfo.front = {};
     stencilInfo.back = {};
 
-    mInfo.stageCount = static_cast<uint32_t>(mShaderInfos.size());
-    mInfo.pStages = mShaderInfos.data();
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages(mShaders.size());
+    std::transform(mShaders.begin(), mShaders.end(),
+                   shaderStages.begin(), [](const Shader* s) { return s->getCreateInfo(); });
+
+    mInfo.stageCount = static_cast<uint32_t>(mShaders.size());
+    mInfo.pStages = shaderStages.data();
     mInfo.pVertexInputState = &vertexInputInfo;
     mInfo.pInputAssemblyState = &inputAssembly;
     mInfo.pViewportState = &viewportState;
@@ -141,13 +145,13 @@ void GraphicsPipeline::destroy(VkDevice device) {
     if (mCreated) {
         mLayout.destroy(device);
         vkDestroyPipeline(device, mHandler, nullptr);
-        mShaderInfos.clear();
+        mShaders.clear();
         mCreated = false;
     }
 }
 
-void GraphicsPipeline::addShader(VkPipelineShaderStageCreateInfo info) {
-    mShaderInfos.push_back(info);
+void GraphicsPipeline::addShader(Shader& shader) {
+    mShaders.push_back(&shader);
 }
 
 void GraphicsPipeline::setRenderPass(RenderPass& renderPass) {

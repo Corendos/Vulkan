@@ -2,6 +2,7 @@
 #define GRAPHICSPIPELINE
 
 #include <vector>
+#include <algorithm>
 
 #include <vulkan/vulkan.h>
 #include "device/PipelineLayout.hpp"
@@ -15,7 +16,7 @@ class GraphicsPipeline {
         void create(VkDevice device);
         void destroy(VkDevice device);
 
-        void addShader(VkPipelineShaderStageCreateInfo info);
+        void addShader(Shader& shader);
         void setRenderPass(RenderPass& renderPass);
         void setExtent(VkExtent2D extent);
 
@@ -25,7 +26,7 @@ class GraphicsPipeline {
     private:
         VkPipeline mHandler;
         VkGraphicsPipelineCreateInfo mInfo{};
-        std::vector<VkPipelineShaderStageCreateInfo> mShaderInfos;
+        std::vector<Shader*> mShaders;
         RenderPass mRenderPass;
 
         VkExtent2D mExtent;

@@ -364,8 +364,8 @@ void Vulkan::createGraphicsPipeline() {
 
     mGraphicsPipeline.getLayout().addDescriptorSetLayout(mDescriptorSetLayout);
 
-    mGraphicsPipeline.addShader(mVertexShader.getCreateInfo());
-    mGraphicsPipeline.addShader(mFragmentShader.getCreateInfo());
+    mGraphicsPipeline.addShader(mVertexShader);
+    mGraphicsPipeline.addShader(mFragmentShader);
     mGraphicsPipeline.setRenderPass(mRenderPass);
     mGraphicsPipeline.setExtent(mSwapChain.getExtent());
     mGraphicsPipeline.create(mDevice);

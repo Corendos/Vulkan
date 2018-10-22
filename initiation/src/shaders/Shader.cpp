@@ -53,7 +53,7 @@ void Shader::destroy(VkDevice device) {
     }
 }
 
-VkPipelineShaderStageCreateInfo Shader::getCreateInfo() {
+VkPipelineShaderStageCreateInfo Shader::getCreateInfo() const {
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
     shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStageInfo.stage = mStage;
