@@ -317,15 +317,16 @@ void Vulkan::createRenderPass() {
 
     mRenderPass.addSubpass(subpass.getDescription());
 
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    SubpassDependency dependency;
 
-    mRenderPass.addSubpassDependency(dependency);
+    dependency.setSourceSubpass(VK_SUBPASS_EXTERNAL);
+    dependency.setDestinationSubpass(0);
+    dependency.setSourceStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+    dependency.setSourceAccessMask(0);
+    dependency.setDestinationStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+    dependency.setDestinationAccessMask(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+
+    mRenderPass.addSubpassDependency(dependency.getDependency());
     
     mRenderPass.create(mDevice);
 }

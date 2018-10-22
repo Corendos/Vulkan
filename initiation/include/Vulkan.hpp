@@ -26,6 +26,7 @@
 #include "device/ColorAttachment.hpp"
 #include "device/DepthAttachment.hpp"
 #include "device/Subpass.hpp"
+#include "device/SubpassDependency.hpp"
 #include "SwapChain.hpp"
 
 class Vulkan {
