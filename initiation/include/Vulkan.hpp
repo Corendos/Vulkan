@@ -27,6 +27,7 @@
 #include "device/DepthAttachment.hpp"
 #include "device/Subpass.hpp"
 #include "device/SubpassDependency.hpp"
+#include "device/GraphicsPipeline.hpp"
 #include "SwapChain.hpp"
 
 class Vulkan {
@@ -48,9 +49,7 @@ class Vulkan {
         VkQueue mGraphicsQueue;                             // Device graphic queue
         VkQueue mPresentQueue;                              // Device present queue
         VkSurfaceKHR mSurface;                              // Vulkan surface handler
-        VkPipelineLayout mPipelineLayout;                   // Vulkan pipeline layout handler
         VkDescriptorSetLayout mDescriptorSetLayout;
-        VkPipeline mGraphicsPipeline;                       // Vulkan pipeline handler
         std::vector<VkFramebuffer> mSwapChainFrameBuffers;  // Vulkan framebuffers handlers
         std::vector<VkCommandBuffer> mCommandBuffers;       // Vulkan command buffers
         VkSemaphore mImageAvailableSemaphore;               // Semaphore handling image availability
@@ -79,6 +78,7 @@ class Vulkan {
         Shader mFragmentShader;
         Shader mVertexShader;
 
+        GraphicsPipeline mGraphicsPipeline;
         MemoryManager mMemoryManager;
         
         VkRect2D mWindowSize;
