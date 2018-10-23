@@ -26,7 +26,7 @@ class Cube {
                     VkDescriptorSetLayout layout,
                     VkImageView imageView,
                     VkSampler sampler);
-        void destroy(MemoryManager& manager);
+        void destroy(MemoryManager& memoryManager);
         VkBuffer getVertexBuffer();
         VkBuffer getIndicesBuffer();
         VkDescriptorSet getDescriptorSet();

@@ -51,6 +51,7 @@ class Vulkan {
         VkQueue mPresentQueue;                              // Device present queue
         VkSurfaceKHR mSurface;                              // Vulkan surface handler
         VkDescriptorSetLayout mDescriptorSetLayout;
+        VkDescriptorSetLayout mColorDescriptorSetLayout;
         std::vector<VkFramebuffer> mSwapChainFrameBuffers;  // Vulkan framebuffers handlers
         std::vector<VkCommandBuffer> mCommandBuffers;       // Vulkan command buffers
         VkSemaphore mImageAvailableSemaphore;               // Semaphore handling image availability
@@ -77,11 +78,13 @@ class Vulkan {
         VkImageView mDepthImageView;
 
         Shader mFragmentShader;
+        Shader mFragmentColorShader;
         Shader mVertexShader;
 
         Cube cube{0.5f};
 
         GraphicsPipeline mGraphicsPipeline;
+        GraphicsPipeline mGraphicsPipeline2;
         MemoryManager mMemoryManager;
         
         VkRect2D mWindowSize;

@@ -3,14 +3,14 @@
 Cube::Cube(float size) {
     mSize = size;
     std::vector<Vertex> vertices = {
-        {{size, size, size}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-        {{-size, size, size}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-        {{-size, -size, size}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-        {{size, -size, size}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-        {{size, size, -size}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-        {{-size, size, -size}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-        {{-size, -size, -size}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-        {{size, -size, -size}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}}
+        {{size, size, size}, {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+        {{-size, size, size}, {1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+        {{-size, -size, size}, {1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+        {{size, -size, size}, {1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+        {{size, size, -size}, {1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+        {{-size, size, -size}, {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+        {{-size, -size, -size}, {1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+        {{size, -size, -size}, {1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}
     };
     std::copy(vertices.begin(), vertices.end(), mVertices.begin());
 }
@@ -135,23 +135,7 @@ void Cube::createDescriptor(VkDevice device,
     descriptorWrite.pImageInfo = nullptr;
     descriptorWrite.pTexelBufferView = nullptr;
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = sampler;
+    VkWriteDescriptorSet sets[] = {descriptorWrite};
 
-    VkWriteDescriptorSet imageDescriptorWrite{};
-    imageDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    imageDescriptorWrite.dstSet = mDescriptor;
-    imageDescriptorWrite.dstBinding = 1;
-    imageDescriptorWrite.dstArrayElement = 0;
-    imageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    imageDescriptorWrite.descriptorCount = 1;
-    imageDescriptorWrite.pBufferInfo = nullptr;
-    imageDescriptorWrite.pImageInfo = &imageInfo;
-    imageDescriptorWrite.pTexelBufferView = nullptr;
-
-    VkWriteDescriptorSet sets[] = {descriptorWrite, imageDescriptorWrite};
-
-    vkUpdateDescriptorSets(device, 2, sets, 0, nullptr);
+    vkUpdateDescriptorSets(device, 1, sets, 0, nullptr);
 }

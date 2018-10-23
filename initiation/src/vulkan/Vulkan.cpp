@@ -18,6 +18,7 @@
 Vulkan::Vulkan() : mMemoryManager(mPhysicalDevice, mDevice) {
     mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
     mFragmentShader = Shader(shaderPath + "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
+    mFragmentColorShader = Shader(shaderPath + "fragColor.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
 }
 
 void Vulkan::init(GLFWwindow* window, int width, int height) {
@@ -45,7 +46,7 @@ void Vulkan::init(GLFWwindow* window, int width, int height) {
     createUniformBuffer();
     createDescriptorPool();
     createDescriptorSets();
-    cube.create(mMemoryManager, mDevice, mCommandPool, mGraphicsQueue, mSwapChain, mDescriptorPool, mDescriptorSetLayout, mTextureImageView, mTextureSampler);
+    cube.create(mMemoryManager, mDevice, mCommandPool, mGraphicsQueue, mSwapChain, mDescriptorPool, mColorDescriptorSetLayout, mTextureImageView, mTextureSampler);
     createCommandBuffers();
     createSemaphores();
 }
@@ -55,8 +56,11 @@ void Vulkan::cleanup() {
     cleanupSwapChain();
     mSwapChain.destroy(mDevice);
 
+    cube.destroy(mMemoryManager);
+
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(mDevice, mColorDescriptorSetLayout, nullptr);
 
     for (size_t i{0};i < mUniformBuffers.size();++i) {
         mMemoryManager.freeBuffer(mUniformBuffers[i]);
@@ -65,7 +69,6 @@ void Vulkan::cleanup() {
     mMemoryManager.freeBuffer(mVertexBuffer);
     mMemoryManager.freeBuffer(mIndicesBuffer);
     mMemoryManager.freeImage(mTextureImage);
-    cube.destroy(mMemoryManager);
 
     vkDestroySampler(mDevice, mTextureSampler, nullptr);
     vkDestroyImageView(mDevice, mTextureImageView, nullptr);
@@ -76,6 +79,7 @@ void Vulkan::cleanup() {
 
     mVertexShader.destroy(mDevice);
     mFragmentShader.destroy(mDevice);
+    mFragmentColorShader.destroy(mDevice);
 
     mMemoryManager.cleanup();
     mMemoryManager.memoryCheckLog();
@@ -354,11 +358,21 @@ void Vulkan::createDescriptorSetLayout() {
     if (vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor set layout");
     }
+
+    VkDescriptorSetLayoutCreateInfo colorLayoutInfo{};
+    colorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    colorLayoutInfo.bindingCount = 1;
+    colorLayoutInfo.pBindings = &uboLayoutBinding;
+
+    if (vkCreateDescriptorSetLayout(mDevice, &colorLayoutInfo, nullptr, &mColorDescriptorSetLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create descriptor set layout");
+    }
 }
 
 void Vulkan::createGraphicsPipeline() {
     mVertexShader.create(mDevice);
     mFragmentShader.create(mDevice);
+    mFragmentColorShader.create(mDevice);
 
     mGraphicsPipeline.getLayout().addDescriptorSetLayout(mDescriptorSetLayout);
 
@@ -367,6 +381,14 @@ void Vulkan::createGraphicsPipeline() {
     mGraphicsPipeline.setRenderPass(mRenderPass);
     mGraphicsPipeline.setExtent(mSwapChain.getExtent());
     mGraphicsPipeline.create(mDevice);
+
+    mGraphicsPipeline2.getLayout().addDescriptorSetLayout(mColorDescriptorSetLayout);
+
+    mGraphicsPipeline2.addShader(mVertexShader);
+    mGraphicsPipeline2.addShader(mFragmentColorShader);
+    mGraphicsPipeline2.setRenderPass(mRenderPass);
+    mGraphicsPipeline2.setExtent(mSwapChain.getExtent());
+    mGraphicsPipeline2.create(mDevice);
 }
 
 void Vulkan::createFrameBuffers() {
@@ -644,11 +666,12 @@ void Vulkan::createCommandBuffers() {
 
         vkCmdDrawIndexed(mCommandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
         
+        vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline2.getHandler());
         vertexBuffers[0] = cube.getVertexBuffer();
         vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(mCommandBuffers[i], cube.getIndicesBuffer(), 0, VK_INDEX_TYPE_UINT16);
         VkDescriptorSet desc[] = {cube.getDescriptorSet()};
-        vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline.getLayout().getHandler(),
+        vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline2.getLayout().getHandler(),
             0, 1, desc, 0, nullptr);
         
         vkCmdDrawIndexed(mCommandBuffers[i], 36, 1, 0, 0, 0);        
@@ -703,7 +726,8 @@ void Vulkan::cleanupSwapChain() {
     vkFreeCommandBuffers(mDevice, mCommandPool.getHandler(),
         static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
 
-    mGraphicsPipeline.destroy(mDevice),
+    mGraphicsPipeline.destroy(mDevice);
+    mGraphicsPipeline2.destroy(mDevice);
     mRenderPass.destroy(mDevice);
     mSwapChain.destroy(mDevice);
 }
