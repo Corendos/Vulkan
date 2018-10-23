@@ -45,6 +45,7 @@ void Vulkan::init(GLFWwindow* window, int width, int height) {
     createUniformBuffer();
     createDescriptorPool();
     createDescriptorSets();
+    cube.create(mMemoryManager, mDevice, mCommandPool, mGraphicsQueue, mSwapChain, mDescriptorPool, mDescriptorSetLayout, mTextureImageView, mTextureSampler);
     createCommandBuffers();
     createSemaphores();
 }
@@ -64,6 +65,7 @@ void Vulkan::cleanup() {
     mMemoryManager.freeBuffer(mVertexBuffer);
     mMemoryManager.freeBuffer(mIndicesBuffer);
     mMemoryManager.freeImage(mTextureImage);
+    cube.destroy(mMemoryManager);
 
     vkDestroySampler(mDevice, mTextureSampler, nullptr);
     vkDestroyImageView(mDevice, mTextureImageView, nullptr);
@@ -528,15 +530,15 @@ void Vulkan::createUniformBuffer() {
 void Vulkan::createDescriptorPool() {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(mSwapChain.getImageCount());
+    poolSizes[0].descriptorCount = /*static_cast<uint32_t>(mSwapChain.getImageCount())*/100;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(mSwapChain.getImageCount());
+    poolSizes[1].descriptorCount = /*static_cast<uint32_t>(mSwapChain.getImageCount())*/100;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType= VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(mSwapChain.getImageCount());
+    poolInfo.maxSets = /*static_cast<uint32_t>(mSwapChain.getImageCount())*/10;
 
     if (vkCreateDescriptorPool(mDevice, &poolInfo, nullptr, &mDescriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -641,6 +643,16 @@ void Vulkan::createCommandBuffers() {
             0, 1, &mDescriptorSets[i], 0, nullptr);
 
         vkCmdDrawIndexed(mCommandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        
+        vertexBuffers[0] = cube.getVertexBuffer();
+        vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(mCommandBuffers[i], cube.getIndicesBuffer(), 0, VK_INDEX_TYPE_UINT16);
+        VkDescriptorSet desc[] = {cube.getDescriptorSet()};
+        vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline.getLayout().getHandler(),
+            0, 1, desc, 0, nullptr);
+        
+        vkCmdDrawIndexed(mCommandBuffers[i], 36, 1, 0, 0, 0);        
+
         vkCmdEndRenderPass(mCommandBuffers[i]);
 
         if (vkEndCommandBuffer(mCommandBuffers[i]) != VK_SUCCESS) {

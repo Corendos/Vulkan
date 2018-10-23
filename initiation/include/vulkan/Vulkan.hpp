@@ -29,6 +29,7 @@
 #include "vulkan/SubpassDependency.hpp"
 #include "vulkan/GraphicsPipeline.hpp"
 #include "vulkan/SwapChain.hpp"
+#include "primitives/Cube.hpp"
 
 class Vulkan {
     public:
@@ -77,6 +78,8 @@ class Vulkan {
 
         Shader mFragmentShader;
         Shader mVertexShader;
+
+        Cube cube{0.5f};
 
         GraphicsPipeline mGraphicsPipeline;
         MemoryManager mMemoryManager;
