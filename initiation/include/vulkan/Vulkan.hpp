@@ -30,6 +30,8 @@
 #include "vulkan/GraphicsPipeline.hpp"
 #include "vulkan/SwapChain.hpp"
 #include "primitives/Cube.hpp"
+#include "primitives/StaticObject.hpp"
+#include "vulkan/StaticObjectsManager.hpp"
 
 class Vulkan {
     public:
@@ -83,6 +85,29 @@ class Vulkan {
 
         Cube cube{0.5f};
 
+        StaticObject sObject{
+            {
+                {{1.0f, 1.0f, 1.0f}, {.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+                {{-1.0f, 1.0f, 1.0f}, {.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+                {{-1.0f, -1.0f, 1.0f}, {.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+                {{1.0f, -1.0f, 1.0f}, {.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+                {{1.0f, 1.0f, -1.0f}, {.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+                {{-1.0f, 1.0f, -1.0f}, {.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+                {{-1.0f, -1.0f, -1.0f}, {.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+                {{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}
+            },
+            {
+                1, 2, 3, 1, 3, 4,
+                5, 1, 4, 5, 4, 8,
+                2, 6, 7, 2, 7, 3,
+                5, 6, 2, 5, 2, 1,
+                4, 3, 7, 4, 7, 8,
+                6, 5, 8, 6, 8, 7
+            }
+        };
+        StaticObjectsManager sObjectManager;
+        VkDescriptorSet mSODescriptorSet;
+
         GraphicsPipeline mGraphicsPipeline;
         GraphicsPipeline mGraphicsPipeline2;
         MemoryManager mMemoryManager;
@@ -122,6 +147,7 @@ class Vulkan {
         void createUniformBuffer();
         void createDescriptorPool();
         void createDescriptorSets();
+        void createSODescriptorSets();
         void createCommandBuffers();
         void createSemaphores();
         

@@ -46,6 +46,7 @@ void Vulkan::init(GLFWwindow* window, int width, int height) {
     createUniformBuffer();
     createDescriptorPool();
     createDescriptorSets();
+    createSODescriptorSets();
     cube.create(mMemoryManager, mDevice, mCommandPool, mGraphicsQueue, mSwapChain, mDescriptorPool, mColorDescriptorSetLayout, mTextureImageView, mTextureSampler);
     createCommandBuffers();
     createSemaphores();
@@ -57,6 +58,7 @@ void Vulkan::cleanup() {
     mSwapChain.destroy(mDevice);
 
     cube.destroy(mMemoryManager);
+    sObjectManager.destroy(mDevice);
 
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
@@ -389,6 +391,9 @@ void Vulkan::createGraphicsPipeline() {
     mGraphicsPipeline2.setRenderPass(mRenderPass);
     mGraphicsPipeline2.setExtent(mSwapChain.getExtent());
     mGraphicsPipeline2.create(mDevice);
+
+    sObjectManager.addStaticObject(sObject);
+    sObjectManager.create(mDevice, mMemoryManager, mCommandPool, mGraphicsQueue);
 }
 
 void Vulkan::createFrameBuffers() {
@@ -616,6 +621,38 @@ void Vulkan::createDescriptorSets() {
     }
 }
 
+void Vulkan::createSODescriptorSets() {
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = mDescriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &mColorDescriptorSetLayout;
+
+    if (vkAllocateDescriptorSets(mDevice, &allocInfo, &mSODescriptorSet) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate descriptor sets");
+    }
+
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = sObjectManager.getUniformBuffer();
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(UniformBufferObject);
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = mSODescriptorSet;
+    descriptorWrite.dstBinding = 0;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &bufferInfo;
+    descriptorWrite.pImageInfo = nullptr;
+    descriptorWrite.pTexelBufferView = nullptr;
+
+    VkWriteDescriptorSet sets[] = {descriptorWrite};
+
+    vkUpdateDescriptorSets(mDevice, 1, sets, 0, nullptr);
+}
+
 void Vulkan::createCommandBuffers() {
     mCommandBuffers.resize(mSwapChainFrameBuffers.size());
 
@@ -667,10 +704,10 @@ void Vulkan::createCommandBuffers() {
         vkCmdDrawIndexed(mCommandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
         
         vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline2.getHandler());
-        vertexBuffers[0] = cube.getVertexBuffer();
+        vertexBuffers[0] = sObjectManager.getVertexBuffer();
         vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(mCommandBuffers[i], cube.getIndicesBuffer(), 0, VK_INDEX_TYPE_UINT16);
-        VkDescriptorSet desc[] = {cube.getDescriptorSet()};
+        vkCmdBindIndexBuffer(mCommandBuffers[i], sObjectManager.getindexBuffer(), 0, VK_INDEX_TYPE_UINT16);
+        VkDescriptorSet desc[] = {mSODescriptorSet};
         vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline2.getLayout().getHandler(),
             0, 1, desc, 0, nullptr);
         
