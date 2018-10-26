@@ -25,7 +25,7 @@
 #include "vulkan/Subpass.hpp"
 #include "vulkan/GraphicsPipeline.hpp"
 #include "vulkan/SwapChain.hpp"
-#include "primitives/StaticObject.hpp"
+#include "primitives/Cube.hpp"
 #include "vulkan/StaticObjectsManager.hpp"
 
 class Vulkan {
@@ -81,26 +81,9 @@ class Vulkan {
         Shader mFragmentColorShader;
         Shader mVertexShader;
 
-        StaticObject sObject{
-            {
-                {{1.0f, 1.0f, 1.0f}, {.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-                {{-1.0f, 1.0f, 1.0f}, {.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-                {{-1.0f, -1.0f, 1.0f}, {.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-                {{1.0f, -1.0f, 1.0f}, {.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-                {{1.0f, 1.0f, -1.0f}, {.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-                {{-1.0f, 1.0f, -1.0f}, {.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-                {{-1.0f, -1.0f, -1.0f}, {.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-                {{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}
-            },
-            {
-                1, 2, 3, 1, 3, 4,
-                5, 1, 4, 5, 4, 8,
-                2, 6, 7, 2, 7, 3,
-                5, 6, 2, 5, 2, 1,
-                4, 3, 7, 4, 7, 8,
-                6, 5, 8, 6, 8, 7
-            }
-        };
+        Cube cube{0.5f, {-1.0, 0.0, 0.0}, {0.7f, 0.43f, 0.28f}};
+        Cube cube2{0.5f, {0.0, -1.0, 0.0}, {0.43f, 0.28f, 0.7f}};
+
         StaticObjectsManager sObjectManager;
         VkDescriptorSet mSODescriptorSet;
 

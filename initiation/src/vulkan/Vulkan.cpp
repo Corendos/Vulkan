@@ -406,7 +406,8 @@ void Vulkan::createGraphicsPipeline() {
     mGraphicsPipeline2.setExtent(mSwapChain.getExtent());
     mGraphicsPipeline2.create(mDevice);
 
-    sObjectManager.addStaticObject(sObject);
+    sObjectManager.addStaticObject(cube2);
+    sObjectManager.addStaticObject(cube);
     sObjectManager.create(*this);
 }
 
@@ -720,12 +721,12 @@ void Vulkan::createCommandBuffers() {
         vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline2.getHandler());
         vertexBuffers[0] = sObjectManager.getVertexBuffer();
         vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(mCommandBuffers[i], sObjectManager.getindexBuffer(), 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(mCommandBuffers[i], sObjectManager.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
         VkDescriptorSet desc[] = {mSODescriptorSet};
         vkCmdBindDescriptorSets(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline2.getLayout().getHandler(),
             0, 1, desc, 0, nullptr);
         
-        vkCmdDrawIndexed(mCommandBuffers[i], 36, 1, 0, 0, 0);        
+        vkCmdDrawIndexed(mCommandBuffers[i], sObjectManager.getIndiceCount(), 1, 0, 0, 0);        
 
         vkCmdEndRenderPass(mCommandBuffers[i]);
 

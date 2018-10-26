@@ -10,8 +10,11 @@
 
 void StaticObjectsManager::addStaticObject(StaticObject& staticObject) {
     mStaticObjects.push_back(staticObject);
+    std::vector<uint16_t> indicesCopy(staticObject.getIndices().size());
+    std::transform(staticObject.getIndices().begin(), staticObject.getIndices().end(),
+        indicesCopy.begin(), [this](const uint16_t& value) { return value + mVertices.size(); });
     mVertices.insert(mVertices.end(), staticObject.getVertices().begin(), staticObject.getVertices().end());
-    mIndices.insert(mIndices.end(), staticObject.getIndices().begin(), staticObject.getIndices().end());
+    mIndices.insert(mIndices.end(), indicesCopy.begin(), indicesCopy.end());
 }
 
 void StaticObjectsManager::create(Vulkan& vulkan) {
@@ -35,10 +38,13 @@ VkBuffer StaticObjectsManager::getVertexBuffer() const {
     return mVertexBuffer;
 }
 
-VkBuffer StaticObjectsManager::getindexBuffer() const {
+VkBuffer StaticObjectsManager::getIndexBuffer() const {
     return mIndexBuffer;
 }
 
+uint32_t StaticObjectsManager::getIndiceCount() {
+    return mIndices.size();
+}
 
 void StaticObjectsManager::createVertexBuffer() {
     VkDeviceSize bufferSize = sizeof(Vertex) * mVertices.size();

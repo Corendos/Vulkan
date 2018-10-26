@@ -1,5 +1,7 @@
 #include "primitives/StaticObject.hpp"
 
+StaticObject::StaticObject(){}
+
 StaticObject::StaticObject(std::vector<Vertex> vertices, std::vector<uint16_t> indices) {
     mVertices = vertices;
     mIndices = indices;

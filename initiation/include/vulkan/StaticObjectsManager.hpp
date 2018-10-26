@@ -17,7 +17,8 @@ class StaticObjectsManager {
 
         VkBuffer getUniformBuffer() const;
         VkBuffer getVertexBuffer() const;
-        VkBuffer getindexBuffer() const;
+        VkBuffer getIndexBuffer() const;
+        uint32_t getIndiceCount();
 
     private:
         VkBuffer mVertexBuffer;
