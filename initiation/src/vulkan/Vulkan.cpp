@@ -14,6 +14,10 @@
 #include "vulkan/BasicPhysicalDevicePicker.hpp"
 #include "vulkan/Vertex.hpp"
 #include "vulkan/UniformBufferObject.hpp"
+#include "vulkan/Image.hpp"
+#include "vulkan/ColorAttachment.hpp"
+#include "vulkan/DepthAttachment.hpp"
+#include "vulkan/SubpassDependency.hpp"
 
 Vulkan::Vulkan() : mMemoryManager(mPhysicalDevice, mDevice) {
     mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");

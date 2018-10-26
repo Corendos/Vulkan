@@ -10,7 +10,6 @@
 #include "vulkan/PhysicalDeviceInfo.hpp"
 #include "vulkan/PhysicalDeviceChoice.hpp"
 #include "vulkan/QueueFamilyIndices.hpp"
-#include "vulkan/PhysicalDeviceComparator.hpp"
 
 class BasicPhysicalDevicePicker {
     public:

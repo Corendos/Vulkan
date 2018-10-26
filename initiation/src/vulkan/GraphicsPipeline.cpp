@@ -1,4 +1,5 @@
 #include "vulkan/GraphicsPipeline.hpp"
+#include "vulkan/Vertex.hpp"
 
 GraphicsPipeline::GraphicsPipeline() {
     mInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

@@ -4,14 +4,8 @@
 #include <vector>
 
 #include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include "primitives/StaticObject.hpp"
-#include "memory/MemoryManager.hpp"
-#include "vulkan/BufferHelper.hpp"
-#include "vulkan/UniformBufferObject.hpp"
-#include "utils.hpp"
 
 class Vulkan;
 

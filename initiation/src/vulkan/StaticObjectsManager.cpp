@@ -1,5 +1,12 @@
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "vulkan/StaticObjectsManager.hpp"
 #include "vulkan/Vulkan.hpp"
+#include "memory/MemoryManager.hpp"
+#include "vulkan/BufferHelper.hpp"
+#include "vulkan/UniformBufferObject.hpp"
+#include "utils.hpp"
 
 void StaticObjectsManager::addStaticObject(StaticObject& staticObject) {
     mStaticObjects.push_back(staticObject);

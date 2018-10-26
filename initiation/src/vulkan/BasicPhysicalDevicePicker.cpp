@@ -1,4 +1,5 @@
 #include "vulkan/BasicPhysicalDevicePicker.hpp"
+#include "vulkan/PhysicalDeviceComparator.hpp"
 
 BasicPhysicalDevicePicker::BasicPhysicalDevicePicker(VkInstance instance, VkSurfaceKHR surface, std::vector<const char*> requiredExtensions)
     : mInstance(instance), mSurface(surface) {
