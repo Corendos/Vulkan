@@ -47,7 +47,6 @@ void Vulkan::init(GLFWwindow* window, int width, int height) {
     createDescriptorPool();
     createDescriptorSets();
     createSODescriptorSets();
-    cube.create(mMemoryManager, mDevice, mCommandPool, mGraphicsQueue, mSwapChain, mDescriptorPool, mColorDescriptorSetLayout, mTextureImageView, mTextureSampler);
     createCommandBuffers();
     createSemaphores();
 }
@@ -57,8 +56,7 @@ void Vulkan::cleanup() {
     cleanupSwapChain();
     mSwapChain.destroy(mDevice);
 
-    cube.destroy(mMemoryManager);
-    sObjectManager.destroy(mDevice);
+    sObjectManager.destroy();
 
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
@@ -95,8 +93,20 @@ void Vulkan::cleanup() {
     vkDestroyInstance(mInstance, nullptr);
 }
 
-VkDevice& Vulkan::getDevice() {
+VkDevice Vulkan::getDevice() const {
     return mDevice;
+}
+
+CommandPool& Vulkan::getCommandPool() {
+    return mCommandPool;
+}
+
+VkQueue Vulkan::getGraphicsQueue() const {
+    return mGraphicsQueue;
+}
+
+MemoryManager& Vulkan::getMemoryManager() {
+    return mMemoryManager;
 }
 
 void Vulkan::drawFrame() {
@@ -393,7 +403,7 @@ void Vulkan::createGraphicsPipeline() {
     mGraphicsPipeline2.create(mDevice);
 
     sObjectManager.addStaticObject(sObject);
-    sObjectManager.create(mDevice, mMemoryManager, mCommandPool, mGraphicsQueue);
+    sObjectManager.create(*this);
 }
 
 void Vulkan::createFrameBuffers() {

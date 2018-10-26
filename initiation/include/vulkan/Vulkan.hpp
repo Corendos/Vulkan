@@ -42,7 +42,10 @@ class Vulkan {
     void drawFrame();
     void requestResize();
 
-    VkDevice& getDevice();
+    VkDevice getDevice() const;
+    CommandPool& getCommandPool();
+    VkQueue getGraphicsQueue() const;
+    MemoryManager& getMemoryManager();
 
     private:
         GLFWwindow* mWindow;
@@ -82,8 +85,6 @@ class Vulkan {
         Shader mFragmentShader;
         Shader mFragmentColorShader;
         Shader mVertexShader;
-
-        Cube cube{0.5f};
 
         StaticObject sObject{
             {

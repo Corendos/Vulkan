@@ -13,10 +13,12 @@
 #include "vulkan/UniformBufferObject.hpp"
 #include "utils.hpp"
 
+class Vulkan;
+
 class StaticObjectsManager {
     public:
-        void create(VkDevice device, MemoryManager& manager, CommandPool& commandPool, VkQueue queue);
-        void destroy(VkDevice device);
+        void create(Vulkan& vulkan);
+        void destroy();
         void addStaticObject(StaticObject& staticObject);
 
         VkBuffer getUniformBuffer() const;
@@ -32,11 +34,11 @@ class StaticObjectsManager {
         std::vector<Vertex> mVertices;
         std::vector<uint16_t> mIndices;
 
-        MemoryManager* mMemoryManager;
+        Vulkan* mVulkan;
 
-        void createVertexBuffer(VkDevice device, CommandPool& commandPool, VkQueue queue);
-        void createIndexBuffer(VkDevice device, CommandPool& commandPool, VkQueue queue);
-        void createUniformBuffer(VkDevice device);
+        void createVertexBuffer();
+        void createIndexBuffer();
+        void createUniformBuffer();
 };
 
 #endif
