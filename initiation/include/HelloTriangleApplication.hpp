@@ -34,8 +34,8 @@ class HelloTriangleApplication {
         BasicLogger mOutLogger{"../out.log"};
         BasicLogger mErrLogger{"../err.log"};
 
-        const unsigned int WIDTH{800};
-        const unsigned int HEIGHT{600};
+        const unsigned int WIDTH{1920};
+        const unsigned int HEIGHT{1080};
         const double TARGET_FPS{60.0};
 
         void init();
