@@ -20,6 +20,8 @@ class Input {
         GLFWwindow* mWindow;
 
         Mouse mMouse;
+
+        void updateMouseButton(int button, int state);
 };
 
 #endif

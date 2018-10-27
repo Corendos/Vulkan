@@ -1,4 +1,5 @@
 #include <chrono>
+#include <thread>
 
 #include "HelloTriangleApplication.hpp"
 #include "utils.hpp"
@@ -10,15 +11,11 @@ void HelloTriangleApplication::run() {
 }
 
 void HelloTriangleApplication::mainLoop() {
-    auto lastTime = std::chrono::high_resolution_clock::now();
 
     while(!glfwWindowShouldClose(mWindow)) {
+        auto startTime = std::chrono::high_resolution_clock::now();
         glfwPollEvents();
         mInput.update();
-
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastTime).count();
-        lastTime = currentTime;
         
         if (mInput.getMouse().button[MouseButton::Left].pressed) {
             double deltaYaw = mInput.getMouse().delta.x * -0.5;
@@ -27,6 +24,12 @@ void HelloTriangleApplication::mainLoop() {
             mCamera.update(deltaPitch, deltaYaw);
         }
         mVulkan.drawFrame();
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration<double>(endTime - startTime);
+        auto target = std::chrono::duration<double>(1.0 / TARGET_FPS);
+        if (elapsed < target) {
+            std::this_thread::sleep_for(target - elapsed);
+        }
     }
 }
 
@@ -51,8 +54,8 @@ void HelloTriangleApplication::init() {
 
     mVulkan.init(mWindow, WIDTH, HEIGHT);
     mVulkan.setCamera(mCamera);
-    mCamera.setFov(70);
     mCamera.setExtent({WIDTH, HEIGHT});
+    mCamera.setFov(70);
 }
 
 void HelloTriangleApplication::windowResizedCallback(GLFWwindow* window, int width, int height) {
@@ -62,10 +65,10 @@ void HelloTriangleApplication::windowResizedCallback(GLFWwindow* window, int wid
 
 void HelloTriangleApplication::mousePosCallback(GLFWwindow* window, double xPos, double yPos) {
     auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-    app->mInput.updateMousePosition(xPos, yPos);
+    //app->mInput.updateMousePosition(xPos, yPos);
 }
 
 void HelloTriangleApplication::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-    app->mInput.updateMouseState(button, action, mods);
+    //app->mInput.updateMouseState(button, action, mods);
 }

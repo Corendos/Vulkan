@@ -63,4 +63,27 @@ void Input::update() {
     mMouse.delta.x = x - mMouse.position.x;
     mMouse.delta.y = y - mMouse.position.y;
     mMouse.position = {x, y};
+    updateMouseButton(MouseButton::Left, glfwGetMouseButton(mWindow, GLFW_MOUSE_BUTTON_LEFT));
+    updateMouseButton(MouseButton::Right, glfwGetMouseButton(mWindow, GLFW_MOUSE_BUTTON_RIGHT));
+    updateMouseButton(MouseButton::Middle, glfwGetMouseButton(mWindow, GLFW_MOUSE_BUTTON_MIDDLE));
+}
+
+void Input::updateMouseButton(int button, int state) {
+    if (state == GLFW_PRESS) {
+        mMouse.button[button].pressed = true;
+        mMouse.button[button].up = false;
+        if (!mMouse.button[button].down) {
+            mMouse.button[button].down = true;
+        } else {
+            mMouse.button[button].down = false;
+        }
+    } else if (state == GLFW_RELEASE) {
+        mMouse.button[button].pressed = false;
+        mMouse.button[button].down = false;
+        if (!mMouse.button[button].up) {
+            mMouse.button[button].up = true;
+        } else {
+            mMouse.button[button].up = false;
+        }
+    }
 }

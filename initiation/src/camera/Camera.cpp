@@ -5,7 +5,15 @@
 #include "camera/Camera.hpp"
 #include "utils.hpp"
 
-Camera::Camera() : mYaw(0.0), mPitch(0.0), mView(1.0) {}
+Camera::Camera() : mYaw(0.0), mPitch(0.0) {
+    glm::vec3 eyes(4.0 * std::cos(glm::radians(mYaw)) * std::cos(glm::radians(mPitch)),
+                   4.0 * std::sin(glm::radians(mYaw)) * std::cos(glm::radians(mPitch)),
+                   4.0 * std::sin(glm::radians(mPitch)));
+
+    mView = glm::lookAt(eyes,
+                        glm::vec3(0.0, 0.0, 0.0),
+                        glm::vec3(0.0, 0.0, 1.0));
+}
 
 void Camera::update(double deltaPitch, double deltaYaw) {
     mPitch += deltaPitch;

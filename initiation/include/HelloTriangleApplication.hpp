@@ -36,6 +36,7 @@ class HelloTriangleApplication {
 
         const unsigned int WIDTH{800};
         const unsigned int HEIGHT{600};
+        const double TARGET_FPS{60.0};
 
         void init();
         void mainLoop();
