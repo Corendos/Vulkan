@@ -16,6 +16,7 @@
 #include <GLFW/glfw3.h>
 
 #include "vulkan/Vulkan.hpp"
+#include "inputs/Input.hpp"
 #include "utils.hpp"
 #include "BasicLogger.hpp"
 
@@ -26,6 +27,9 @@ class HelloTriangleApplication {
     private:
         GLFWwindow* mWindow;                                // Window handler
         Vulkan mVulkan;
+        Input mInput;
+
+        Camera mCamera;
 
         BasicLogger mOutLogger{"../out.log"};
         BasicLogger mErrLogger{"../err.log"};
@@ -39,6 +43,8 @@ class HelloTriangleApplication {
         void cleanup();
 
         static void windowResizedCallback(GLFWwindow* window, int width, int height);
+        static void mousePosCallback(GLFWwindow* window, double xPos, double yPos);
+        static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 };
 
 #endif

@@ -126,6 +126,7 @@ void Vulkan::drawFrame() {
     }
 
     updateUniformData(imageIndex);
+    sObjectManager.update(*mCamera);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1074,14 +1075,15 @@ void Vulkan::updateUniformData(uint32_t imageIndex) {
     UniformBufferObject ubo{};
     //ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 1.0f));
     ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0 * cos(time * glm::radians(90.0f)), sin(time * glm::radians(90.0f)), 0.0f));
-    ubo.view = glm::lookAt(
-        glm::vec3(2.0f, 2.0f, 2.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = mCamera->getView();
     ubo.proj = glm::vulkanPerspective(glm::radians(45.0f), mSwapChain.getExtent().width / (float)mSwapChain.getExtent().height, 0.1f, 10.0f);
 
     void* data;
     mMemoryManager.mapMemory(mUniformBuffers[imageIndex], sizeof(ubo), &data);
     memcpy(data, &ubo, sizeof(ubo));
     mMemoryManager.unmapMemory(mUniformBuffers[imageIndex]);
+}
+
+void Vulkan::setCamera(Camera& camera) {
+    mCamera = &camera;
 }

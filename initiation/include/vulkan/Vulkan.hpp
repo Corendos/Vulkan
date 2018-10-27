@@ -27,6 +27,7 @@
 #include "vulkan/SwapChain.hpp"
 #include "primitives/Cube.hpp"
 #include "vulkan/StaticObjectsManager.hpp"
+#include "camera/Camera.hpp"
 
 class Vulkan {
     public:
@@ -36,6 +37,8 @@ class Vulkan {
     void cleanup();
     void drawFrame();
     void requestResize();
+
+    void setCamera(Camera& camera);
 
     VkDevice getDevice() const;
     CommandPool& getCommandPool();
@@ -86,6 +89,8 @@ class Vulkan {
 
         StaticObjectsManager sObjectManager;
         VkDescriptorSet mSODescriptorSet;
+
+        Camera* mCamera;
 
         GraphicsPipeline mGraphicsPipeline;
         GraphicsPipeline mGraphicsPipeline2;

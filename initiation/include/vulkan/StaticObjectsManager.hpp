@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include "primitives/StaticObject.hpp"
+#include "camera/Camera.hpp"
 
 class Vulkan;
 
@@ -14,6 +15,8 @@ class StaticObjectsManager {
         void create(Vulkan& vulkan);
         void destroy();
         void addStaticObject(StaticObject& staticObject);
+
+        void update(Camera& camera);
 
         VkBuffer getUniformBuffer() const;
         VkBuffer getVertexBuffer() const;
