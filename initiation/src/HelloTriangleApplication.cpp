@@ -21,8 +21,8 @@ void HelloTriangleApplication::mainLoop() {
         lastTime = currentTime;
         
         if (mInput.getMouse().button[MouseButton::Left].pressed) {
-            double deltaYaw = mInput.getMouse().delta.x * time * 150.0;
-            double deltaPitch = mInput.getMouse().delta.y * time * 150.0;
+            double deltaYaw = mInput.getMouse().delta.x * -0.5;
+            double deltaPitch = mInput.getMouse().delta.y * 0.5;
 
             mCamera.update(deltaPitch, deltaYaw);
         }

@@ -122,7 +122,7 @@ void StaticObjectsManager::update(Camera& camera) {
     UniformBufferObject ubo{};
     ubo.model = glm::mat4(1.0f);
     ubo.view = camera.getView();
-    ubo.proj = glm::vulkanPerspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 10.0f);
+    ubo.proj = camera.getProj();
 
     void* data;
     mVulkan->getMemoryManager().mapMemory(mUniformBuffer, sizeof(ubo), &data);
