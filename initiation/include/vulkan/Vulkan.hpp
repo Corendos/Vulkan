@@ -120,6 +120,7 @@ class Vulkan {
         void createLogicalDevice();
         void createRenderPass();
         void createDescriptorSetLayout();
+        void createObjects();
         void createGraphicsPipeline();
         void createFrameBuffers();
         void createDepthResources();

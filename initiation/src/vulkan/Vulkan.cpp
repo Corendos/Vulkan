@@ -40,6 +40,7 @@ void Vulkan::init(GLFWwindow* window, int width, int height) {
     createDepthResources();
     createRenderPass();
     createDescriptorSetLayout();
+    createObjects();
     createGraphicsPipeline();
     createFrameBuffers();
     createTextureImage();
@@ -386,6 +387,12 @@ void Vulkan::createDescriptorSetLayout() {
     }
 }
 
+void Vulkan::createObjects() {
+    sObjectManager.addStaticObject(cube2);
+    sObjectManager.addStaticObject(cube);
+    sObjectManager.create(*this);
+}
+
 void Vulkan::createGraphicsPipeline() {
     mVertexShader.create(mDevice);
     mFragmentShader.create(mDevice);
@@ -406,10 +413,6 @@ void Vulkan::createGraphicsPipeline() {
     mGraphicsPipeline2.setRenderPass(mRenderPass);
     mGraphicsPipeline2.setExtent(mSwapChain.getExtent());
     mGraphicsPipeline2.create(mDevice);
-
-    sObjectManager.addStaticObject(cube2);
-    sObjectManager.addStaticObject(cube);
-    sObjectManager.create(*this);
 }
 
 void Vulkan::createFrameBuffers() {
@@ -766,6 +769,7 @@ void Vulkan::recreateSwapChain() {
     createGraphicsPipeline();
     createFrameBuffers();
     createCommandBuffers();
+    mCamera->setExtent(mSwapChain.getExtent());
 }
 
 void Vulkan::cleanupSwapChain() {
@@ -1073,10 +1077,9 @@ void Vulkan::updateUniformData(uint32_t imageIndex) {
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
     UniformBufferObject ubo{};
-    //ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 1.0f));
     ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0 * cos(time * glm::radians(90.0f)), sin(time * glm::radians(90.0f)), 0.0f));
     ubo.view = mCamera->getView();
-    ubo.proj = glm::vulkanPerspective(glm::radians(45.0f), mSwapChain.getExtent().width / (float)mSwapChain.getExtent().height, 0.1f, 10.0f);
+    ubo.proj = mCamera->getProj();
 
     void* data;
     mMemoryManager.mapMemory(mUniformBuffers[imageIndex], sizeof(ubo), &data);
