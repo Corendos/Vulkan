@@ -9,6 +9,7 @@
 #include <GLFW/glfw3.h>
 
 #include "vulkan/QueueFamilyIndices.hpp"
+#include "vulkan/RenderPass.hpp"
 
 struct SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -20,7 +21,17 @@ class SwapChain {
     public:
         SwapChain();
 
-        void create(VkPhysicalDevice physicalDevice, VkDevice device, GLFWwindow* window, VkSurfaceKHR surface, QueueFamilyIndices indices);
+        void query(GLFWwindow* window,
+                   VkPhysicalDevice physicalDevice,
+                   VkDevice device,
+                   VkSurfaceKHR surface);
+        void create(GLFWwindow* window,
+                    VkPhysicalDevice physicalDevice,
+                    VkDevice device,
+                    VkSurfaceKHR surface,
+                    QueueFamilyIndices indices,
+                    VkImageView depthImageView,
+                    RenderPass& renderPass);
         void destroy(VkDevice device);
 
         VkExtent2D getExtent() const;
@@ -34,11 +45,25 @@ class SwapChain {
 
         std::vector<VkImage> mImages;
         std::vector<VkImageView> mImagesView;
+        std::vector<VkFramebuffer> mSwapChainFrameBuffers;
         VkExtent2D mExtent;
-        VkFormat mImageFormat;
+        VkSurfaceFormatKHR mSurfaceFormat;
+        SwapChainSupportDetails mSwapChainSupport;
+        VkPresentModeKHR mPresentMode;
         uint32_t mImageCount;
 
         bool mCreated{false};
+
+        void createSwapChain(GLFWwindow* window,
+                             VkPhysicalDevice physicalDevice,
+                             VkDevice device,
+                             VkSurfaceKHR surface,
+                             QueueFamilyIndices indices);
+        void createImages(VkDevice device);
+        void createImageViews(VkDevice device);
+        void createFrameBuffers(VkDevice device,
+                                RenderPass& renderPass,
+                                VkImageView depthImageView);
 
         SwapChainSupportDetails querySupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
