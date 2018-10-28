@@ -72,6 +72,9 @@ class Renderer {
         Shader mVertexShader;
         Shader mFragmentShader;
 
+        bool mCreated{false};
+        bool mRecreated{false};
+
         const std::string shaderPath = std::string(ROOT_PATH) + std::string("shaders/build/");
 
         void createRenderPass();

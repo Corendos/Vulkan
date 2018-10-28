@@ -80,9 +80,6 @@ class Vulkan {
 
         Renderer mRenderer;
 
-        VkImage mDepthImage;
-        VkImageView mDepthImageView;
-
         Cube cube{0.5f, {-1.0, 0.0, 0.0}, {0.7f, 0.43f, 0.28f}};
         Cube cube2{0.5f, {0.0, -1.0, 0.0}, {0.43f, 0.28f, 0.7f}};
 

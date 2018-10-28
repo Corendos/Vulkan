@@ -201,21 +201,6 @@ void Vulkan::createLogicalDevice() {
 }
 
 void Vulkan::createDepthResources() {
-    VkFormat format = findDepthFormat();
-
-    Image::create(
-        mDevice, mMemoryManager,
-        mSwapChain.getExtent().width, mSwapChain.getExtent().height,
-        format, VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        mDepthImage
-    );
-
-    mDepthImageView = createImageView(mDepthImage, format, VK_IMAGE_ASPECT_DEPTH_BIT);
-    
-    transitionImageLayout(mDepthImage, format, VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
 void Vulkan::createRenderPass() {
@@ -321,27 +306,6 @@ void Vulkan::createGraphicsPipeline() {
 }
 
 void Vulkan::createFrameBuffers() {
-    mSwapChainFrameBuffers.resize(mSwapChain.getImageCount());
-
-    for (size_t i{0}; i < mSwapChain.getImageCount();++i) {
-        std::array<VkImageView, 2> attachments = {
-            mSwapChain.getImagesView()[i],
-            mDepthImageView
-        };
-
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = mRenderPass.getHandler();
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = mSwapChain.getExtent().width;
-        framebufferInfo.height = mSwapChain.getExtent().height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mSwapChainFrameBuffers[i]) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create framebuffers");
-        }
-    }
 }
 
 void Vulkan::createTextureImage() {
@@ -682,9 +646,6 @@ void Vulkan::cleanupSwapChain() {
         vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
     }
 
-    mMemoryManager.freeImage(mDepthImage);
-    vkDestroyImageView(mDevice, mDepthImageView, nullptr);
-
     vkFreeCommandBuffers(mDevice, mCommandPool.getHandler(),
         static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
 
@@ -945,7 +906,7 @@ bool Vulkan::hasStencilComponent(VkFormat format) {
 }
 
 void Vulkan::requestResize() {
-    mResizeRequested = true;
+    mRenderer.recreate();
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(

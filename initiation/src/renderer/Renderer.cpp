@@ -21,6 +21,10 @@ void Renderer::create(VkInstance instance,
                       VkQueue graphicsQueue,
                       VkQueue presentQueue,
                       MemoryManager& memoryManager) {
+    if (mCreated) {
+        return;
+    }
+
     mInstance = instance;
     mWindow = window;
     mPhysicalDevice = physicalDevice;
@@ -39,7 +43,6 @@ void Renderer::create(VkInstance instance,
     mSwapChain.create(mWindow, mPhysicalDevice, mDevice,
                       mSurface, mIndices, mDepthImageView,
                       mRenderPass);
-    mExtent = mSwapChain.getExtent();
     createDescriptorSetLayout();
     createGraphicsPipeline();
     createDescriptorPool();
@@ -47,28 +50,68 @@ void Renderer::create(VkInstance instance,
     createDescriptorSets();
     createCommandBuffers();
     createSemaphores();
+
+    mCreated = true;
+    mRecreated = true;
 }
 
 void Renderer::recreate() {
+    if (!mRecreated) {
+        return;
+    }
+    mRecreated = false;
+    int width{0}, height{0};
+    while(width == 0 || height == 0) {
+        glfwGetFramebufferSize(mWindow, &width, &height);
+        glfwWaitEvents();
+    }
+    
+    vkDeviceWaitIdle(mDevice);
 
-}
-
-void Renderer::destroy() {
-    mVertexShader.destroy(mDevice);
-    mFragmentShader.destroy(mDevice);
     mMemoryManager->freeImage(mDepthImage);
     vkDestroyImageView(mDevice, mDepthImageView, nullptr);
-    vkFreeCommandBuffers(mDevice, mCommandPool.getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
+    vkFreeCommandBuffers(mDevice, mCommandPool.getHandler(),
+                         static_cast<uint32_t>(mCommandBuffers.size()),
+                         mCommandBuffers.data());
+
     mPipeline.destroy(mDevice);
     mRenderPass.destroy(mDevice);
     mSwapChain.destroy(mDevice);
-    mStaticObjectManager.destroy();
-    vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
-    vkDestroySemaphore(mDevice, mImageAvailableSemaphore, nullptr);
-    vkDestroySemaphore(mDevice, mRenderFinishedSemaphore, nullptr);
-    mCommandPool.destroy(mDevice);
-    vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+
+    mSwapChain.query(mWindow, mPhysicalDevice, mDevice, mSurface);
+    mExtent = mSwapChain.getExtent();
+    createRenderPass();
+    createDepthResources();
+    mSwapChain.create(mWindow, mPhysicalDevice, mDevice,
+                      mSurface, mIndices, mDepthImageView,
+                      mRenderPass);
+    createDepthResources();
+    createRenderPass();
+    createGraphicsPipeline();
+    createCommandBuffers();
+    mCamera->setExtent(mSwapChain.getExtent());
+    mRecreated = true;
+}
+
+void Renderer::destroy() {
+    if (mCreated) {
+        mVertexShader.destroy(mDevice);
+        mFragmentShader.destroy(mDevice);
+        mMemoryManager->freeImage(mDepthImage);
+        vkDestroyImageView(mDevice, mDepthImageView, nullptr);
+        vkFreeCommandBuffers(mDevice, mCommandPool.getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
+        mPipeline.destroy(mDevice);
+        mRenderPass.destroy(mDevice);
+        mSwapChain.destroy(mDevice);
+        mStaticObjectManager.destroy();
+        vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
+        vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
+        vkDestroySemaphore(mDevice, mImageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(mDevice, mRenderFinishedSemaphore, nullptr);
+        mCommandPool.destroy(mDevice);
+        vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+        mCreated = false;
+    }
 }
 
 void Renderer::render() {
