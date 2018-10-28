@@ -45,6 +45,10 @@ void SwapChain::destroy(VkDevice device) {
             vkDestroyImageView(device, imageView, nullptr);
         }
 
+        for (auto framebuffer : mSwapChainFrameBuffers) {
+            vkDestroyFramebuffer(device, framebuffer, nullptr);
+        }
+
         vkDestroySwapchainKHR(device, mSwapChain, nullptr);
         mCreated = false;
     }
@@ -56,6 +60,10 @@ VkExtent2D SwapChain::getExtent() const {
 
 std::vector<VkImageView>& SwapChain::getImagesView() {
     return mImagesView;
+}
+
+std::vector<VkFramebuffer>& SwapChain::getFramebuffers() {
+    return mSwapChainFrameBuffers;
 }
 
 VkFormat SwapChain::getFormat() const {

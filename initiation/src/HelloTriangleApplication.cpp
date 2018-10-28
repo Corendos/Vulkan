@@ -52,10 +52,10 @@ void HelloTriangleApplication::init() {
 
     mInput.attachWindow(mWindow);
 
-    mVulkan.init(mWindow, WIDTH, HEIGHT);
     mVulkan.setCamera(mCamera);
     mCamera.setExtent({WIDTH, HEIGHT});
     mCamera.setFov(70);
+    mVulkan.init(mWindow, WIDTH, HEIGHT);
 }
 
 void HelloTriangleApplication::windowResizedCallback(GLFWwindow* window, int width, int height) {

@@ -19,53 +19,28 @@
 #include "vulkan/DepthAttachment.hpp"
 #include "vulkan/SubpassDependency.hpp"
 
-Vulkan::Vulkan() : mMemoryManager(mPhysicalDevice, mDevice) {
-    mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
-    mFragmentShader = Shader(shaderPath + "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
-    mFragmentColorShader = Shader(shaderPath + "fragColor.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
-}
+Vulkan::Vulkan() : mMemoryManager(mPhysicalDevice, mDevice) {}
 
 void Vulkan::init(GLFWwindow* window, int width, int height) {
     mWindowSize = {width, height};
     mWindow = window;
 
     createInstance();
-    setupDebugCallback();
     createSurface();
+    setupDebugCallback();
     pickPhysicalDevice();
     createLogicalDevice();
     mMemoryManager.init();
-    mSwapChain.create(mPhysicalDevice, mDevice, mWindow, mSurface, mIndices);
-    mCommandPool.create(mDevice, mIndices);
-    createDepthResources();
-    createRenderPass();
-    createDescriptorSetLayout();
     createObjects();
-    createGraphicsPipeline();
-    createFrameBuffers();
-    createTextureImage();
-    createTextureImageView();
-    createTextureSampler();
-    createVertexBuffer();
-    createIndicesBuffer();
-    createUniformBuffer();
-    createDescriptorPool();
-    createDescriptorSets();
-    createSODescriptorSets();
-    createCommandBuffers();
-    createSemaphores();
+    mRenderer.create(mInstance, mWindow, mPhysicalDevice,
+                     mDevice, mSurface, mIndices,
+                     mGraphicsQueue, mPresentQueue, mMemoryManager);
+    mRenderer.setCamera(*mCamera);
 }
 
 void Vulkan::cleanup() {
     vkDeviceWaitIdle(mDevice);
-    cleanupSwapChain();
-    mSwapChain.destroy(mDevice);
-
-    sObjectManager.destroy();
-
-    vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
-    vkDestroyDescriptorSetLayout(mDevice, mColorDescriptorSetLayout, nullptr);
+    mRenderer.destroy();
 
     for (size_t i{0};i < mUniformBuffers.size();++i) {
         mMemoryManager.freeBuffer(mUniformBuffers[i]);
@@ -82,18 +57,8 @@ void Vulkan::cleanup() {
         destroyDebugUtilsMessengerEXT(mInstance, mCallback, nullptr);
     }
 
-    mVertexShader.destroy(mDevice);
-    mFragmentShader.destroy(mDevice);
-    mFragmentColorShader.destroy(mDevice);
-
     mMemoryManager.cleanup();
     mMemoryManager.memoryCheckLog();
-
-    vkDestroySemaphore(mDevice, mImageAvailableSemaphore, nullptr);
-    vkDestroySemaphore(mDevice, mRenderFinishedSemaphore, nullptr);
-
-    mCommandPool.destroy(mDevice);
-    vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
     vkDestroyDevice(mDevice, nullptr);
     vkDestroyInstance(mInstance, nullptr);
 }
@@ -115,62 +80,10 @@ MemoryManager& Vulkan::getMemoryManager() {
 }
 
 void Vulkan::drawFrame() {
-    uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(mDevice, mSwapChain.getHandler(), std::numeric_limits<uint64_t>::max(),
-        mImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-
-    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        recreateSwapChain();
-        return;
-    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-        throw std::runtime_error("Failed to acquire swap chain image");
-    }
-
-    updateUniformData(imageIndex);
-    sObjectManager.update(*mCamera);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-    VkSemaphore waitSemaphores[] = {mImageAvailableSemaphore};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &mCommandBuffers[imageIndex];
-
-    VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphore};
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-
-    if (vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to submit draw command buffer");
-    }
-
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
-
-    VkSwapchainKHR swapChains[] = {mSwapChain.getHandler()};
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &imageIndex;
-    presentInfo.pResults = nullptr;
-
-    result = vkQueuePresentKHR(mGraphicsQueue, &presentInfo);
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || mResizeRequested) {
-        recreateSwapChain();
-        mResizeRequested = false;
-    } else if (result != VK_SUCCESS) {
-        throw std::runtime_error("  Failed to present image");
-    }
+    mRenderer.render();
 }
 
 void Vulkan::createInstance() {
-
     if (enableValidationLayers && !checkValidationLayerSupport()) {
         throw std::runtime_error("Validation layers requested, but not available");
     }
@@ -388,28 +301,20 @@ void Vulkan::createDescriptorSetLayout() {
 }
 
 void Vulkan::createObjects() {
-    sObjectManager.addStaticObject(cube2);
-    sObjectManager.addStaticObject(cube);
-    sObjectManager.create(*this);
+    mRenderer.getStaticObjectManager().addStaticObject(cube2);
+    mRenderer.getStaticObjectManager().addStaticObject(cube);
 }
 
 void Vulkan::createGraphicsPipeline() {
-    mVertexShader.create(mDevice);
-    mFragmentShader.create(mDevice);
-    mFragmentColorShader.create(mDevice);
 
     mGraphicsPipeline.getLayout().addDescriptorSetLayout(mDescriptorSetLayout);
 
-    mGraphicsPipeline.addShader(mVertexShader);
-    mGraphicsPipeline.addShader(mFragmentShader);
     mGraphicsPipeline.setRenderPass(mRenderPass);
     mGraphicsPipeline.setExtent(mSwapChain.getExtent());
     mGraphicsPipeline.create(mDevice);
 
     mGraphicsPipeline2.getLayout().addDescriptorSetLayout(mColorDescriptorSetLayout);
 
-    mGraphicsPipeline2.addShader(mVertexShader);
-    mGraphicsPipeline2.addShader(mFragmentColorShader);
     mGraphicsPipeline2.setRenderPass(mRenderPass);
     mGraphicsPipeline2.setExtent(mSwapChain.getExtent());
     mGraphicsPipeline2.create(mDevice);
@@ -763,7 +668,7 @@ void Vulkan::recreateSwapChain() {
 
     cleanupSwapChain();
 
-    mSwapChain.create(mPhysicalDevice, mDevice, mWindow, mSurface, mIndices);
+    //mSwapChain.create(mPhysicalDevice, mDevice, mWindow, mSurface, mIndices);
     createDepthResources();
     createRenderPass();
     createGraphicsPipeline();

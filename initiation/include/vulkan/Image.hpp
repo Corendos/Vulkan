@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include "memory/MemoryManager.hpp"
+#include "vulkan/CommandPool.hpp"
 
 class Image {
     public:

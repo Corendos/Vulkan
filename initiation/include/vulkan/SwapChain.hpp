@@ -39,6 +39,7 @@ class SwapChain {
         VkSwapchainKHR getHandler() const;
         uint32_t getImageCount() const;
         std::vector<VkImageView>& getImagesView();
+        std::vector<VkFramebuffer>& getFramebuffers();
 
     private:
         VkSwapchainKHR mSwapChain;

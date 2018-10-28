@@ -17,17 +17,17 @@ void StaticObjectsManager::addStaticObject(StaticObject& staticObject) {
     mIndices.insert(mIndices.end(), indicesCopy.begin(), indicesCopy.end());
 }
 
-void StaticObjectsManager::create(Vulkan& vulkan) {
-    mVulkan = &vulkan;
+void StaticObjectsManager::create(Renderer& renderer) {
+    mRenderer = &renderer;
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffer();
 }
 
 void StaticObjectsManager::destroy() {
-    mVulkan->getMemoryManager().freeBuffer(mVertexBuffer);
-    mVulkan->getMemoryManager().freeBuffer(mIndexBuffer);
-    mVulkan->getMemoryManager().freeBuffer(mUniformBuffer);
+    mRenderer->getMemoryManager().freeBuffer(mVertexBuffer);
+    mRenderer->getMemoryManager().freeBuffer(mIndexBuffer);
+    mRenderer->getMemoryManager().freeBuffer(mUniformBuffer);
 }
 
 VkBuffer StaticObjectsManager::getUniformBuffer() const {
@@ -51,25 +51,25 @@ void StaticObjectsManager::createVertexBuffer() {
 
     VkBuffer stagingBuffer;
 
-    BufferHelper::createBuffer(mVulkan->getMemoryManager(), mVulkan->getDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    BufferHelper::createBuffer(mRenderer->getMemoryManager(), mRenderer->getDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
     
     void* data;
-    mVulkan->getMemoryManager().mapMemory(stagingBuffer, bufferSize, &data);
+    mRenderer->getMemoryManager().mapMemory(stagingBuffer, bufferSize, &data);
     memcpy(data, mVertices.data(), (size_t)bufferSize);
-    mVulkan->getMemoryManager().unmapMemory(stagingBuffer);
+    mRenderer->getMemoryManager().unmapMemory(stagingBuffer);
 
-    BufferHelper::createBuffer(mVulkan->getMemoryManager(), mVulkan->getDevice(), bufferSize,
+    BufferHelper::createBuffer(mRenderer->getMemoryManager(), mRenderer->getDevice(), bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer);
 
     BufferHelper::copyBuffer(
-        mVulkan->getMemoryManager(),
-        mVulkan->getDevice(),
-        mVulkan->getCommandPool(),
-        mVulkan->getGraphicsQueue(), stagingBuffer, mVertexBuffer, bufferSize);
+        mRenderer->getMemoryManager(),
+        mRenderer->getDevice(),
+        mRenderer->getCommandPool(),
+        mRenderer->getGraphicsQueue(), stagingBuffer, mVertexBuffer, bufferSize);
 
-    mVulkan->getMemoryManager().freeBuffer(stagingBuffer);
+    mRenderer->getMemoryManager().freeBuffer(stagingBuffer);
 }
 
 void StaticObjectsManager::createIndexBuffer() {
@@ -77,31 +77,31 @@ void StaticObjectsManager::createIndexBuffer() {
 
     VkBuffer stagingBuffer;
 
-    BufferHelper::createBuffer(mVulkan->getMemoryManager(), mVulkan->getDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    BufferHelper::createBuffer(mRenderer->getMemoryManager(), mRenderer->getDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
     
     void* data;
-    mVulkan->getMemoryManager().mapMemory(stagingBuffer, bufferSize, &data);
+    mRenderer->getMemoryManager().mapMemory(stagingBuffer, bufferSize, &data);
     memcpy(data, mIndices.data(), (size_t)bufferSize);
-    mVulkan->getMemoryManager().unmapMemory(stagingBuffer);
+    mRenderer->getMemoryManager().unmapMemory(stagingBuffer);
 
-    BufferHelper::createBuffer(mVulkan->getMemoryManager(), mVulkan->getDevice(), bufferSize,
+    BufferHelper::createBuffer(mRenderer->getMemoryManager(), mRenderer->getDevice(), bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mIndexBuffer);
 
     BufferHelper::copyBuffer(
-        mVulkan->getMemoryManager(),
-        mVulkan->getDevice(),
-        mVulkan->getCommandPool(),
-        mVulkan->getGraphicsQueue(), stagingBuffer, mIndexBuffer, bufferSize);
+        mRenderer->getMemoryManager(),
+        mRenderer->getDevice(),
+        mRenderer->getCommandPool(),
+        mRenderer->getGraphicsQueue(), stagingBuffer, mIndexBuffer, bufferSize);
 
-    mVulkan->getMemoryManager().freeBuffer(stagingBuffer);    
+    mRenderer->getMemoryManager().freeBuffer(stagingBuffer);    
 }
 
 void StaticObjectsManager::createUniformBuffer() {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-    BufferHelper::createBuffer(mVulkan->getMemoryManager(), mVulkan->getDevice(), bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+    BufferHelper::createBuffer(mRenderer->getMemoryManager(), mRenderer->getDevice(), bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, mUniformBuffer);
 
     UniformBufferObject ubo{};
@@ -113,9 +113,9 @@ void StaticObjectsManager::createUniformBuffer() {
     ubo.proj = glm::vulkanPerspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 10.0f);
 
     void* data;
-    mVulkan->getMemoryManager().mapMemory(mUniformBuffer, sizeof(ubo), &data);
+    mRenderer->getMemoryManager().mapMemory(mUniformBuffer, sizeof(ubo), &data);
     memcpy(data, &ubo, sizeof(ubo));
-    mVulkan->getMemoryManager().unmapMemory(mUniformBuffer);
+    mRenderer->getMemoryManager().unmapMemory(mUniformBuffer);
 }
 
 void StaticObjectsManager::update(Camera& camera) {
@@ -125,7 +125,7 @@ void StaticObjectsManager::update(Camera& camera) {
     ubo.proj = camera.getProj();
 
     void* data;
-    mVulkan->getMemoryManager().mapMemory(mUniformBuffer, sizeof(ubo), &data);
+    mRenderer->getMemoryManager().mapMemory(mUniformBuffer, sizeof(ubo), &data);
     memcpy(data, &ubo, sizeof(ubo));
-    mVulkan->getMemoryManager().unmapMemory(mUniformBuffer);
+    mRenderer->getMemoryManager().unmapMemory(mUniformBuffer);
 }

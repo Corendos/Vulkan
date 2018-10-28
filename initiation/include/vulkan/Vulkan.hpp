@@ -27,6 +27,7 @@
 #include "vulkan/SwapChain.hpp"
 #include "primitives/Cube.hpp"
 #include "vulkan/StaticObjectsManager.hpp"
+#include "renderer/Renderer.hpp"
 #include "camera/Camera.hpp"
 
 class Vulkan {
@@ -77,12 +78,10 @@ class Vulkan {
         CommandPool mCommandPool;
         RenderPass mRenderPass;
 
+        Renderer mRenderer;
+
         VkImage mDepthImage;
         VkImageView mDepthImageView;
-
-        Shader mFragmentShader;
-        Shader mFragmentColorShader;
-        Shader mVertexShader;
 
         Cube cube{0.5f, {-1.0, 0.0, 0.0}, {0.7f, 0.43f, 0.28f}};
         Cube cube2{0.5f, {0.0, -1.0, 0.0}, {0.43f, 0.28f, 0.7f}};
