@@ -6,6 +6,7 @@
 #include "vulkan/SubpassDependency.hpp"
 #include "vulkan/Image.hpp"
 #include "vulkan/UniformBufferObject.hpp"
+#include "vulkan/Commands.hpp"
 
 Renderer::Renderer() {
     mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
@@ -337,15 +338,7 @@ void Renderer::createDescriptorSets() {
 void Renderer::createCommandBuffers() {
     mCommandBuffers.resize(mSwapChain.getImageCount());
 
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = mCommandPool.getHandler();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t) mCommandBuffers.size();
-
-    if (vkAllocateCommandBuffers(mDevice, &allocInfo, mCommandBuffers.data()) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create command buffers");
-    }
+    Commands::allocateBuffers(mDevice, mCommandPool, mCommandBuffers);
 
     for(size_t i{0};i < mCommandBuffers.size();++i) {
         VkCommandBufferBeginInfo beginInfo{};

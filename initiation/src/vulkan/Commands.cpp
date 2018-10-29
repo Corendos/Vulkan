@@ -35,3 +35,15 @@ void Commands::endSingleTime(VkDevice device,
 
     vkFreeCommandBuffers(device, commandPool.getHandler(), 1, &commandBuffer);
 }
+
+void Commands::allocateBuffers(VkDevice device, CommandPool& commandPool, std::vector<VkCommandBuffer>& buffers) {
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = commandPool.getHandler();
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = (uint32_t) buffers.size();
+
+    if (vkAllocateCommandBuffers(device, &allocInfo, buffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create command buffers");
+    }
+}
