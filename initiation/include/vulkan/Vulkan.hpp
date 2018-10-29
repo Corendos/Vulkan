@@ -54,48 +54,20 @@ class Vulkan {
         VkQueue mGraphicsQueue;                             // Device graphic queue
         VkQueue mPresentQueue;                              // Device present queue
         VkSurfaceKHR mSurface;                              // Vulkan surface handler
-        VkDescriptorSetLayout mDescriptorSetLayout;
-        VkDescriptorSetLayout mColorDescriptorSetLayout;
-        std::vector<VkFramebuffer> mSwapChainFrameBuffers;  // Vulkan framebuffers handlers
-        std::vector<VkCommandBuffer> mCommandBuffers;       // Vulkan command buffers
-        VkSemaphore mImageAvailableSemaphore;               // Semaphore handling image availability
-        VkSemaphore mRenderFinishedSemaphore;               // Semaphore handling rendering
         QueueFamilyIndices mIndices;
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
-        VkBuffer mVertexBuffer;
-        VkDeviceMemory mVertexBufferMemory;
-        VkBuffer mIndicesBuffer;
-        VkDeviceMemory mIndicesBufferMemory;
-        std::vector<VkBuffer> mUniformBuffers;
-        std::vector<VkDeviceMemory> mUniformBuffersMemory;
-        VkDescriptorPool mDescriptorPool;
-        std::vector<VkDescriptorSet> mDescriptorSets;
-        VkImage mTextureImage;
-        VkImageView mTextureImageView;
-        VkSampler mTextureSampler;
-
-        SwapChain mSwapChain;
-        CommandPool mCommandPool;
-        RenderPass mRenderPass;
 
         Renderer mRenderer;
 
         Cube cube{0.5f, {-1.0, 0.0, 0.0}, {0.7f, 0.43f, 0.28f}};
         Cube cube2{0.5f, {0.0, -1.0, 0.0}, {0.43f, 0.28f, 0.7f}};
 
-        StaticObjectsManager sObjectManager;
-        VkDescriptorSet mSODescriptorSet;
-
         Camera* mCamera;
-
-        GraphicsPipeline mGraphicsPipeline;
-        GraphicsPipeline mGraphicsPipeline2;
         MemoryManager mMemoryManager;
         
         VkRect2D mWindowSize;
         bool mResizeRequested{false};
-
-        const std::string shaderPath = std::string(ROOT_PATH) + std::string("shaders/build/");
+        
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_LUNARG_standard_validation"
         };
@@ -114,45 +86,18 @@ class Vulkan {
         void createSurface();
         void pickPhysicalDevice();
         void createLogicalDevice();
-        void createRenderPass();
-        void createDescriptorSetLayout();
         void createObjects();
-        void createGraphicsPipeline();
-        void createFrameBuffers();
-        void createDepthResources();
-        void createTextureImage();
-        void createTextureImageView();
-        void createTextureSampler();
-        void createVertexBuffer();
-        void createIndicesBuffer();
-        void createUniformBuffer();
-        void createDescriptorPool();
-        void createDescriptorSets();
-        void createSODescriptorSets();
-        void createCommandBuffers();
-        void createSemaphores();
-        
-        void updateUniformData(uint32_t imageIndex);
-
-        void recreateSwapChain();
-        void cleanupSwapChain();
+    
         bool checkValidationLayerSupport();
-        void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
-            VkMemoryPropertyFlags properties, VkBuffer& buffer);
-        void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
         void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
         VkCommandBuffer beginSingleTimeCommands();
         void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-        void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-
-        VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
         std::vector<const char*> getRequiredExtensions();
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
         VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
         VkFormat findDepthFormat();
-        bool hasStencilComponent(VkFormat format);
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
