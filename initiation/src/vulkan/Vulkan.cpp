@@ -46,13 +46,6 @@ void Vulkan::cleanup() {
         mMemoryManager.freeBuffer(mUniformBuffers[i]);
     }
 
-    mMemoryManager.freeBuffer(mVertexBuffer);
-    mMemoryManager.freeBuffer(mIndicesBuffer);
-    mMemoryManager.freeImage(mTextureImage);
-
-    vkDestroySampler(mDevice, mTextureSampler, nullptr);
-    vkDestroyImageView(mDevice, mTextureImageView, nullptr);
-
     if (enableValidationLayers) {
         destroyDebugUtilsMessengerEXT(mInstance, mCallback, nullptr);
     }

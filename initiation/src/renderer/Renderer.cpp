@@ -56,10 +56,6 @@ void Renderer::create(VkInstance instance,
 }
 
 void Renderer::recreate() {
-    if (!mRecreated) {
-        return;
-    }
-    mRecreated = false;
     int width{0}, height{0};
     while(width == 0 || height == 0) {
         glfwGetFramebufferSize(mWindow, &width, &height);
@@ -68,8 +64,8 @@ void Renderer::recreate() {
     
     vkDeviceWaitIdle(mDevice);
 
-    mMemoryManager->freeImage(mDepthImage);
     vkDestroyImageView(mDevice, mDepthImageView, nullptr);
+    mMemoryManager->freeImage(mDepthImage);
     vkFreeCommandBuffers(mDevice, mCommandPool.getHandler(),
                          static_cast<uint32_t>(mCommandBuffers.size()),
                          mCommandBuffers.data());
@@ -85,12 +81,10 @@ void Renderer::recreate() {
     mSwapChain.create(mWindow, mPhysicalDevice, mDevice,
                       mSurface, mIndices, mDepthImageView,
                       mRenderPass);
-    createDepthResources();
     createRenderPass();
     createGraphicsPipeline();
     createCommandBuffers();
     mCamera->setExtent(mSwapChain.getExtent());
-    mRecreated = true;
 }
 
 void Renderer::destroy() {
