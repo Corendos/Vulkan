@@ -47,3 +47,14 @@ void Commands::allocateBuffers(VkDevice device, CommandPool& commandPool, std::v
         throw std::runtime_error("Failed to create command buffers");
     }
 }
+
+void Commands::begin(VkCommandBuffer buffer, VkCommandBufferUsageFlags flags) {
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = flags;
+    beginInfo.pInheritanceInfo = nullptr;
+
+    if (vkBeginCommandBuffer(buffer, &beginInfo) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to begin recording command info");
+    }
+}

@@ -14,7 +14,10 @@ class Commands {
                                   CommandPool& commandPool,
                                   VkCommandBuffer commandBuffer,
                                   VkQueue queue);
-        static void allocateBuffers(VkDevice device, CommandPool& commandPool, std::vector<VkCommandBuffer>& buffers);
+        static void allocateBuffers(VkDevice device,
+                                    CommandPool& commandPool,
+                                    std::vector<VkCommandBuffer>& buffers);
+        static void begin(VkCommandBuffer buffer, VkCommandBufferUsageFlags flags);
 };
 
 #endif
