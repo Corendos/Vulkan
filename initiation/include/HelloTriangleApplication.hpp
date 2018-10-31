@@ -9,6 +9,7 @@
 #include <optional>
 #include <set>
 #include <fstream>
+#include <thread>
 
 #include <vulkan/vulkan.h>
 
@@ -28,6 +29,7 @@ class HelloTriangleApplication {
         GLFWwindow* mWindow;                                // Window handler
         Vulkan mVulkan;
         Input mInput;
+        std::thread mInputThread;
 
         Camera mCamera;
 

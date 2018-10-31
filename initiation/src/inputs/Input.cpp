@@ -1,6 +1,8 @@
 #include <functional>
 #include <iostream>
 #include <iomanip>
+#include <chrono>
+#include <thread>
 
 #include "inputs/Input.hpp"
 
@@ -53,11 +55,15 @@ void Input::updateMouseState(int button, int action, int mods) {
     }
 }
 
-Mouse& Input::getMouse() {
-    return mMouse;
+Mouse Input::getMouse() {
+    mMouseMutex.lock();
+    Mouse returned = mMouse;
+    mMouseMutex.unlock();
+    return returned;
 }
 
 void Input::update() {
+    mMouseMutex.lock();
     double x, y;
     glfwGetCursorPos(mWindow, &x, &y);
     mMouse.delta.x = x - mMouse.position.x;
@@ -66,6 +72,7 @@ void Input::update() {
     updateMouseButton(MouseButton::Left, glfwGetMouseButton(mWindow, GLFW_MOUSE_BUTTON_LEFT));
     updateMouseButton(MouseButton::Right, glfwGetMouseButton(mWindow, GLFW_MOUSE_BUTTON_RIGHT));
     updateMouseButton(MouseButton::Middle, glfwGetMouseButton(mWindow, GLFW_MOUSE_BUTTON_MIDDLE));
+    mMouseMutex.unlock();
 }
 
 void Input::updateMouseButton(int button, int state) {
@@ -86,4 +93,26 @@ void Input::updateMouseButton(int button, int state) {
             mMouse.button[button].up = false;
         }
     }
+}
+
+void Input::start() {
+    mThread = std::thread(&Input::run, this);
+}
+
+void Input::run() {
+    while(!mShouldStop) {
+        auto startTime = std::chrono::high_resolution_clock::now();
+        update();
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration<double>(endTime - startTime);
+        auto target = std::chrono::duration<double>(1.0 / UPDATE_FREQUENCY);
+        if (elapsed < target) {
+            std::this_thread::sleep_for(target - elapsed);
+        }
+    }
+}
+
+void Input::stop() {
+    mShouldStop = true;
+    mThread.join();
 }

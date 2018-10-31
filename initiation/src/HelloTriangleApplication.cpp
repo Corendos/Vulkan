@@ -11,11 +11,10 @@ void HelloTriangleApplication::run() {
 }
 
 void HelloTriangleApplication::mainLoop() {
-
     while(!glfwWindowShouldClose(mWindow)) {
         auto startTime = std::chrono::high_resolution_clock::now();
         glfwPollEvents();
-        mInput.update();
+        //mInput.update();
         
         if (mInput.getMouse().button[MouseButton::Left].pressed) {
             double deltaYaw = mInput.getMouse().delta.x * -0.5;
@@ -31,6 +30,7 @@ void HelloTriangleApplication::mainLoop() {
             std::this_thread::sleep_for(target - elapsed);
         }
     }
+    mInput.stop();
 }
 
 void HelloTriangleApplication::cleanup() {
@@ -51,6 +51,7 @@ void HelloTriangleApplication::init() {
     glfwSetWindowUserPointer(mWindow, this);
 
     mInput.attachWindow(mWindow);
+    mInput.start();
 
     mVulkan.setCamera(mCamera);
     mCamera.setExtent({WIDTH, HEIGHT});

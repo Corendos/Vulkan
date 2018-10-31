@@ -1,5 +1,8 @@
 #include "renderer/Renderer.hpp"
 
+#include <chrono>
+#include <iostream>
+
 #include "vulkan/ColorAttachment.hpp"
 #include "vulkan/DepthAttachment.hpp"
 #include "vulkan/Subpass.hpp"
@@ -121,7 +124,13 @@ void Renderer::render() {
         throw std::runtime_error("Failed to acquire swap chain image");
     }
 
+
+    auto startTime = std::chrono::high_resolution_clock::now();
     mStaticObjectManager.update(*mCamera);
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+
+    std::cout << duration << std::endl;
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -293,10 +302,18 @@ void Renderer::createDescriptorSetLayout() {
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr;
 
+    VkDescriptorSetLayoutBinding binding{};
+    binding.binding = 1;
+    binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    binding.descriptorCount = 1;
+    binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutBinding bindings[] = {uboLayoutBinding, binding};
+
     VkDescriptorSetLayoutCreateInfo colorLayoutInfo{};
     colorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    colorLayoutInfo.bindingCount = 1;
-    colorLayoutInfo.pBindings = &uboLayoutBinding;
+    colorLayoutInfo.bindingCount = 2;
+    colorLayoutInfo.pBindings = bindings;
 
     if (vkCreateDescriptorSetLayout(mDevice, &colorLayoutInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor set layout");
