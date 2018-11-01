@@ -10,6 +10,7 @@
 #include "vulkan/Image.hpp"
 #include "vulkan/UniformBufferObject.hpp"
 #include "vulkan/Commands.hpp"
+#include "colors/Color.hpp"
 
 Renderer::Renderer() {
     mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
@@ -124,13 +125,7 @@ void Renderer::render() {
         throw std::runtime_error("Failed to acquire swap chain image");
     }
 
-
-    auto startTime = std::chrono::high_resolution_clock::now();
     mStaticObjectManager.update(*mCamera);
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-
-    std::cout << duration << std::endl;
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -190,7 +185,6 @@ VkQueue Renderer::getGraphicsQueue() const {
 CommandPool& Renderer::getCommandPool() {
     return mCommandPool;
 }
-
 
 StaticObjectsManager& Renderer::getStaticObjectManager() {
     return mStaticObjectManager;
@@ -368,8 +362,10 @@ void Renderer::createCommandBuffers() {
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = mSwapChain.getExtent();
 
+        Color3f c("050505");
+
         std::array<VkClearValue, 2> clearValues;
-        clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+        clearValues[0].color = {c.r, c.g, c.b, 1.0f};
         clearValues[1].depthStencil = {1.0f, 0};
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
@@ -405,7 +401,6 @@ void Renderer::createSemaphores() {
         throw std::runtime_error("Failed to create semaphores");
     }
 }
-
 
 VkFormat Renderer::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
     for (VkFormat format : candidates) {
