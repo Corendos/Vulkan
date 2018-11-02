@@ -25,7 +25,7 @@
 #include "vulkan/Subpass.hpp"
 #include "vulkan/GraphicsPipeline.hpp"
 #include "vulkan/SwapChain.hpp"
-#include "primitives/Cube.hpp"
+#include "primitives/TexturedCube.hpp"
 #include "vulkan/StaticObjectsManager.hpp"
 #include "renderer/Renderer.hpp"
 #include "camera/Camera.hpp"
@@ -59,8 +59,7 @@ class Vulkan {
 
         Renderer mRenderer;
 
-        Cube cube{0.5f, {-1.0, 0.0, 0.0}, {0.7f, 0.43f, 0.28f}};
-        Cube cube2{0.5f, {0.0, -1.0, 0.0}, {0.43f, 0.28f, 0.7f}};
+        TexturedCube cube{0.5f, {0.0, 0.0, 0.0}, {0.7f, 0.43f, 0.28f}};
 
         Camera* mCamera;
         MemoryManager mMemoryManager;

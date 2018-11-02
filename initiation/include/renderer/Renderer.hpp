@@ -12,6 +12,7 @@
 #include "vulkan/RenderPass.hpp"
 #include "vulkan/GraphicsPipeline.hpp"
 #include "vulkan/Shader.hpp"
+#include "vulkan/Image.hpp"
 #include "camera/Camera.hpp"
 #include "memory/MemoryManager.hpp"
 #include "environment.hpp"
@@ -68,6 +69,8 @@ class Renderer {
         VkImageView mDepthImageView;
         StaticObjectsManager mStaticObjectManager;
         GraphicsPipeline mPipeline;
+
+        Image mTexture;
 
         Shader mVertexShader;
         Shader mFragmentShader;

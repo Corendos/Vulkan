@@ -4,10 +4,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
-
 #include "BasicLogger.hpp"
 #include "PrintHelper.hpp"
 #include "vulkan/Vulkan.hpp"
@@ -186,7 +182,6 @@ void Vulkan::createLogicalDevice() {
 }
 
 void Vulkan::createObjects() {
-    mRenderer.getStaticObjectManager().addStaticObject(cube2);
     mRenderer.getStaticObjectManager().addStaticObject(cube);
 }
 

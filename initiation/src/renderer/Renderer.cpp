@@ -7,14 +7,15 @@
 #include "vulkan/DepthAttachment.hpp"
 #include "vulkan/Subpass.hpp"
 #include "vulkan/SubpassDependency.hpp"
-#include "vulkan/Image.hpp"
 #include "vulkan/UniformBufferObject.hpp"
 #include "vulkan/Commands.hpp"
+#include "vulkan/BufferHelper.hpp"
 #include "colors/Color.hpp"
+#include "environment.hpp"
 
 Renderer::Renderer() {
     mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
-    mFragmentShader = Shader(shaderPath + "fragColor.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
+    mFragmentShader = Shader(shaderPath + "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
 }
 
 void Renderer::create(VkInstance instance,
@@ -51,6 +52,16 @@ void Renderer::create(VkInstance instance,
     createDescriptorSetLayout();
     createGraphicsPipeline();
     createDescriptorPool();
+    auto start = std::chrono::high_resolution_clock::now();
+    mTexture.loadFromFile(std::string(ROOT_PATH) + std::string("textures/dirt.png"), mDevice, *mMemoryManager);
+    auto endLoading = std::chrono::high_resolution_clock::now();
+    mTexture.create(mDevice, *mMemoryManager, mCommandPool, mGraphicsQueue);
+    auto endAll = std::chrono::high_resolution_clock::now();
+    auto loadingDuration = std::chrono::duration_cast<std::chrono::microseconds>(endLoading - start);
+    auto createDuration = std::chrono::duration_cast<std::chrono::microseconds>(endAll - endLoading);
+    std::cout << "Loading: " << loadingDuration.count() << std::endl;
+    std::cout << "Creating: " << createDuration.count() << std::endl;
+
     mStaticObjectManager.create(*this);
     createDescriptorSets();
     createCommandBuffers();
@@ -97,6 +108,7 @@ void Renderer::destroy() {
         mVertexShader.destroy(mDevice);
         mFragmentShader.destroy(mDevice);
         mMemoryManager->freeImage(mDepthImage);
+        mTexture.destroy(mDevice, *mMemoryManager);
         vkDestroyImageView(mDevice, mDepthImageView, nullptr);
         vkFreeCommandBuffers(mDevice, mCommandPool.getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
         mPipeline.destroy(mDevice);
@@ -251,13 +263,12 @@ void Renderer::createGraphicsPipeline() {
 void Renderer::createDepthResources() {
     VkFormat format = findDepthFormat();
 
-    Image::create(
+    mDepthImage = Image::create(
         mDevice, *mMemoryManager,
         mExtent.width, mExtent.height,
         format, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        mDepthImage
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
     );
 
     mDepthImageView = Image::createImageView(mDevice, mDepthImage,
@@ -341,9 +352,25 @@ void Renderer::createDescriptorSets() {
     descriptorWrite.pImageInfo = nullptr;
     descriptorWrite.pTexelBufferView = nullptr;
 
-    VkWriteDescriptorSet sets[] = {descriptorWrite};
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = mTexture.getViewHandler();
+    imageInfo.sampler = mTexture.getSamplerHandler();
 
-    vkUpdateDescriptorSets(mDevice, 1, sets, 0, nullptr);
+    VkWriteDescriptorSet descriptorWrite2{};
+    descriptorWrite2.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite2.dstSet = mDescriptorSet;
+    descriptorWrite2.dstBinding = 1;
+    descriptorWrite2.dstArrayElement = 0;
+    descriptorWrite2.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrite2.descriptorCount = 1;
+    descriptorWrite2.pBufferInfo = nullptr;
+    descriptorWrite2.pImageInfo = &imageInfo;
+    descriptorWrite2.pTexelBufferView = nullptr;
+
+
+    VkWriteDescriptorSet sets[] = {descriptorWrite, descriptorWrite2};
+    vkUpdateDescriptorSets(mDevice, 2, sets, 0, nullptr);
 }
 
 void Renderer::createCommandBuffers() {
