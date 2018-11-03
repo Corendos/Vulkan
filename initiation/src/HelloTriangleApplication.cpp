@@ -14,7 +14,6 @@ void HelloTriangleApplication::mainLoop() {
     while(!glfwWindowShouldClose(mWindow)) {
         auto startTime = std::chrono::high_resolution_clock::now();
         glfwPollEvents();
-        //mInput.update();
         
         if (mInput.getMouse().button[MouseButton::Left].pressed) {
             double deltaYaw = mInput.getMouse().delta.x * -0.5;

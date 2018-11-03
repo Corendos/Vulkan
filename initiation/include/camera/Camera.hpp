@@ -22,6 +22,7 @@ class Camera {
 
         double mPitch;
         double mYaw;
+        const double mDistance{10.0};
 };
 
 #endif

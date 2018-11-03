@@ -14,3 +14,11 @@ std::vector<Vertex>& StaticObject::getVertices() {
 std::vector<uint16_t>& StaticObject::getIndices() {
     return mIndices;
 }
+
+Image& StaticObject::getTexture() {
+    return *mTexture;
+}
+
+void StaticObject::setTexture(Image& image) {
+    mTexture = &image;
+}

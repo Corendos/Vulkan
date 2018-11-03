@@ -6,7 +6,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <vector>
-#include <optional>
 #include <set>
 #include <fstream>
 #include <thread>

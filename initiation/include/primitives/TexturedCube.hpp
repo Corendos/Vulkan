@@ -5,6 +5,7 @@
 
 #include "primitives/StaticObject.hpp"
 #include "colors/Color.hpp"
+#include "vulkan/Image.hpp"
 
 class TexturedCube : public StaticObject {
     public:

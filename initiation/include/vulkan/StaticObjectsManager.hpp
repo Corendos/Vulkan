@@ -10,25 +10,32 @@
 
 class Renderer;
 
+struct StaticObjectInfo {
+    StaticObject object;
+    uint16_t indicesOffset;
+    uint32_t indiceCount;
+};
+
 class StaticObjectsManager {
     public:
         void create(Renderer& renderer);
         void destroy();
-        void addStaticObject(StaticObject& staticObject);
+        void addStaticObject(StaticObject staticObject);
 
-        void update(Camera& camera);
-
-        VkBuffer getUniformBuffer() const;
         VkBuffer getVertexBuffer() const;
         VkBuffer getIndexBuffer() const;
-        uint32_t getIndiceCount();
+        uint32_t getIndiceCount() const;
+        std::vector<StaticObjectInfo>& getObjectInfos();
+        StaticObjectInfo& getObjectInfo(uint32_t index);
+        std::vector<VkDescriptorSet>& getDescriptors();
+        VkDescriptorSet getDescriptor(uint32_t index);
 
     private:
         VkBuffer mVertexBuffer;
         VkBuffer mIndexBuffer;
-        VkBuffer mUniformBuffer;
+        std::vector<VkDescriptorSet> mDescriptorSets;
 
-        std::vector<StaticObject> mStaticObjects;
+        std::vector<StaticObjectInfo> mStaticObjectsInfo;
         std::vector<Vertex> mVertices;
         std::vector<uint16_t> mIndices;
 
@@ -36,7 +43,9 @@ class StaticObjectsManager {
 
         void createVertexBuffer();
         void createIndexBuffer();
-        void createUniformBuffer();
+        void createDescriptorSets(VkDevice device,
+                                  VkDescriptorPool descriptorPool,
+                                  VkDescriptorSetLayout descriptorSetLayout);
 };
 
 #endif

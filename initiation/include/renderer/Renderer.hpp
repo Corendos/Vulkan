@@ -32,6 +32,7 @@ class Renderer {
         void recreate();
         void destroy();
         void render();
+        void update();
 
         void setCamera(Camera& camera);
 
@@ -39,6 +40,8 @@ class Renderer {
         VkDevice getDevice() const;
         VkQueue getGraphicsQueue() const;
         CommandPool& getCommandPool();
+        VkDescriptorPool getDescriptorPool() const;
+        VkDescriptorSetLayout getDescriptorSetLayout() const;
 
         StaticObjectsManager& getStaticObjectManager();
 
@@ -57,6 +60,8 @@ class Renderer {
         VkDescriptorSet mDescriptorSet;
         VkExtent2D mExtent;
         std::vector<VkCommandBuffer> mCommandBuffers;
+        std::vector<VkFence> mFences;
+        std::vector<bool> mIsFenceSubmitted;
 
         GLFWwindow* mWindow;
         MemoryManager* mMemoryManager;
@@ -70,13 +75,15 @@ class Renderer {
         StaticObjectsManager mStaticObjectManager;
         GraphicsPipeline mPipeline;
 
-        Image mTexture;
-
         Shader mVertexShader;
         Shader mFragmentShader;
 
+        uint32_t mNextImageIndex;
+        std::array<VkClearValue, 2> mClearValues;
+
         bool mCreated{false};
         bool mRecreated{false};
+        bool mBypassRendering{false};
 
         const std::string shaderPath = std::string(ROOT_PATH) + std::string("shaders/build/");
 
@@ -85,9 +92,11 @@ class Renderer {
         void createDepthResources();
         void createDescriptorPool();
         void createDescriptorSetLayout();
-        void createDescriptorSets();
         void createCommandBuffers();
         void createSemaphores();
+        void createFences();
+
+        void updateCommandBuffer(uint32_t index);
 
         VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
         VkFormat findDepthFormat();

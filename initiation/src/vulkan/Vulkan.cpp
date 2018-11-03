@@ -36,6 +36,8 @@ void Vulkan::init(GLFWwindow* window, int width, int height) {
 
 void Vulkan::cleanup() {
     vkDeviceWaitIdle(mDevice);
+    mTexture.destroy(mDevice, mMemoryManager);
+    mTexture2.destroy(mDevice, mMemoryManager);
     mRenderer.destroy();
 
     if (enableValidationLayers) {
@@ -61,6 +63,7 @@ MemoryManager& Vulkan::getMemoryManager() {
 }
 
 void Vulkan::drawFrame() {
+    mRenderer.update();
     mRenderer.render();
 }
 
@@ -182,7 +185,28 @@ void Vulkan::createLogicalDevice() {
 }
 
 void Vulkan::createObjects() {
-    mRenderer.getStaticObjectManager().addStaticObject(cube);
+    mCommandPool.create(mDevice, mIndices);
+
+    mTexture.loadFromFile(std::string(ROOT_PATH) + std::string("textures/dirt.png"), mDevice, mMemoryManager);
+    mTexture.create(mDevice, mMemoryManager, mCommandPool, mGraphicsQueue);
+
+    mTexture2.loadFromFile(std::string(ROOT_PATH) + std::string("textures/diamond.png"), mDevice, mMemoryManager);
+    mTexture2.create(mDevice, mMemoryManager, mCommandPool, mGraphicsQueue);
+    int sideCount = 8;
+    for (size_t i{0};i < sideCount*sideCount*sideCount;++i) {
+        int level = i / (sideCount * sideCount);
+        int offset = i % (sideCount * sideCount);
+        TexturedCube cube{0.5f, {
+            (offset / sideCount) * 1.0 - (float)sideCount / 2.0f,
+            (offset % sideCount) * 1.0 - (float)sideCount / 2.0f,
+            level * 1.0 - (float)sideCount / 2.0f}, {0.0f, 0.0f, 0.0f}};
+        if (i % 2)
+            cube.setTexture(mTexture);
+        else
+            cube.setTexture(mTexture2);
+        mRenderer.getStaticObjectManager().addStaticObject(cube);
+    }
+    mCommandPool.destroy(mDevice);
 }
 
 bool Vulkan::checkValidationLayerSupport() {

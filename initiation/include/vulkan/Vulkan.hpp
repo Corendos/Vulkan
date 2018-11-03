@@ -6,7 +6,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <vector>
-#include <optional>
 #include <set>
 #include <fstream>
 
@@ -58,8 +57,14 @@ class Vulkan {
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
 
         Renderer mRenderer;
+        CommandPool mCommandPool;
 
         TexturedCube cube{0.5f, {0.0, 0.0, 0.0}, {0.7f, 0.43f, 0.28f}};
+        TexturedCube cube2{0.5f, {0.5, 0.0, 0.0}, {0.7f, 0.43f, 0.28f}};
+        Image mTexture;
+        Image mTexture2;
+
+        std::vector<TexturedCube> mCubes;
 
         Camera* mCamera;
         MemoryManager mMemoryManager;

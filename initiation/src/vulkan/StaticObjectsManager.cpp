@@ -8,8 +8,13 @@
 #include "vulkan/UniformBufferObject.hpp"
 #include "utils.hpp"
 
-void StaticObjectsManager::addStaticObject(StaticObject& staticObject) {
-    mStaticObjects.push_back(staticObject);
+void StaticObjectsManager::addStaticObject(StaticObject staticObject) {
+    StaticObjectInfo info{};
+    info.object = staticObject;
+    info.indicesOffset = mIndices.size();
+    info.indiceCount = staticObject.getIndices().size();
+
+    mStaticObjectsInfo.push_back(info);
     std::vector<uint16_t> indicesCopy(staticObject.getIndices().size());
     std::transform(staticObject.getIndices().begin(), staticObject.getIndices().end(),
         indicesCopy.begin(), [this](const uint16_t& value) { return value + mVertices.size(); });
@@ -21,17 +26,14 @@ void StaticObjectsManager::create(Renderer& renderer) {
     mRenderer = &renderer;
     createVertexBuffer();
     createIndexBuffer();
-    createUniformBuffer();
+    createDescriptorSets(renderer.getDevice(),
+                         renderer.getDescriptorPool(),
+                         renderer.getDescriptorSetLayout());
 }
 
 void StaticObjectsManager::destroy() {
     mRenderer->getMemoryManager().freeBuffer(mVertexBuffer);
     mRenderer->getMemoryManager().freeBuffer(mIndexBuffer);
-    mRenderer->getMemoryManager().freeBuffer(mUniformBuffer);
-}
-
-VkBuffer StaticObjectsManager::getUniformBuffer() const {
-    return mUniformBuffer;
 }
 
 VkBuffer StaticObjectsManager::getVertexBuffer() const {
@@ -42,8 +44,24 @@ VkBuffer StaticObjectsManager::getIndexBuffer() const {
     return mIndexBuffer;
 }
 
-uint32_t StaticObjectsManager::getIndiceCount() {
+uint32_t StaticObjectsManager::getIndiceCount() const {
     return mIndices.size();
+}
+
+std::vector<StaticObjectInfo>& StaticObjectsManager::getObjectInfos() {
+    return mStaticObjectsInfo;
+}
+
+StaticObjectInfo& StaticObjectsManager::getObjectInfo(uint32_t index) {
+    return mStaticObjectsInfo[index];
+}
+
+std::vector<VkDescriptorSet>& StaticObjectsManager::getDescriptors() {
+    return mDescriptorSets;
+}
+
+VkDescriptorSet StaticObjectsManager::getDescriptor(uint32_t index) {
+    return mDescriptorSets[index];
 }
 
 void StaticObjectsManager::createVertexBuffer() {
@@ -98,34 +116,40 @@ void StaticObjectsManager::createIndexBuffer() {
     mRenderer->getMemoryManager().freeBuffer(stagingBuffer);    
 }
 
-void StaticObjectsManager::createUniformBuffer() {
-    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+void StaticObjectsManager::createDescriptorSets(VkDevice device,
+                                                VkDescriptorPool descriptorPool,
+                                                VkDescriptorSetLayout descriptorSetLayout) {
+    mDescriptorSets.resize(mStaticObjectsInfo.size());
 
-    BufferHelper::createBuffer(mRenderer->getMemoryManager(), mRenderer->getDevice(), bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, mUniformBuffer);
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &descriptorSetLayout;
 
-    UniformBufferObject ubo{};
-    ubo.model = glm::mat4(1.0f);
-    ubo.view = glm::lookAt(
-        glm::vec3(2.0f, 2.0f, 2.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::vulkanPerspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 10.0f);
+    for (size_t i{0};i < mDescriptorSets.size();++i) {
+        if (vkAllocateDescriptorSets(device, &allocInfo, &mDescriptorSets[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate descriptor sets");
+        }
+    }
 
-    void* data;
-    mRenderer->getMemoryManager().mapMemory(mUniformBuffer, sizeof(ubo), &data);
-    memcpy(data, &ubo, sizeof(ubo));
-    mRenderer->getMemoryManager().unmapMemory(mUniformBuffer);
-}
+    for (size_t i = 0;i < mDescriptorSets.size();++i) {
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = mStaticObjectsInfo[i].object.getTexture().getViewHandler();
+        imageInfo.sampler = mStaticObjectsInfo[i].object.getTexture().getSamplerHandler();
 
-void StaticObjectsManager::update(Camera& camera) {
-    UniformBufferObject ubo{};
-    ubo.model = glm::mat4(1.0f);
-    ubo.view = camera.getView();
-    ubo.proj = camera.getProj();
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = mDescriptorSets[i];
+        descriptorWrite.dstBinding = 1;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = nullptr;
+        descriptorWrite.pImageInfo = &imageInfo;
+        descriptorWrite.pTexelBufferView = nullptr;
 
-    void* data;
-    mRenderer->getMemoryManager().mapMemory(mUniformBuffer, sizeof(ubo), &data);
-    memcpy(data, &ubo, sizeof(ubo));
-    mRenderer->getMemoryManager().unmapMemory(mUniformBuffer);
+        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+    }
 }
