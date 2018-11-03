@@ -52,16 +52,8 @@ void Renderer::create(VkInstance instance,
     createDescriptorSetLayout();
     createGraphicsPipeline();
     createDescriptorPool();
-    auto start = std::chrono::high_resolution_clock::now();
     mTexture.loadFromFile(std::string(ROOT_PATH) + std::string("textures/dirt.png"), mDevice, *mMemoryManager);
-    auto endLoading = std::chrono::high_resolution_clock::now();
     mTexture.create(mDevice, *mMemoryManager, mCommandPool, mGraphicsQueue);
-    auto endAll = std::chrono::high_resolution_clock::now();
-    auto loadingDuration = std::chrono::duration_cast<std::chrono::microseconds>(endLoading - start);
-    auto createDuration = std::chrono::duration_cast<std::chrono::microseconds>(endAll - endLoading);
-    std::cout << "Loading: " << loadingDuration.count() << std::endl;
-    std::cout << "Creating: " << createDuration.count() << std::endl;
-
     mStaticObjectManager.create(*this);
     createDescriptorSets();
     createCommandBuffers();
