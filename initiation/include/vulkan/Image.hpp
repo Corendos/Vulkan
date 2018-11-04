@@ -7,32 +7,28 @@
 
 #include "memory/MemoryManager.hpp"
 #include "vulkan/CommandPool.hpp"
+#include "vulkan/VulkanContext.hpp"
 
 class Image {
     public:
-        static VkImage create(VkDevice device, MemoryManager& manager,
+        static VkImage create(VulkanContext& context,
                            uint32_t width, uint32_t height,
                            VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                            VkMemoryPropertyFlags properties);
-        static VkImageView createImageView(VkDevice device,
+        static VkImageView createImageView(VulkanContext& context,
                                     VkImage image,
                                     VkFormat format,
                                     VkImageAspectFlags aspectFlags);
-        static void transitionImageLayout(VkDevice device,
-                                          CommandPool& commandPool,
-                                          VkQueue queue,
+        static void transitionImageLayout(VulkanContext& context,
                                           VkImage image,
                                           VkFormat format,
                                           VkImageLayout oldLayout,
                                           VkImageLayout newLayout);
 
-        void create(VkDevice device,
-                    MemoryManager& manager,
-                    CommandPool& commandPool,
-                    VkQueue queue);
-        void destroy(VkDevice device, MemoryManager& manager);
+        void create(VulkanContext& context);
+        void destroy(VulkanContext& context);
 
-        void loadFromFile(const std::string filename, VkDevice device, MemoryManager& manager);
+        void loadFromFile(const std::string filename, VulkanContext& context);
 
         VkImage getHandler() const;
         VkImageView getViewHandler() const;

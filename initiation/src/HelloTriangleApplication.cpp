@@ -38,7 +38,7 @@ void HelloTriangleApplication::mainLoop() {
 void HelloTriangleApplication::cleanup() {
     vkDeviceWaitIdle(mContext.getDevice());
     mInput.stop();
-    mTexture.destroy(mContext.getDevice(), mContext.getMemoryManager());
+    mTexture.destroy(mContext);
     mRenderer.destroy();
     mContext.destroy();
     glfwDestroyWindow(mWindow);
@@ -63,14 +63,10 @@ void HelloTriangleApplication::init() {
     mCamera.setFov(70);
     mContext.create(mWindow);
 
-    mTexture.loadFromFile(std::string(ROOT_PATH) + std::string("textures/dirt.png"),
-                          mContext.getDevice(), mContext.getMemoryManager());
-    mTexture.create(mContext.getDevice(),
-                    mContext.getMemoryManager(),
-                    mContext.getCommandPool(),
-                    mContext.getGraphicsQueue());
+    mTexture.loadFromFile(std::string(ROOT_PATH) + std::string("textures/diamond.png"), mContext);
+    mTexture.create(mContext);
 
-    TexturedCube cube{0.5f, {0.0, 0.0, 0.0}, {1.0f, 1.0f, 1.0f}};
+    TexturedCube cube{0.5f, {1.0, 0.0, 0.0}, {1.0f, 1.0f, 1.0f}};
     cube.setTexture(mTexture);
     mRenderer.getStaticObjectManager().addStaticObject(cube);
 

@@ -6,7 +6,7 @@
 #include "vulkan/Commands.hpp"
 #include "vulkan/BufferHelper.hpp"
 
-VkImage Image::create(VkDevice device, MemoryManager& manager,
+VkImage Image::create(VulkanContext& context,
                    uint32_t width, uint32_t height,
                    VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
                    VkMemoryPropertyFlags properties) {
@@ -28,19 +28,19 @@ VkImage Image::create(VkDevice device, MemoryManager& manager,
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.flags = 0;
 
-    if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+    if (vkCreateImage(context.getDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create image");
     }
 
     VkMemoryRequirements memoryRequirements;
-    vkGetImageMemoryRequirements(device, image, &memoryRequirements);
+    vkGetImageMemoryRequirements(context.getDevice(), image, &memoryRequirements);
 
-    manager.allocateForImage(image, memoryRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    context.getMemoryManager().allocateForImage(image, memoryRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     
     return image;
 }
 
-VkImageView Image::createImageView(VkDevice device,
+VkImageView Image::createImageView(VulkanContext& context,
                                    VkImage image,
                                    VkFormat format,
                                    VkImageAspectFlags aspectFlags) {
@@ -57,21 +57,19 @@ VkImageView Image::createImageView(VkDevice device,
     imageViewInfo.subresourceRange.baseArrayLayer = 0;
     imageViewInfo.subresourceRange.layerCount = 1;
 
-    if (vkCreateImageView(device, &imageViewInfo, nullptr, &imageView) != VK_SUCCESS) {
+    if (vkCreateImageView(context.getDevice(), &imageViewInfo, nullptr, &imageView) != VK_SUCCESS) {
         throw std::runtime_error("failed to create image view");
     }
 
     return imageView;
 }
 
-void Image::transitionImageLayout(VkDevice device,
-                                  CommandPool& commandPool,
-                                  VkQueue queue,
+void Image::transitionImageLayout(VulkanContext& context,
                                   VkImage image,
                                   VkFormat format,
                                   VkImageLayout oldLayout,
                                   VkImageLayout newLayout) {
-    VkCommandBuffer commandBuffer = Commands::beginSingleTime(device, commandPool);
+    VkCommandBuffer commandBuffer = Commands::beginSingleTime(context.getDevice(), context.getCommandPool());
 
     VkImageMemoryBarrier memoryBarrier{};
     memoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -132,14 +130,17 @@ void Image::transitionImageLayout(VkDevice device,
         1, &memoryBarrier
     );
 
-    Commands::endSingleTime(device, commandPool, commandBuffer, queue);
+    Commands::endSingleTime(context.getDevice(),
+                            context.getCommandPool(),
+                            commandBuffer,
+                            context.getGraphicsQueue());
 }
 
 bool Image::hasStencilComponent(VkFormat format) {
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void Image::loadFromFile(const std::string filename, VkDevice device, MemoryManager& manager) {
+void Image::loadFromFile(const std::string filename, VulkanContext& context) {
     int width, height, bpp;
     uint8_t* pixels = stbi_load(filename.c_str(), &width, &height, &bpp, 4);
 
@@ -148,36 +149,35 @@ void Image::loadFromFile(const std::string filename, VkDevice device, MemoryMana
     mBpp = static_cast<uint32_t>(bpp);
     
     VkDeviceSize size = mWidth * mHeight * 4;
-    BufferHelper::createBuffer(manager,
-                               device, size,
+    BufferHelper::createBuffer(context.getMemoryManager(),
+                               context.getDevice(), size,
                                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                mStagingBuffer);
 
     void* data;
-    manager.mapMemory(mStagingBuffer, size, &data);
+    context.getMemoryManager().mapMemory(mStagingBuffer, size, &data);
     memcpy(data, pixels, size);
-    manager.unmapMemory(mStagingBuffer);
+    context.getMemoryManager().unmapMemory(mStagingBuffer);
 
     stbi_image_free(pixels);
     mLoaded = true;
 }
 
-void Image::create(VkDevice device,
-                   MemoryManager& manager,
-                   CommandPool& commandPool,
-                   VkQueue queue) {
-    _createImage(device, manager);
-    Image::transitionImageLayout(device, commandPool, queue, mImage, VK_FORMAT_R8G8B8A8_UNORM,
+void Image::create(VulkanContext& context) {
+    _createImage(context.getDevice(), context.getMemoryManager());
+    Image::transitionImageLayout(context, mImage, VK_FORMAT_R8G8B8A8_UNORM,
                           VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    BufferHelper::copyBufferToImage(device, commandPool, queue,
+    BufferHelper::copyBufferToImage(context.getDevice(),
+                                    context.getCommandPool(),
+                                    context.getGraphicsQueue(),
                                     mStagingBuffer, mImage,
                                     mWidth, mHeight);
-    Image::transitionImageLayout(device, commandPool, queue, mImage, VK_FORMAT_R8G8B8A8_UNORM,
+    Image::transitionImageLayout(context, mImage, VK_FORMAT_R8G8B8A8_UNORM,
                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    _createImageView(device);
-    _createImageSampler(device);
-    manager.freeBuffer(mStagingBuffer);
+    _createImageView(context.getDevice());
+    _createImageSampler(context.getDevice());
+    context.getMemoryManager().freeBuffer(mStagingBuffer);
     mCreated = true;
 }
 
@@ -240,11 +240,11 @@ void Image::_createImageSampler(VkDevice device) {
     }
 }
 
-void Image::destroy(VkDevice device, MemoryManager& manager) {
+void Image::destroy(VulkanContext& context) {
     if (mCreated) {
-        vkDestroyImageView(device, mImageView, nullptr);
-        vkDestroySampler(device, mSampler, nullptr);
-        manager.freeImage(mImage);
+        vkDestroyImageView(context.getDevice(), mImageView, nullptr);
+        vkDestroySampler(context.getDevice(), mSampler, nullptr);
+        context.getMemoryManager().freeImage(mImage);
         mCreated = false;
     }
 }

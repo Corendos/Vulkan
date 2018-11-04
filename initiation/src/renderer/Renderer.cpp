@@ -253,19 +253,18 @@ void Renderer::createDepthResources() {
     VkFormat format = findDepthFormat();
 
     mDepthImage = Image::create(
-        mContext->getDevice(), mContext->getMemoryManager(),
+        *mContext,
         mExtent.width, mExtent.height,
         format, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
     );
 
-    mDepthImageView = Image::createImageView(mContext->getDevice(), mDepthImage,
+    mDepthImageView = Image::createImageView(*mContext, mDepthImage,
                                              format,
                                              VK_IMAGE_ASPECT_DEPTH_BIT);
     
-    Image::transitionImageLayout(mContext->getDevice(), mCommandPool,
-                                 mContext->getGraphicsQueue(), mDepthImage,
+    Image::transitionImageLayout(*mContext, mDepthImage,
                                  format, VK_IMAGE_LAYOUT_UNDEFINED,
                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
