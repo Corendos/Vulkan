@@ -8,17 +8,17 @@ layout(location = 2) in vec2 inTexCoord;
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
 
-layout(push_constant) uniform CameraInfo {
+layout(set = 1, binding = 0) uniform CameraInfo2 {
     mat4 view;
     mat4 proj;
-} cameraInfo;
+} cameraInfo2;
 
 out gl_PerVertex {
     vec4 gl_Position;
 };
 
 void main() {
-    gl_Position = cameraInfo.proj * cameraInfo.view * vec4(inPosition, 1.0);
+    gl_Position = cameraInfo2.proj * cameraInfo2.view * vec4(inPosition, 1.0);
     fragColor = inColor;
     fragTexCoord = inTexCoord;
 }

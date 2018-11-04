@@ -47,6 +47,8 @@ void Renderer::create(VulkanContext& context) {
     createDescriptorSetLayout();
     createGraphicsPipeline();
     createDescriptorPool();
+    createCameraUniformBuffers();
+    createCameraDescriptorSets();
     mStaticObjectManager.create(*mContext, *this);
     createCommandBuffers();
     createSemaphores();
@@ -90,6 +92,9 @@ void Renderer::recreate() {
 
 void Renderer::destroy() {
     if (mCreated) {
+        for (size_t i{0};i < mSwapChain.getImageCount();++i) {
+            mContext->getMemoryManager().freeBuffer(mCameraUniformBuffers[i]);
+        }
         mVertexShader.destroy(mContext->getDevice());
         mFragmentShader.destroy(mContext->getDevice());
         mContext->getMemoryManager().freeImage(mDepthImage);
@@ -100,7 +105,8 @@ void Renderer::destroy() {
         mSwapChain.destroy(mContext->getDevice());
         mStaticObjectManager.destroy();
         vkDestroyDescriptorPool(mContext->getDevice(), mDescriptorPool, nullptr);
-        vkDestroyDescriptorSetLayout(mContext->getDevice(), mDescriptorSetLayout, nullptr);
+        vkDestroyDescriptorSetLayout(mContext->getDevice(), mTextureDescriptorSetLayout, nullptr);
+        vkDestroyDescriptorSetLayout(mContext->getDevice(), mCameraDescriptorSetLayout, nullptr);
         vkDestroySemaphore(mContext->getDevice(), mImageAvailableSemaphore, nullptr);
         vkDestroySemaphore(mContext->getDevice(), mRenderFinishedSemaphore, nullptr);
         for (size_t i{0};i < mFences.size();++i) {
@@ -168,6 +174,7 @@ void Renderer::update() {
         throw std::runtime_error("Failed to acquire swap chain image");
     }
 
+    updateUniformBuffer(mNextImageIndex);
     updateCommandBuffer(mNextImageIndex);
 }
 
@@ -183,8 +190,9 @@ VkDescriptorPool Renderer::getDescriptorPool() const {
     return mDescriptorPool;
 }
 
+// TODO: rename this
 VkDescriptorSetLayout Renderer::getDescriptorSetLayout() const {
-    return mDescriptorSetLayout;
+    return mTextureDescriptorSetLayout;
 }
 
 StaticObjectsManager& Renderer::getStaticObjectManager() {
@@ -241,7 +249,8 @@ void Renderer::createGraphicsPipeline() {
     mVertexShader.create(mContext->getDevice());
     mFragmentShader.create(mContext->getDevice());
 
-    mPipeline.getLayout().addDescriptorSetLayout(mDescriptorSetLayout);
+    mPipeline.getLayout().addDescriptorSetLayout(mTextureDescriptorSetLayout);
+    mPipeline.getLayout().addDescriptorSetLayout(mCameraDescriptorSetLayout);
     mPipeline.addShader(mVertexShader);
     mPipeline.addShader(mFragmentShader);
     mPipeline.setRenderPass(mRenderPass);
@@ -288,27 +297,34 @@ void Renderer::createDescriptorPool() {
 }
 
 void Renderer::createDescriptorSetLayout() {
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding textureBinding{};
+    textureBinding.binding = 0;
+    textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    textureBinding.descriptorCount = 1;
+    textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    VkDescriptorSetLayoutBinding binding{};
-    binding.binding = 1;
-    binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    binding.descriptorCount = 1;
-    binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
+    textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    textureLayoutInfo.bindingCount = 1;
+    textureLayoutInfo.pBindings = &textureBinding;
 
-    VkDescriptorSetLayoutBinding bindings[] = {uboLayoutBinding, binding};
+    if (vkCreateDescriptorSetLayout(mContext->getDevice(), &textureLayoutInfo, nullptr, &mTextureDescriptorSetLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create descriptor set layout");
+    }
 
-    VkDescriptorSetLayoutCreateInfo colorLayoutInfo{};
-    colorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    colorLayoutInfo.bindingCount = 2;
-    colorLayoutInfo.pBindings = bindings;
+    VkDescriptorSetLayoutBinding cameraLayoutBinding{};
+    cameraLayoutBinding.binding = 0;
+    cameraLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    cameraLayoutBinding.descriptorCount = 1;
+    cameraLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    cameraLayoutBinding.pImmutableSamplers = nullptr;
 
-    if (vkCreateDescriptorSetLayout(mContext->getDevice(), &colorLayoutInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS) {
+    VkDescriptorSetLayoutCreateInfo cameraLayoutInfo{};
+    cameraLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    cameraLayoutInfo.bindingCount = 1;
+    cameraLayoutInfo.pBindings = &cameraLayoutBinding;
+
+    if (vkCreateDescriptorSetLayout(mContext->getDevice(), &cameraLayoutInfo, nullptr, &mCameraDescriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor set layout");
     }
 }
@@ -317,6 +333,52 @@ void Renderer::createCommandBuffers() {
     mCommandBuffers.resize(mSwapChain.getImageCount());
 
     Commands::allocateBuffers(mContext->getDevice(), mCommandPool, mCommandBuffers);
+}
+
+void Renderer::createCameraUniformBuffers() {
+    mCameraUniformBuffers.resize(mSwapChain.getImageCount());
+    VkDeviceSize bufferSize = sizeof(CameraInfo);
+
+    for (size_t i{0};i < mCameraUniformBuffers.size();++i) {
+        BufferHelper::createBuffer(mContext->getMemoryManager(),
+                               mContext->getDevice(),
+                               bufferSize,
+                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                               VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+                               mCameraUniformBuffers[i]);
+    }
+}
+
+void Renderer::createCameraDescriptorSets() {
+    mCameraDescriptorSets.resize(mSwapChain.getImageCount());
+
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = mDescriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &mCameraDescriptorSetLayout;
+
+    for (size_t i{0};i < mCameraDescriptorSets.size();++i) {
+        if (vkAllocateDescriptorSets(mContext->getDevice(), &allocInfo, &mCameraDescriptorSets[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate descriptor sets");
+        }
+    }
+
+    for (size_t i{0};i < mCameraDescriptorSets.size();++i) {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = mCameraUniformBuffers[i];
+        bufferInfo.range = sizeof(CameraInfo);
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = mCameraDescriptorSets[i];
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+
+        vkUpdateDescriptorSets(mContext->getDevice(), 1, &descriptorWrite, 0, nullptr);
+    }
 }
 
 void Renderer::createSemaphores() {
@@ -376,10 +438,11 @@ void Renderer::updateCommandBuffer(uint32_t index) {
     vkCmdBindVertexBuffers(mCommandBuffers[index], 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(mCommandBuffers[index], mStaticObjectManager.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
     
-    vkCmdPushConstants(mCommandBuffers[index],
-                        mPipeline.getLayout().getHandler(),
-                        VK_SHADER_STAGE_VERTEX_BIT,
-                        0, sizeof(CameraInfo), &cameraInfo);
+    vkCmdBindDescriptorSets(mCommandBuffers[index],
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            mPipeline.getLayout().getHandler(),
+                            1, 1, &mCameraDescriptorSets[index],
+                            0, nullptr);
 
     for (size_t i{0};i < mStaticObjectManager.getObjectInfos().size();++i) {
         VkDescriptorSet descriptors[] = {mStaticObjectManager.getDescriptor(i)};
@@ -399,6 +462,17 @@ void Renderer::updateCommandBuffer(uint32_t index) {
     if (vkEndCommandBuffer(mCommandBuffers[index]) != VK_SUCCESS) {
         throw std::runtime_error("Failed to record command buffers");
     }
+}
+
+void Renderer::updateUniformBuffer(uint32_t index) {
+    CameraInfo cameraInfo;
+    cameraInfo.proj = mCamera->getProj();
+    cameraInfo.view = mCamera->getView();
+
+    void* data;
+    mContext->getMemoryManager().mapMemory(mCameraUniformBuffers[index], sizeof(CameraInfo), &data);
+    memcpy(data, &cameraInfo, sizeof(CameraInfo));
+    mContext->getMemoryManager().unmapMemory(mCameraUniformBuffers[index]);
 }
 
 VkFormat Renderer::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {

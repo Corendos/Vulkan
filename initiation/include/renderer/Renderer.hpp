@@ -40,7 +40,8 @@ class Renderer {
         VkSemaphore mImageAvailableSemaphore;
         VkSemaphore mRenderFinishedSemaphore;
         VkDescriptorPool mDescriptorPool;
-        VkDescriptorSetLayout mDescriptorSetLayout;
+        VkDescriptorSetLayout mTextureDescriptorSetLayout;
+        VkDescriptorSetLayout mCameraDescriptorSetLayout;
         VkDescriptorSet mDescriptorSet;
         VkExtent2D mExtent;
         std::vector<VkCommandBuffer> mCommandBuffers;
@@ -64,6 +65,9 @@ class Renderer {
         uint32_t mNextImageIndex;
         std::array<VkClearValue, 2> mClearValues;
 
+        std::vector<VkBuffer> mCameraUniformBuffers;
+        std::vector<VkDescriptorSet> mCameraDescriptorSets;
+
         bool mCreated{false};
         bool mRecreated{false};
         bool mBypassRendering{false};
@@ -76,10 +80,13 @@ class Renderer {
         void createDescriptorPool();
         void createDescriptorSetLayout();
         void createCommandBuffers();
+        void createCameraUniformBuffers();
+        void createCameraDescriptorSets();
         void createSemaphores();
         void createFences();
 
         void updateCommandBuffer(uint32_t index);
+        void updateUniformBuffer(uint32_t index);
 
         VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
         VkFormat findDepthFormat();

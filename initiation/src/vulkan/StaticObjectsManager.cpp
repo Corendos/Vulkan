@@ -143,7 +143,7 @@ void StaticObjectsManager::createDescriptorSets(VkDevice device,
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrite.dstSet = mDescriptorSets[i];
-        descriptorWrite.dstBinding = 1;
+        descriptorWrite.dstBinding = 0;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         descriptorWrite.descriptorCount = 1;
