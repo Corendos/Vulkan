@@ -1,44 +1,26 @@
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <chrono>
+#include <set>
+#include <cstring>
+#include <iostream>
 
-#include "BasicLogger.hpp"
-#include "PrintHelper.hpp"
-#include "vulkan/Vulkan.hpp"
+#include "vulkan/VulkanContext.hpp"
+#include "utils.hpp"
 #include "vulkan/BasicPhysicalDevicePicker.hpp"
-#include "vulkan/Vertex.hpp"
-#include "vulkan/UniformBufferObject.hpp"
-#include "vulkan/Image.hpp"
-#include "vulkan/ColorAttachment.hpp"
-#include "vulkan/DepthAttachment.hpp"
-#include "vulkan/SubpassDependency.hpp"
 
-Vulkan::Vulkan() : mMemoryManager(mPhysicalDevice, mDevice) {}
+VulkanContext::VulkanContext() : mMemoryManager(mPhysicalDevice, mDevice) {}
 
-void Vulkan::init(GLFWwindow* window, int width, int height) {
-    mWindowSize = {width, height};
+void VulkanContext::create(GLFWwindow* window) {
     mWindow = window;
-
     createInstance();
     createSurface();
     setupDebugCallback();
     pickPhysicalDevice();
     createLogicalDevice();
+    mCommandPool.create(mDevice, mIndices);
     mMemoryManager.init();
-    createObjects();
-    mRenderer.create(mInstance, mWindow, mPhysicalDevice,
-                     mDevice, mSurface, mIndices,
-                     mGraphicsQueue, mPresentQueue, mMemoryManager);
-    mRenderer.setCamera(*mCamera);
 }
 
-void Vulkan::cleanup() {
+void VulkanContext::destroy() {
     vkDeviceWaitIdle(mDevice);
-    mTexture.destroy(mDevice, mMemoryManager);
-    mTexture2.destroy(mDevice, mMemoryManager);
-    mRenderer.destroy();
 
     if (enableValidationLayers) {
         destroyDebugUtilsMessengerEXT(mInstance, mCallback, nullptr);
@@ -46,28 +28,53 @@ void Vulkan::cleanup() {
 
     mMemoryManager.cleanup();
     mMemoryManager.memoryCheckLog();
+    mCommandPool.destroy(mDevice);
+    vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
     vkDestroyDevice(mDevice, nullptr);
     vkDestroyInstance(mInstance, nullptr);
 }
 
-VkDevice Vulkan::getDevice() const {
+VkInstance VulkanContext::getInstance() const {
+    return mInstance;
+}
+
+VkPhysicalDevice VulkanContext::getPhysicalDevice() const {
+    return mPhysicalDevice;
+}
+
+VkDevice VulkanContext::getDevice() const {
     return mDevice;
 }
 
-VkQueue Vulkan::getGraphicsQueue() const {
+VkQueue VulkanContext::getGraphicsQueue() const {
     return mGraphicsQueue;
 }
 
-MemoryManager& Vulkan::getMemoryManager() {
+VkQueue VulkanContext::getPresentQueue() const {
+    return mPresentQueue;
+}
+
+QueueFamilyIndices VulkanContext::getQueueFamilyIndices() const {
+    return mIndices;
+}
+
+CommandPool& VulkanContext::getCommandPool() {
+    return mCommandPool;
+}
+
+VkSurfaceKHR VulkanContext::getSurface() const {
+    return mSurface;
+}
+
+GLFWwindow* VulkanContext::getWindow() const {
+    return mWindow;
+}
+
+MemoryManager& VulkanContext::getMemoryManager() {
     return mMemoryManager;
 }
 
-void Vulkan::drawFrame() {
-    mRenderer.update();
-    mRenderer.render();
-}
-
-void Vulkan::createInstance() {
+void VulkanContext::createInstance() {
     if (enableValidationLayers && !checkValidationLayerSupport()) {
         throw std::runtime_error("Validation layers requested, but not available");
     }
@@ -100,7 +107,7 @@ void Vulkan::createInstance() {
     }
 }
 
-void Vulkan::setupDebugCallback() {
+void VulkanContext::setupDebugCallback() {
     if (!enableValidationLayers) return;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
@@ -120,13 +127,13 @@ void Vulkan::setupDebugCallback() {
     }
 }
 
-void Vulkan::createSurface() {
+void VulkanContext::createSurface() {
     if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create the window surface");
     }
 }
 
-void Vulkan::pickPhysicalDevice() {
+void VulkanContext::pickPhysicalDevice() {
     BasicPhysicalDevicePicker devicePicker{mInstance, mSurface, deviceExtension};
 
     auto pickedDevice = devicePicker.pick();
@@ -139,7 +146,7 @@ void Vulkan::pickPhysicalDevice() {
     mIndices = pickedDevice.queueFamilyIndices;
 }
 
-void Vulkan::createLogicalDevice() {
+void VulkanContext::createLogicalDevice() {
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {
         mIndices.graphicsFamily.value(),
@@ -184,32 +191,7 @@ void Vulkan::createLogicalDevice() {
     vkGetDeviceQueue(mDevice, mIndices.presentFamily.value(), 0, &mPresentQueue);
 }
 
-void Vulkan::createObjects() {
-    mCommandPool.create(mDevice, mIndices);
-
-    mTexture.loadFromFile(std::string(ROOT_PATH) + std::string("textures/dirt.png"), mDevice, mMemoryManager);
-    mTexture.create(mDevice, mMemoryManager, mCommandPool, mGraphicsQueue);
-
-    mTexture2.loadFromFile(std::string(ROOT_PATH) + std::string("textures/diamond.png"), mDevice, mMemoryManager);
-    mTexture2.create(mDevice, mMemoryManager, mCommandPool, mGraphicsQueue);
-    int sideCount = 8;
-    for (size_t i{0};i < sideCount*sideCount*sideCount;++i) {
-        int level = i / (sideCount * sideCount);
-        int offset = i % (sideCount * sideCount);
-        TexturedCube cube{0.5f, {
-            (offset / sideCount) * 1.0 - (float)sideCount / 2.0f,
-            (offset % sideCount) * 1.0 - (float)sideCount / 2.0f,
-            level * 1.0 - (float)sideCount / 2.0f}, {0.0f, 0.0f, 0.0f}};
-        if (i % 2)
-            cube.setTexture(mTexture);
-        else
-            cube.setTexture(mTexture2);
-        mRenderer.getStaticObjectManager().addStaticObject(cube);
-    }
-    mCommandPool.destroy(mDevice);
-}
-
-bool Vulkan::checkValidationLayerSupport() {
+bool VulkanContext::checkValidationLayerSupport() {
     
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -234,31 +216,7 @@ bool Vulkan::checkValidationLayerSupport() {
     return true;
 }
 
-void Vulkan::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
-    /*VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {width, height, 1};
-
-    vkCmdCopyBufferToImage(
-        commandBuffer, buffer, image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1, &region);
-
-    endSingleTimeCommands(commandBuffer);*/
-}
-
-std::vector<const char*> Vulkan::getRequiredExtensions() {
+std::vector<const char*> VulkanContext::getRequiredExtensions() {
     uint32_t glfwExtensionCount{0};
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -272,47 +230,7 @@ std::vector<const char*> Vulkan::getRequiredExtensions() {
     return extensions;
 }
 
-uint32_t Vulkan::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-    VkPhysicalDeviceMemoryProperties memoryProperties;
-    vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &memoryProperties);
-
-    for (uint32_t i{0};i < memoryProperties.memoryTypeCount;++i) {
-        if ((typeFilter & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-            return i;
-        }
-    }
-
-    throw std::runtime_error("Failed to find a suitable memory type");
-}
-
-VkFormat Vulkan::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
-    for (VkFormat format : candidates) {
-        VkFormatProperties properties;
-        vkGetPhysicalDeviceFormatProperties(mPhysicalDevice, format, &properties);
-
-        if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features) {
-            return format;
-        } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features) {
-            return format;
-        }
-
-        throw std::runtime_error("failed to find supported format");
-    }
-}
-
-VkFormat Vulkan::findDepthFormat() {
-    return findSupportedFormat(
-        {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-    );
-}
-
-void Vulkan::requestResize() {
-    mRenderer.recreate();
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanContext::debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -338,8 +256,4 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
     std::cout << pCallbackData->pMessage << std::endl;
 
     return VK_FALSE;
-}
-
-void Vulkan::setCamera(Camera& camera) {
-    mCamera = &camera;
 }

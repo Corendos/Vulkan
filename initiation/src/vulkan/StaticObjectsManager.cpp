@@ -2,10 +2,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "vulkan/StaticObjectsManager.hpp"
-#include "vulkan/Vulkan.hpp"
 #include "memory/MemoryManager.hpp"
 #include "vulkan/BufferHelper.hpp"
 #include "vulkan/UniformBufferObject.hpp"
+#include "renderer/Renderer.hpp"
 #include "utils.hpp"
 
 void StaticObjectsManager::addStaticObject(StaticObject staticObject) {
@@ -22,18 +22,19 @@ void StaticObjectsManager::addStaticObject(StaticObject staticObject) {
     mIndices.insert(mIndices.end(), indicesCopy.begin(), indicesCopy.end());
 }
 
-void StaticObjectsManager::create(Renderer& renderer) {
+void StaticObjectsManager::create(VulkanContext& context, Renderer& renderer) {
     mRenderer = &renderer;
+    mContext = &context;
     createVertexBuffer();
     createIndexBuffer();
-    createDescriptorSets(renderer.getDevice(),
-                         renderer.getDescriptorPool(),
-                         renderer.getDescriptorSetLayout());
+    createDescriptorSets(mContext->getDevice(),
+                         mRenderer->getDescriptorPool(),
+                         mRenderer->getDescriptorSetLayout());
 }
 
 void StaticObjectsManager::destroy() {
-    mRenderer->getMemoryManager().freeBuffer(mVertexBuffer);
-    mRenderer->getMemoryManager().freeBuffer(mIndexBuffer);
+    mContext->getMemoryManager().freeBuffer(mVertexBuffer);
+    mContext->getMemoryManager().freeBuffer(mIndexBuffer);
 }
 
 VkBuffer StaticObjectsManager::getVertexBuffer() const {
@@ -69,25 +70,25 @@ void StaticObjectsManager::createVertexBuffer() {
 
     VkBuffer stagingBuffer;
 
-    BufferHelper::createBuffer(mRenderer->getMemoryManager(), mRenderer->getDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    BufferHelper::createBuffer(mContext->getMemoryManager(), mContext->getDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
     
     void* data;
-    mRenderer->getMemoryManager().mapMemory(stagingBuffer, bufferSize, &data);
+    mContext->getMemoryManager().mapMemory(stagingBuffer, bufferSize, &data);
     memcpy(data, mVertices.data(), (size_t)bufferSize);
-    mRenderer->getMemoryManager().unmapMemory(stagingBuffer);
+    mContext->getMemoryManager().unmapMemory(stagingBuffer);
 
-    BufferHelper::createBuffer(mRenderer->getMemoryManager(), mRenderer->getDevice(), bufferSize,
+    BufferHelper::createBuffer(mContext->getMemoryManager(), mContext->getDevice(), bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer);
 
     BufferHelper::copyBuffer(
-        mRenderer->getMemoryManager(),
-        mRenderer->getDevice(),
+        mContext->getMemoryManager(),
+        mContext->getDevice(),
         mRenderer->getCommandPool(),
-        mRenderer->getGraphicsQueue(), stagingBuffer, mVertexBuffer, bufferSize);
+        mContext->getGraphicsQueue(), stagingBuffer, mVertexBuffer, bufferSize);
 
-    mRenderer->getMemoryManager().freeBuffer(stagingBuffer);
+    mContext->getMemoryManager().freeBuffer(stagingBuffer);
 }
 
 void StaticObjectsManager::createIndexBuffer() {
@@ -95,25 +96,25 @@ void StaticObjectsManager::createIndexBuffer() {
 
     VkBuffer stagingBuffer;
 
-    BufferHelper::createBuffer(mRenderer->getMemoryManager(), mRenderer->getDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    BufferHelper::createBuffer(mContext->getMemoryManager(), mContext->getDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
     
     void* data;
-    mRenderer->getMemoryManager().mapMemory(stagingBuffer, bufferSize, &data);
+    mContext->getMemoryManager().mapMemory(stagingBuffer, bufferSize, &data);
     memcpy(data, mIndices.data(), (size_t)bufferSize);
-    mRenderer->getMemoryManager().unmapMemory(stagingBuffer);
+    mContext->getMemoryManager().unmapMemory(stagingBuffer);
 
-    BufferHelper::createBuffer(mRenderer->getMemoryManager(), mRenderer->getDevice(), bufferSize,
+    BufferHelper::createBuffer(mContext->getMemoryManager(), mContext->getDevice(), bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mIndexBuffer);
 
     BufferHelper::copyBuffer(
-        mRenderer->getMemoryManager(),
-        mRenderer->getDevice(),
+        mContext->getMemoryManager(),
+        mContext->getDevice(),
         mRenderer->getCommandPool(),
-        mRenderer->getGraphicsQueue(), stagingBuffer, mIndexBuffer, bufferSize);
+        mContext->getGraphicsQueue(), stagingBuffer, mIndexBuffer, bufferSize);
 
-    mRenderer->getMemoryManager().freeBuffer(stagingBuffer);    
+    mContext->getMemoryManager().freeBuffer(stagingBuffer);    
 }
 
 void StaticObjectsManager::createDescriptorSets(VkDevice device,

@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include "primitives/StaticObject.hpp"
+#include "vulkan/VulkanContext.hpp"
 #include "camera/Camera.hpp"
 
 class Renderer;
@@ -18,7 +19,7 @@ struct StaticObjectInfo {
 
 class StaticObjectsManager {
     public:
-        void create(Renderer& renderer);
+        void create(VulkanContext& context, Renderer& renderer);
         void destroy();
         void addStaticObject(StaticObject staticObject);
 
@@ -40,6 +41,7 @@ class StaticObjectsManager {
         std::vector<uint16_t> mIndices;
 
         Renderer* mRenderer;
+        VulkanContext* mContext;
 
         void createVertexBuffer();
         void createIndexBuffer();

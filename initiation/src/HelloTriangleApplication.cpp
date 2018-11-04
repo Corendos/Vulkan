@@ -3,6 +3,7 @@
 
 #include "HelloTriangleApplication.hpp"
 #include "utils.hpp"
+#include "primitives/TexturedCube.hpp"
 
 void HelloTriangleApplication::run() {
     init();
@@ -21,7 +22,10 @@ void HelloTriangleApplication::mainLoop() {
 
             mCamera.update(deltaPitch, deltaYaw);
         }
-        mVulkan.drawFrame();
+
+        mRenderer.update();
+        mRenderer.render();
+
         auto endTime = std::chrono::high_resolution_clock::now();
         auto elapsed = std::chrono::duration<double>(endTime - startTime);
         auto target = std::chrono::duration<double>(1.0 / TARGET_FPS);
@@ -29,11 +33,14 @@ void HelloTriangleApplication::mainLoop() {
             std::this_thread::sleep_for(target - elapsed);
         }
     }
-    mInput.stop();
 }
 
 void HelloTriangleApplication::cleanup() {
-    mVulkan.cleanup();
+    vkDeviceWaitIdle(mContext.getDevice());
+    mInput.stop();
+    mTexture.destroy(mContext.getDevice(), mContext.getMemoryManager());
+    mRenderer.destroy();
+    mContext.destroy();
     glfwDestroyWindow(mWindow);
     glfwTerminate();
 }
@@ -51,16 +58,29 @@ void HelloTriangleApplication::init() {
 
     mInput.attachWindow(mWindow);
     mInput.start();
-
-    mVulkan.setCamera(mCamera);
+    
     mCamera.setExtent({WIDTH, HEIGHT});
     mCamera.setFov(70);
-    mVulkan.init(mWindow, WIDTH, HEIGHT);
+    mContext.create(mWindow);
+
+    mTexture.loadFromFile(std::string(ROOT_PATH) + std::string("textures/dirt.png"),
+                          mContext.getDevice(), mContext.getMemoryManager());
+    mTexture.create(mContext.getDevice(),
+                    mContext.getMemoryManager(),
+                    mContext.getCommandPool(),
+                    mContext.getGraphicsQueue());
+
+    TexturedCube cube{0.5f, {0.0, 0.0, 0.0}, {1.0f, 1.0f, 1.0f}};
+    cube.setTexture(mTexture);
+    mRenderer.getStaticObjectManager().addStaticObject(cube);
+
+    mRenderer.create(mContext);
+    mRenderer.setCamera(mCamera);
 }
 
 void HelloTriangleApplication::windowResizedCallback(GLFWwindow* window, int width, int height) {
     auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-    app->mVulkan.requestResize();
+    app->mRenderer.recreate();
 }
 
 void HelloTriangleApplication::mousePosCallback(GLFWwindow* window, double xPos, double yPos) {

@@ -15,7 +15,10 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "vulkan/Vulkan.hpp"
+#include "vulkan/VulkanContext.hpp"
+#include "vulkan/Image.hpp"
+#include "camera/Camera.hpp"
+#include "renderer/Renderer.hpp"
 #include "inputs/Input.hpp"
 #include "utils.hpp"
 #include "BasicLogger.hpp"
@@ -26,11 +29,13 @@ class HelloTriangleApplication {
 
     private:
         GLFWwindow* mWindow;                                // Window handler
-        Vulkan mVulkan;
+        VulkanContext mContext;
         Input mInput;
         std::thread mInputThread;
 
+        Renderer mRenderer;
         Camera mCamera;
+        Image mTexture;
 
         BasicLogger mOutLogger{"../out.log"};
         BasicLogger mErrLogger{"../err.log"};

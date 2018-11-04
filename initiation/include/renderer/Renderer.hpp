@@ -13,6 +13,7 @@
 #include "vulkan/GraphicsPipeline.hpp"
 #include "vulkan/Shader.hpp"
 #include "vulkan/Image.hpp"
+#include "vulkan/VulkanContext.hpp"
 #include "camera/Camera.hpp"
 #include "memory/MemoryManager.hpp"
 #include "environment.hpp"
@@ -20,15 +21,7 @@
 class Renderer {
     public:
         Renderer();
-        void create(VkInstance instance,
-                    GLFWwindow* window,
-                    VkPhysicalDevice physicalDevice,
-                    VkDevice device,
-                    VkSurfaceKHR surface,
-                    QueueFamilyIndices indices,
-                    VkQueue graphicsQueue,
-                    VkQueue presentQueue,
-                    MemoryManager& memoryManager);
+        void create(VulkanContext& context);
         void recreate();
         void destroy();
         void render();
@@ -37,8 +30,6 @@ class Renderer {
         void setCamera(Camera& camera);
 
         MemoryManager& getMemoryManager();
-        VkDevice getDevice() const;
-        VkQueue getGraphicsQueue() const;
         CommandPool& getCommandPool();
         VkDescriptorPool getDescriptorPool() const;
         VkDescriptorSetLayout getDescriptorSetLayout() const;
@@ -46,13 +37,6 @@ class Renderer {
         StaticObjectsManager& getStaticObjectManager();
 
     private:
-        VkInstance mInstance;
-        VkDevice mDevice;
-        VkPhysicalDevice mPhysicalDevice;
-        VkQueue mGraphicsQueue;
-        VkQueue mPresentQueue;
-        QueueFamilyIndices mIndices;
-        VkSurfaceKHR mSurface;
         VkSemaphore mImageAvailableSemaphore;
         VkSemaphore mRenderFinishedSemaphore;
         VkDescriptorPool mDescriptorPool;
@@ -63,9 +47,8 @@ class Renderer {
         std::vector<VkFence> mFences;
         std::vector<bool> mIsFenceSubmitted;
 
-        GLFWwindow* mWindow;
-        MemoryManager* mMemoryManager;
         Camera* mCamera;
+        VulkanContext* mContext;
 
         SwapChain mSwapChain;
         CommandPool mCommandPool;

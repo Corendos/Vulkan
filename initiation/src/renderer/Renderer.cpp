@@ -22,41 +22,32 @@ Renderer::Renderer() {
     mClearValues[1].depthStencil = {1.0f, 0};
 }
 
-void Renderer::create(VkInstance instance,
-                      GLFWwindow* window,
-                      VkPhysicalDevice physicalDevice,
-                      VkDevice device,
-                      VkSurfaceKHR surface,
-                      QueueFamilyIndices indices,
-                      VkQueue graphicsQueue,
-                      VkQueue presentQueue,
-                      MemoryManager& memoryManager) {
+void Renderer::create(VulkanContext& context) {
     if (mCreated) {
         return;
     }
 
-    mInstance = instance;
-    mWindow = window;
-    mPhysicalDevice = physicalDevice;
-    mDevice = device;
-    mSurface = surface;
-    mIndices = indices;
-    mGraphicsQueue = graphicsQueue;
-    mPresentQueue =  presentQueue;
-    mMemoryManager = &memoryManager;
+    mContext = &context;
 
-    mSwapChain.query(mWindow, mPhysicalDevice, mDevice, mSurface);
+    mSwapChain.query(mContext->getWindow(),
+                     mContext->getPhysicalDevice(),
+                     mContext->getDevice(),
+                     mContext->getSurface());
     mExtent = mSwapChain.getExtent();
-    mCommandPool.create(mDevice, mIndices);
+    mCommandPool.create(mContext->getDevice(), mContext->getQueueFamilyIndices());
     createRenderPass();
     createDepthResources();
-    mSwapChain.create(mWindow, mPhysicalDevice, mDevice,
-                      mSurface, mIndices, mDepthImageView,
+    mSwapChain.create(mContext->getWindow(),
+                      mContext->getPhysicalDevice(),
+                      mContext->getDevice(),
+                      mContext->getSurface(),
+                      mContext->getQueueFamilyIndices(),
+                      mDepthImageView,
                       mRenderPass);
     createDescriptorSetLayout();
     createGraphicsPipeline();
     createDescriptorPool();
-    mStaticObjectManager.create(*this);
+    mStaticObjectManager.create(*mContext, *this);
     createCommandBuffers();
     createSemaphores();
     createFences();
@@ -68,28 +59,28 @@ void Renderer::create(VkInstance instance,
 void Renderer::recreate() {
     int width{0}, height{0};
     while(width == 0 || height == 0) {
-        glfwGetFramebufferSize(mWindow, &width, &height);
+        glfwGetFramebufferSize(mContext->getWindow(), &width, &height);
         glfwWaitEvents();
     }
     
-    vkDeviceWaitIdle(mDevice);
+    vkDeviceWaitIdle(mContext->getDevice());
 
-    vkDestroyImageView(mDevice, mDepthImageView, nullptr);
-    mMemoryManager->freeImage(mDepthImage);
-    vkFreeCommandBuffers(mDevice, mCommandPool.getHandler(),
+    vkDestroyImageView(mContext->getDevice(), mDepthImageView, nullptr);
+    mContext->getMemoryManager().freeImage(mDepthImage);
+    vkFreeCommandBuffers(mContext->getDevice(), mCommandPool.getHandler(),
                          static_cast<uint32_t>(mCommandBuffers.size()),
                          mCommandBuffers.data());
 
-    mPipeline.destroy(mDevice);
-    mRenderPass.destroy(mDevice);
-    mSwapChain.destroy(mDevice);
+    mPipeline.destroy(mContext->getDevice());
+    mRenderPass.destroy(mContext->getDevice());
+    mSwapChain.destroy(mContext->getDevice());
 
-    mSwapChain.query(mWindow, mPhysicalDevice, mDevice, mSurface);
+    mSwapChain.query(mContext->getWindow(), mContext->getPhysicalDevice(), mContext->getDevice(), mContext->getSurface());
     mExtent = mSwapChain.getExtent();
     createRenderPass();
     createDepthResources();
-    mSwapChain.create(mWindow, mPhysicalDevice, mDevice,
-                      mSurface, mIndices, mDepthImageView,
+    mSwapChain.create(mContext->getWindow(), mContext->getPhysicalDevice(), mContext->getDevice(),
+                      mContext->getSurface(), mContext->getQueueFamilyIndices(), mDepthImageView,
                       mRenderPass);
     createRenderPass();
     createGraphicsPipeline();
@@ -99,24 +90,23 @@ void Renderer::recreate() {
 
 void Renderer::destroy() {
     if (mCreated) {
-        mVertexShader.destroy(mDevice);
-        mFragmentShader.destroy(mDevice);
-        mMemoryManager->freeImage(mDepthImage);
-        vkDestroyImageView(mDevice, mDepthImageView, nullptr);
-        vkFreeCommandBuffers(mDevice, mCommandPool.getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
-        mPipeline.destroy(mDevice);
-        mRenderPass.destroy(mDevice);
-        mSwapChain.destroy(mDevice);
+        mVertexShader.destroy(mContext->getDevice());
+        mFragmentShader.destroy(mContext->getDevice());
+        mContext->getMemoryManager().freeImage(mDepthImage);
+        vkDestroyImageView(mContext->getDevice(), mDepthImageView, nullptr);
+        vkFreeCommandBuffers(mContext->getDevice(), mCommandPool.getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
+        mPipeline.destroy(mContext->getDevice());
+        mRenderPass.destroy(mContext->getDevice());
+        mSwapChain.destroy(mContext->getDevice());
         mStaticObjectManager.destroy();
-        vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
-        vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
-        vkDestroySemaphore(mDevice, mImageAvailableSemaphore, nullptr);
-        vkDestroySemaphore(mDevice, mRenderFinishedSemaphore, nullptr);
+        vkDestroyDescriptorPool(mContext->getDevice(), mDescriptorPool, nullptr);
+        vkDestroyDescriptorSetLayout(mContext->getDevice(), mDescriptorSetLayout, nullptr);
+        vkDestroySemaphore(mContext->getDevice(), mImageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(mContext->getDevice(), mRenderFinishedSemaphore, nullptr);
         for (size_t i{0};i < mFences.size();++i) {
-            vkDestroyFence(mDevice, mFences[i], nullptr);
+            vkDestroyFence(mContext->getDevice(), mFences[i], nullptr);
         }
-        mCommandPool.destroy(mDevice);
-        vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+        mCommandPool.destroy(mContext->getDevice());
         mCreated = false;
     }
 }
@@ -139,7 +129,7 @@ void Renderer::render() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mFences[mNextImageIndex]) != VK_SUCCESS) {
+    if (vkQueueSubmit(mContext->getGraphicsQueue(), 1, &submitInfo, mFences[mNextImageIndex]) != VK_SUCCESS) {
         throw std::runtime_error("Failed to submit draw command buffer");
     }
     mIsFenceSubmitted[mNextImageIndex] = true;
@@ -156,7 +146,7 @@ void Renderer::render() {
     presentInfo.pImageIndices = &mNextImageIndex;
     presentInfo.pResults = nullptr;
 
-    VkResult result = vkQueuePresentKHR(mGraphicsQueue, &presentInfo);
+    VkResult result = vkQueuePresentKHR(mContext->getGraphicsQueue(), &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         recreate();
     } else if (result != VK_SUCCESS) {
@@ -167,7 +157,7 @@ void Renderer::render() {
 void Renderer::update() {
     mBypassRendering = false;
     VkResult result = vkAcquireNextImageKHR(
-        mDevice, mSwapChain.getHandler(), std::numeric_limits<uint64_t>::max(),
+        mContext->getDevice(), mSwapChain.getHandler(), std::numeric_limits<uint64_t>::max(),
         mImageAvailableSemaphore, VK_NULL_HANDLE, &mNextImageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -183,18 +173,6 @@ void Renderer::update() {
 
 void Renderer::setCamera(Camera& camera) {
     mCamera = &camera;
-}
-
-MemoryManager& Renderer::getMemoryManager() {
-    return *mMemoryManager;
-}
-
-VkDevice Renderer::getDevice() const {
-    return mDevice;
-}
-
-VkQueue Renderer::getGraphicsQueue() const {
-    return mGraphicsQueue;
 }
 
 CommandPool& Renderer::getCommandPool() {
@@ -256,38 +234,38 @@ void Renderer::createRenderPass() {
 
     mRenderPass.addSubpassDependency(dependency.getDependency());
     
-    mRenderPass.create(mDevice);
+    mRenderPass.create(mContext->getDevice());
 }
 
 void Renderer::createGraphicsPipeline() {
-    mVertexShader.create(mDevice);
-    mFragmentShader.create(mDevice);
+    mVertexShader.create(mContext->getDevice());
+    mFragmentShader.create(mContext->getDevice());
 
     mPipeline.getLayout().addDescriptorSetLayout(mDescriptorSetLayout);
     mPipeline.addShader(mVertexShader);
     mPipeline.addShader(mFragmentShader);
     mPipeline.setRenderPass(mRenderPass);
     mPipeline.setExtent(mExtent);
-    mPipeline.create(mDevice);
+    mPipeline.create(mContext->getDevice());
 }
 
 void Renderer::createDepthResources() {
     VkFormat format = findDepthFormat();
 
     mDepthImage = Image::create(
-        mDevice, *mMemoryManager,
+        mContext->getDevice(), mContext->getMemoryManager(),
         mExtent.width, mExtent.height,
         format, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
     );
 
-    mDepthImageView = Image::createImageView(mDevice, mDepthImage,
+    mDepthImageView = Image::createImageView(mContext->getDevice(), mDepthImage,
                                              format,
                                              VK_IMAGE_ASPECT_DEPTH_BIT);
     
-    Image::transitionImageLayout(mDevice, mCommandPool,
-                                 mGraphicsQueue, mDepthImage,
+    Image::transitionImageLayout(mContext->getDevice(), mCommandPool,
+                                 mContext->getGraphicsQueue(), mDepthImage,
                                  format, VK_IMAGE_LAYOUT_UNDEFINED,
                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
@@ -305,7 +283,7 @@ void Renderer::createDescriptorPool() {
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = 10000;
 
-    if (vkCreateDescriptorPool(mDevice, &poolInfo, nullptr, &mDescriptorPool) != VK_SUCCESS) {
+    if (vkCreateDescriptorPool(mContext->getDevice(), &poolInfo, nullptr, &mDescriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
     }
 }
@@ -331,7 +309,7 @@ void Renderer::createDescriptorSetLayout() {
     colorLayoutInfo.bindingCount = 2;
     colorLayoutInfo.pBindings = bindings;
 
-    if (vkCreateDescriptorSetLayout(mDevice, &colorLayoutInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(mContext->getDevice(), &colorLayoutInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor set layout");
     }
 }
@@ -339,15 +317,15 @@ void Renderer::createDescriptorSetLayout() {
 void Renderer::createCommandBuffers() {
     mCommandBuffers.resize(mSwapChain.getImageCount());
 
-    Commands::allocateBuffers(mDevice, mCommandPool, mCommandBuffers);
+    Commands::allocateBuffers(mContext->getDevice(), mCommandPool, mCommandBuffers);
 }
 
 void Renderer::createSemaphores() {
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     
-    if ((vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mImageAvailableSemaphore) != VK_SUCCESS) ||
-        (vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mRenderFinishedSemaphore) != VK_SUCCESS)) {
+    if ((vkCreateSemaphore(mContext->getDevice(), &semaphoreInfo, nullptr, &mImageAvailableSemaphore) != VK_SUCCESS) ||
+        (vkCreateSemaphore(mContext->getDevice(), &semaphoreInfo, nullptr, &mRenderFinishedSemaphore) != VK_SUCCESS)) {
         throw std::runtime_error("Failed to create semaphores");
     }
 }
@@ -358,7 +336,7 @@ void Renderer::createFences() {
     VkFenceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     for (size_t i{0};i < mFences.size();++i) {
-        if (vkCreateFence(mDevice, &createInfo, nullptr, &mFences[i]) != VK_SUCCESS) {
+        if (vkCreateFence(mContext->getDevice(), &createInfo, nullptr, &mFences[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create fences");
         }
     }
@@ -370,11 +348,11 @@ void Renderer::updateCommandBuffer(uint32_t index) {
     cameraInfo.view = mCamera->getView();
 
     if (mIsFenceSubmitted[index]) {
-        if (vkGetFenceStatus(mDevice, mFences[index]) == VK_NOT_READY) {
+        if (vkGetFenceStatus(mContext->getDevice(), mFences[index]) == VK_NOT_READY) {
             std::cout << "Fence #" << index << " not ready" << std::endl;
             return;
         } else {
-            vkResetFences(mDevice, 1, &mFences[index]);
+            vkResetFences(mContext->getDevice(), 1, &mFences[index]);
         }
     }
 
@@ -427,7 +405,7 @@ void Renderer::updateCommandBuffer(uint32_t index) {
 VkFormat Renderer::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
     for (VkFormat format : candidates) {
         VkFormatProperties properties;
-        vkGetPhysicalDeviceFormatProperties(mPhysicalDevice, format, &properties);
+        vkGetPhysicalDeviceFormatProperties(mContext->getPhysicalDevice(), format, &properties);
 
         if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features) {
             return format;
