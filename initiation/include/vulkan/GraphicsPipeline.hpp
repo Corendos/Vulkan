@@ -18,6 +18,7 @@ class GraphicsPipeline {
         void addShader(Shader& shader);
         void setRenderPass(RenderPass& renderPass);
         void setExtent(VkExtent2D extent);
+        void setPipelineLayout(PipelineLayout& layout);
 
         VkPipeline getHandler() const;
         PipelineLayout& getLayout();
@@ -26,7 +27,7 @@ class GraphicsPipeline {
         VkPipeline mHandler;
         VkGraphicsPipelineCreateInfo mInfo{};
         std::vector<Shader*> mShaders;
-        RenderPass* mRenderPass;
+        RenderPass* mRenderPass{nullptr};
 
         VkExtent2D mExtent;
 

@@ -10,7 +10,9 @@ void GraphicsPipeline::create(VkDevice device) {
         return;
     }
 
-    mLayout.create(device);
+    if (mRenderPass == nullptr) {
+        throw std::runtime_error("Missing mandatory pointer");
+    }
 
     auto bindingDescription = Vertex::getBindingDescription();
     auto attributeDescriptions = Vertex::getAttributeDescriptions();
@@ -161,6 +163,10 @@ void GraphicsPipeline::setRenderPass(RenderPass& renderPass) {
 
 void GraphicsPipeline::setExtent(VkExtent2D extent) {
     mExtent = extent;
+}
+
+void GraphicsPipeline::setPipelineLayout(PipelineLayout& layout) {
+    mLayout = layout;
 }
 
 VkPipeline GraphicsPipeline::getHandler() const {

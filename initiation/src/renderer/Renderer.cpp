@@ -248,8 +248,16 @@ void Renderer::createGraphicsPipeline() {
     mVertexShader.create(mContext->getDevice());
     mFragmentShader.create(mContext->getDevice());
 
-    mPipeline.getLayout().addDescriptorSetLayout(mTextureDescriptorSetLayout);
-    mPipeline.getLayout().addDescriptorSetLayout(mCameraDescriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
+        mTextureDescriptorSetLayout,
+        mCameraDescriptorSetLayout
+    };
+
+    PipelineLayout layout;
+    layout.setDescriptorSetLayouts(descriptorSetLayouts);
+    layout.create(mContext->getDevice());
+
+    mPipeline.setPipelineLayout(layout);
     mPipeline.addShader(mVertexShader);
     mPipeline.addShader(mFragmentShader);
     mPipeline.setRenderPass(mRenderPass);
