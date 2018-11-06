@@ -11,7 +11,7 @@
 #include "vulkan/Commands.hpp"
 #include "vulkan/BufferHelper.hpp"
 #include "colors/Color.hpp"
-#include "camera/CameraInfo.hpp"
+#include "renderer/RenderInfo.hpp"
 #include "environment.hpp"
 
 Renderer::Renderer() {
@@ -344,7 +344,7 @@ void Renderer::createCommandBuffers() {
 
 void Renderer::createCameraUniformBuffers() {
     mCameraUniformBuffers.resize(mSwapChain.getImageCount());
-    VkDeviceSize bufferSize = sizeof(CameraInfo);
+    VkDeviceSize bufferSize = sizeof(RenderInfo);
 
     for (size_t i{0};i < mCameraUniformBuffers.size();++i) {
         BufferHelper::createBuffer(mContext->getMemoryManager(),
@@ -374,7 +374,7 @@ void Renderer::createCameraDescriptorSets() {
     for (size_t i{0};i < mCameraDescriptorSets.size();++i) {
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = mCameraUniformBuffers[i];
-        bufferInfo.range = sizeof(CameraInfo);
+        bufferInfo.range = sizeof(RenderInfo);
 
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -468,15 +468,15 @@ void Renderer::updateCommandBuffer(uint32_t index) {
 }
 
 void Renderer::updateUniformBuffer(uint32_t index) {
-    CameraInfo cameraInfo;
-    cameraInfo.proj = mCamera->getProj();
-    cameraInfo.view = mCamera->getView();
-    cameraInfo.position = glm::vec4(mCamera->getPosition(), 1.0);
-    cameraInfo.light = glm::vec4(mLight->position, 1.0);
+    RenderInfo renderInfo;
+    renderInfo.proj = mCamera->getProj();
+    renderInfo.view = mCamera->getView();
+    renderInfo.cameraPosition = glm::vec4(mCamera->getPosition(), 1.0);
+    renderInfo.lightPosition = glm::vec4(mLight->position, 1.0);
 
     void* data;
-    mContext->getMemoryManager().mapMemory(mCameraUniformBuffers[index], sizeof(CameraInfo), &data);
-    memcpy(data, &cameraInfo, sizeof(CameraInfo));
+    mContext->getMemoryManager().mapMemory(mCameraUniformBuffers[index], sizeof(RenderInfo), &data);
+    memcpy(data, &renderInfo, sizeof(RenderInfo));
     mContext->getMemoryManager().unmapMemory(mCameraUniformBuffers[index]);
 }
 
