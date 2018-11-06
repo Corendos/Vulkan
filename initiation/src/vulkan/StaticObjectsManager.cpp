@@ -85,7 +85,7 @@ void StaticObjectsManager::createVertexBuffer() {
     BufferHelper::copyBuffer(
         mContext->getMemoryManager(),
         mContext->getDevice(),
-        mRenderer->getCommandPool(),
+        mContext->getCommandPool(),
         mContext->getGraphicsQueue(), stagingBuffer, mVertexBuffer, bufferSize);
 
     mContext->getMemoryManager().freeBuffer(stagingBuffer);
@@ -111,7 +111,7 @@ void StaticObjectsManager::createIndexBuffer() {
     BufferHelper::copyBuffer(
         mContext->getMemoryManager(),
         mContext->getDevice(),
-        mRenderer->getCommandPool(),
+        mContext->getCommandPool(),
         mContext->getGraphicsQueue(), stagingBuffer, mIndexBuffer, bufferSize);
 
     mContext->getMemoryManager().freeBuffer(stagingBuffer);    

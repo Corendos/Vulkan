@@ -34,7 +34,6 @@ void Renderer::create(VulkanContext& context) {
                      mContext->getDevice(),
                      mContext->getSurface());
     mExtent = mSwapChain.getExtent();
-    mCommandPool.create(mContext->getDevice(), mContext->getQueueFamilyIndices());
     createRenderPass();
     createDepthResources();
     mSwapChain.create(mContext->getWindow(),
@@ -69,7 +68,7 @@ void Renderer::recreate() {
 
     vkDestroyImageView(mContext->getDevice(), mDepthImageView, nullptr);
     mContext->getMemoryManager().freeImage(mDepthImage);
-    vkFreeCommandBuffers(mContext->getDevice(), mCommandPool.getHandler(),
+    vkFreeCommandBuffers(mContext->getDevice(), mContext->getCommandPool().getHandler(),
                          static_cast<uint32_t>(mCommandBuffers.size()),
                          mCommandBuffers.data());
 
@@ -99,7 +98,7 @@ void Renderer::destroy() {
         mFragmentShader.destroy(mContext->getDevice());
         mContext->getMemoryManager().freeImage(mDepthImage);
         vkDestroyImageView(mContext->getDevice(), mDepthImageView, nullptr);
-        vkFreeCommandBuffers(mContext->getDevice(), mCommandPool.getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
+        vkFreeCommandBuffers(mContext->getDevice(), mContext->getCommandPool().getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
         mPipeline.destroy(mContext->getDevice());
         mRenderPass.destroy(mContext->getDevice());
         mSwapChain.destroy(mContext->getDevice());
@@ -112,7 +111,7 @@ void Renderer::destroy() {
         for (size_t i{0};i < mFences.size();++i) {
             vkDestroyFence(mContext->getDevice(), mFences[i], nullptr);
         }
-        mCommandPool.destroy(mContext->getDevice());
+        mContext->getCommandPool().destroy(mContext->getDevice());
         mCreated = false;
     }
 }
@@ -180,10 +179,6 @@ void Renderer::update() {
 
 void Renderer::setCamera(Camera& camera) {
     mCamera = &camera;
-}
-
-CommandPool& Renderer::getCommandPool() {
-    return mCommandPool;
 }
 
 VkDescriptorPool Renderer::getDescriptorPool() const {
@@ -332,7 +327,7 @@ void Renderer::createDescriptorSetLayout() {
 void Renderer::createCommandBuffers() {
     mCommandBuffers.resize(mSwapChain.getImageCount());
 
-    Commands::allocateBuffers(mContext->getDevice(), mCommandPool, mCommandBuffers);
+    Commands::allocateBuffers(mContext->getDevice(), mContext->getCommandPool(), mCommandBuffers);
 }
 
 void Renderer::createCameraUniformBuffers() {

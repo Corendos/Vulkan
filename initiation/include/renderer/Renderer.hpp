@@ -30,7 +30,6 @@ class Renderer {
         void setCamera(Camera& camera);
 
         MemoryManager& getMemoryManager();
-        CommandPool& getCommandPool();
         VkDescriptorPool getDescriptorPool() const;
         VkDescriptorSetLayout getDescriptorSetLayout() const;
 
@@ -52,7 +51,6 @@ class Renderer {
         VulkanContext* mContext;
 
         SwapChain mSwapChain;
-        CommandPool mCommandPool;
         RenderPass mRenderPass;
         VkImage mDepthImage;
         VkImageView mDepthImageView;

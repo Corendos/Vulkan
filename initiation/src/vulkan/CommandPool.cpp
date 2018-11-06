@@ -4,7 +4,7 @@ void CommandPool::create(VkDevice device, QueueFamilyIndices indices) {
     if (mCreated) {
         return;
     }
-
+    // TODO: give the possibility to specify the queue family index
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = indices.graphicsFamily.value();
