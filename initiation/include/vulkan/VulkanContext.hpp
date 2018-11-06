@@ -23,7 +23,8 @@ class VulkanContext {
         VkQueue getPresentQueue() const;
         VkQueue getTransferQueue() const;
         QueueFamilyIndices getQueueFamilyIndices() const;
-        CommandPool& getCommandPool();
+        CommandPool& getGraphicsCommandPool();
+        CommandPool& getTransferCommandPool();
         VkSurfaceKHR getSurface() const;
         GLFWwindow* getWindow() const;
         MemoryManager& getMemoryManager();
@@ -38,7 +39,8 @@ class VulkanContext {
         VkQueue mTransferQueue;                              // Device present queue
         VkSurfaceKHR mSurface;                              // Vulkan surface handler
         QueueFamilyIndices mIndices;
-        CommandPool mCommandPool;
+        CommandPool mGraphicsCommandPool;
+        CommandPool mTransferCommandPool;
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
         MemoryManager mMemoryManager;
 

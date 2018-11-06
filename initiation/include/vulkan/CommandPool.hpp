@@ -9,7 +9,7 @@
 
 class CommandPool {
     public:
-        void create(VkDevice device, QueueFamilyIndices indices);
+        void create(VkDevice device, uint32_t queueFamilyIndex);
         void destroy(VkDevice device);
 
         VkCommandPool getHandler() const;

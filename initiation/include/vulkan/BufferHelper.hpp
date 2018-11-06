@@ -5,23 +5,22 @@
 
 #include "memory/MemoryManager.hpp"
 #include "vulkan/CommandPool.hpp"
+#include "vulkan/VulkanContext.hpp"
 
 class BufferHelper {
     public:
-        static void createBuffer(MemoryManager& manager,
-                                 VkDevice device,
+        static void createBuffer(VulkanContext& context,
                                  VkDeviceSize size,
                                  VkBufferUsageFlags usage,
                                  VkMemoryPropertyFlags properties,
                                  VkBuffer& buffer);
-        static void copyBuffer(MemoryManager& manager,
-                               VkDevice device,
+        static void copyBuffer(VulkanContext& context,
                                CommandPool& commandPool,
                                VkQueue queue,
                                VkBuffer srcBuffer,
                                VkBuffer dstBuffer,
                                VkDeviceSize size);
-        static void copyBufferToImage(VkDevice device,
+        static void copyBufferToImage(VulkanContext& context,
                                       CommandPool& commandPool,
                                       VkQueue queue,
                                       VkBuffer buffer,

@@ -69,7 +69,7 @@ void Image::transitionImageLayout(VulkanContext& context,
                                   VkFormat format,
                                   VkImageLayout oldLayout,
                                   VkImageLayout newLayout) {
-    VkCommandBuffer commandBuffer = Commands::beginSingleTime(context.getDevice(), context.getCommandPool());
+    VkCommandBuffer commandBuffer = Commands::beginSingleTime(context.getDevice(), context.getTransferCommandPool());
 
     VkImageMemoryBarrier memoryBarrier{};
     memoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -131,7 +131,7 @@ void Image::transitionImageLayout(VulkanContext& context,
     );
 
     Commands::endSingleTime(context.getDevice(),
-                            context.getCommandPool(),
+                            context.getTransferCommandPool(),
                             commandBuffer,
                             context.getGraphicsQueue());
 }
@@ -149,8 +149,7 @@ void Image::loadFromFile(const std::string filename, VulkanContext& context) {
     mBpp = static_cast<uint32_t>(bpp);
     
     VkDeviceSize size = mWidth * mHeight * 4;
-    BufferHelper::createBuffer(context.getMemoryManager(),
-                               context.getDevice(), size,
+    BufferHelper::createBuffer(context, size,
                                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                mStagingBuffer);
@@ -168,8 +167,8 @@ void Image::create(VulkanContext& context) {
     _createImage(context.getDevice(), context.getMemoryManager());
     Image::transitionImageLayout(context, mImage, VK_FORMAT_R8G8B8A8_UNORM,
                           VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    BufferHelper::copyBufferToImage(context.getDevice(),
-                                    context.getCommandPool(),
+    BufferHelper::copyBufferToImage(context,
+                                    context.getTransferCommandPool(),
                                     context.getGraphicsQueue(),
                                     mStagingBuffer, mImage,
                                     mWidth, mHeight);

@@ -15,7 +15,8 @@ void VulkanContext::create(GLFWwindow* window) {
     setupDebugCallback();
     pickPhysicalDevice();
     createLogicalDevice();
-    mCommandPool.create(mDevice, mIndices);
+    mGraphicsCommandPool.create(mDevice, mIndices.graphicsFamily.value());
+    mTransferCommandPool.create(mDevice, mIndices.transferFamily.value());
     mMemoryManager.init();
 }
 
@@ -28,7 +29,8 @@ void VulkanContext::destroy() {
 
     mMemoryManager.cleanup();
     mMemoryManager.memoryCheckLog();
-    mCommandPool.destroy(mDevice);
+    mGraphicsCommandPool.destroy(mDevice);
+    mTransferCommandPool.destroy(mDevice);
     vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
     vkDestroyDevice(mDevice, nullptr);
     vkDestroyInstance(mInstance, nullptr);
@@ -62,8 +64,12 @@ QueueFamilyIndices VulkanContext::getQueueFamilyIndices() const {
     return mIndices;
 }
 
-CommandPool& VulkanContext::getCommandPool() {
-    return mCommandPool;
+CommandPool& VulkanContext::getGraphicsCommandPool() {
+    return mGraphicsCommandPool;
+}
+
+CommandPool& VulkanContext::getTransferCommandPool() {
+    return mTransferCommandPool;
 }
 
 VkSurfaceKHR VulkanContext::getSurface() const {

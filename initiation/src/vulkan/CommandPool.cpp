@@ -1,13 +1,13 @@
 #include "vulkan/CommandPool.hpp"
 
-void CommandPool::create(VkDevice device, QueueFamilyIndices indices) {
+void CommandPool::create(VkDevice device, uint32_t queueFamilyIndex) {
     if (mCreated) {
         return;
     }
     // TODO: give the possibility to specify the queue family index
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = indices.graphicsFamily.value();
+    poolInfo.queueFamilyIndex = queueFamilyIndex;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     if (vkCreateCommandPool(device, &poolInfo, nullptr, &mHandler) != VK_SUCCESS) {

@@ -2,25 +2,27 @@
 
 #include "vulkan/Commands.hpp"
 
-void BufferHelper::createBuffer(MemoryManager& manager, VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage,
-                                 VkMemoryPropertyFlags properties, VkBuffer& buffer) {
+void BufferHelper::createBuffer(VulkanContext& context,
+                                VkDeviceSize size,
+                                VkBufferUsageFlags usage,
+                                VkMemoryPropertyFlags properties,
+                                VkBuffer& buffer) {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+    if (vkCreateBuffer(context.getDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create vertex buffer");
     }
 
     VkMemoryRequirements memoryRequirements{};
-    vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
+    vkGetBufferMemoryRequirements(context.getDevice(), buffer, &memoryRequirements);
 
-    manager.allocateForBuffer(buffer, memoryRequirements, properties);
+    context.getMemoryManager().allocateForBuffer(buffer, memoryRequirements, properties);
 }
 
-void BufferHelper::copyBuffer(MemoryManager& manager,
-                              VkDevice device,
+void BufferHelper::copyBuffer(VulkanContext& context,
                               CommandPool& commandPool,
                               VkQueue queue,
                               VkBuffer srcBuffer,
@@ -33,7 +35,7 @@ void BufferHelper::copyBuffer(MemoryManager& manager,
     allocateInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer{};
-    vkAllocateCommandBuffers(device, &allocateInfo, &commandBuffer);
+    vkAllocateCommandBuffers(context.getDevice(), &allocateInfo, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -55,17 +57,17 @@ void BufferHelper::copyBuffer(MemoryManager& manager,
     vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(queue);
 
-    vkFreeCommandBuffers(device, commandPool.getHandler(), 1, &commandBuffer);
+    vkFreeCommandBuffers(context.getDevice(), commandPool.getHandler(), 1, &commandBuffer);
 }
 
-void BufferHelper::copyBufferToImage(VkDevice device,
+void BufferHelper::copyBufferToImage(VulkanContext& context,
                                      CommandPool& commandPool,
                                      VkQueue queue,
                                      VkBuffer buffer,
                                      VkImage image,
                                      uint32_t width,
                                      uint32_t height) {
-    VkCommandBuffer commandBuffer = Commands::beginSingleTime(device, commandPool);
+    VkCommandBuffer commandBuffer = Commands::beginSingleTime(context.getDevice(), commandPool);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -84,5 +86,5 @@ void BufferHelper::copyBufferToImage(VkDevice device,
         commandBuffer, buffer, image,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         1, &region);
-    Commands::endSingleTime(device, commandPool, commandBuffer, queue);
+    Commands::endSingleTime(context.getDevice(), commandPool, commandBuffer, queue);
 }

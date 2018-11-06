@@ -68,7 +68,7 @@ void Renderer::recreate() {
 
     vkDestroyImageView(mContext->getDevice(), mDepthImageView, nullptr);
     mContext->getMemoryManager().freeImage(mDepthImage);
-    vkFreeCommandBuffers(mContext->getDevice(), mContext->getCommandPool().getHandler(),
+    vkFreeCommandBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool().getHandler(),
                          static_cast<uint32_t>(mCommandBuffers.size()),
                          mCommandBuffers.data());
 
@@ -98,7 +98,7 @@ void Renderer::destroy() {
         mFragmentShader.destroy(mContext->getDevice());
         mContext->getMemoryManager().freeImage(mDepthImage);
         vkDestroyImageView(mContext->getDevice(), mDepthImageView, nullptr);
-        vkFreeCommandBuffers(mContext->getDevice(), mContext->getCommandPool().getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
+        vkFreeCommandBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool().getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
         mPipeline.destroy(mContext->getDevice());
         mRenderPass.destroy(mContext->getDevice());
         mSwapChain.destroy(mContext->getDevice());
@@ -111,7 +111,6 @@ void Renderer::destroy() {
         for (size_t i{0};i < mFences.size();++i) {
             vkDestroyFence(mContext->getDevice(), mFences[i], nullptr);
         }
-        mContext->getCommandPool().destroy(mContext->getDevice());
         mCreated = false;
     }
 }
@@ -339,7 +338,7 @@ void Renderer::createDescriptorSetLayout() {
 void Renderer::createCommandBuffers() {
     mCommandBuffers.resize(mSwapChain.getImageCount());
 
-    Commands::allocateBuffers(mContext->getDevice(), mContext->getCommandPool(), mCommandBuffers);
+    Commands::allocateBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool(), mCommandBuffers);
 }
 
 void Renderer::createCameraUniformBuffers() {
@@ -347,8 +346,7 @@ void Renderer::createCameraUniformBuffers() {
     VkDeviceSize bufferSize = sizeof(RenderInfo);
 
     for (size_t i{0};i < mCameraUniformBuffers.size();++i) {
-        BufferHelper::createBuffer(mContext->getMemoryManager(),
-                               mContext->getDevice(),
+        BufferHelper::createBuffer(*mContext,
                                bufferSize,
                                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,

@@ -70,7 +70,7 @@ void StaticObjectsManager::createVertexBuffer() {
 
     VkBuffer stagingBuffer;
 
-    BufferHelper::createBuffer(mContext->getMemoryManager(), mContext->getDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    BufferHelper::createBuffer(*mContext, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
     
     void* data;
@@ -78,14 +78,13 @@ void StaticObjectsManager::createVertexBuffer() {
     memcpy(data, mVertices.data(), (size_t)bufferSize);
     mContext->getMemoryManager().unmapMemory(stagingBuffer);
 
-    BufferHelper::createBuffer(mContext->getMemoryManager(), mContext->getDevice(), bufferSize,
+    BufferHelper::createBuffer(*mContext, bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mVertexBuffer);
 
     BufferHelper::copyBuffer(
-        mContext->getMemoryManager(),
-        mContext->getDevice(),
-        mContext->getCommandPool(),
+        *mContext,
+        mContext->getTransferCommandPool(),
         mContext->getGraphicsQueue(), stagingBuffer, mVertexBuffer, bufferSize);
 
     mContext->getMemoryManager().freeBuffer(stagingBuffer);
@@ -96,7 +95,7 @@ void StaticObjectsManager::createIndexBuffer() {
 
     VkBuffer stagingBuffer;
 
-    BufferHelper::createBuffer(mContext->getMemoryManager(), mContext->getDevice(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    BufferHelper::createBuffer(*mContext, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
     
     void* data;
@@ -104,14 +103,13 @@ void StaticObjectsManager::createIndexBuffer() {
     memcpy(data, mIndices.data(), (size_t)bufferSize);
     mContext->getMemoryManager().unmapMemory(stagingBuffer);
 
-    BufferHelper::createBuffer(mContext->getMemoryManager(), mContext->getDevice(), bufferSize,
+    BufferHelper::createBuffer(*mContext, bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mIndexBuffer);
 
     BufferHelper::copyBuffer(
-        mContext->getMemoryManager(),
-        mContext->getDevice(),
-        mContext->getCommandPool(),
+        *mContext,
+        mContext->getTransferCommandPool(),
         mContext->getGraphicsQueue(), stagingBuffer, mIndexBuffer, bufferSize);
 
     mContext->getMemoryManager().freeBuffer(stagingBuffer);    
