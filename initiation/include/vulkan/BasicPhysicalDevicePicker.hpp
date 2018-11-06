@@ -24,6 +24,7 @@ class BasicPhysicalDevicePicker {
         std::vector<std::string> getSupportedExtensions(VkPhysicalDevice physicalDevice);
 
         bool hasGraphicsSupport(VkQueueFamilyProperties properties);
+        bool hasTransferSupport(VkQueueFamilyProperties properties);
         bool hasPresentSupport(VkQueueFamilyProperties properties, VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex);
 
         static bool isPhysicalDeviceNotSuitable(PhysicalDeviceInfo info, BasicPhysicalDevicePicker& picker);

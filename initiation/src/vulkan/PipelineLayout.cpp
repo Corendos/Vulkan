@@ -41,7 +41,6 @@ void PipelineLayout::setPushConstants(std::vector<VkPushConstantRange> pushConst
     mPushConstantRanges = pushConstants;
 }
 
-
 VkPipelineLayout PipelineLayout::getHandler() const {
     return mHandler;
 }

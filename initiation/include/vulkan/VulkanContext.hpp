@@ -21,6 +21,7 @@ class VulkanContext {
         VkDevice getDevice() const;
         VkQueue getGraphicsQueue() const;
         VkQueue getPresentQueue() const;
+        VkQueue getTransferQueue() const;
         QueueFamilyIndices getQueueFamilyIndices() const;
         CommandPool& getCommandPool();
         VkSurfaceKHR getSurface() const;
@@ -34,6 +35,7 @@ class VulkanContext {
         VkDevice mDevice;                                   // Vulkan logical device handler
         VkQueue mGraphicsQueue;                             // Device graphic queue
         VkQueue mPresentQueue;                              // Device present queue
+        VkQueue mTransferQueue;                              // Device present queue
         VkSurfaceKHR mSurface;                              // Vulkan surface handler
         QueueFamilyIndices mIndices;
         CommandPool mCommandPool;

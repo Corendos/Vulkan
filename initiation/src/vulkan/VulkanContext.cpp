@@ -54,6 +54,10 @@ VkQueue VulkanContext::getPresentQueue() const {
     return mPresentQueue;
 }
 
+VkQueue VulkanContext::getTransferQueue() const {
+    return mTransferQueue;
+}
+
 QueueFamilyIndices VulkanContext::getQueueFamilyIndices() const {
     return mIndices;
 }
@@ -189,6 +193,7 @@ void VulkanContext::createLogicalDevice() {
 
     vkGetDeviceQueue(mDevice, mIndices.graphicsFamily.value(), 0, &mGraphicsQueue);
     vkGetDeviceQueue(mDevice, mIndices.presentFamily.value(), 0, &mPresentQueue);
+    vkGetDeviceQueue(mDevice, mIndices.transferFamily.value(), 0, &mTransferQueue);
 }
 
 bool VulkanContext::checkValidationLayerSupport() {

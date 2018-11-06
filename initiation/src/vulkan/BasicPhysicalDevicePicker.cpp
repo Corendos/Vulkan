@@ -82,6 +82,9 @@ QueueFamilyIndices BasicPhysicalDevicePicker::getFamiliesIndices(VkPhysicalDevic
         if (hasPresentSupport(properties, physicalDevice, index))
             queueFamilyIndices.presentFamily = index;
 
+        if (hasTransferSupport(properties))
+            queueFamilyIndices.transferFamily = index;
+
         if (queueFamilyIndices.isComplete())
             break;
         
@@ -116,6 +119,10 @@ bool BasicPhysicalDevicePicker::hasPresentSupport(VkQueueFamilyProperties proper
     vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamilyIndex, mSurface, &supported);
     
     return properties.queueCount > 0 && supported;
+}
+
+bool BasicPhysicalDevicePicker::hasTransferSupport(VkQueueFamilyProperties properties) {
+    return properties.queueCount > 0 && properties.queueFlags & VK_QUEUE_TRANSFER_BIT;
 }
 
 bool BasicPhysicalDevicePicker::isPhysicalDeviceNotSuitable(PhysicalDeviceInfo info, BasicPhysicalDevicePicker& picker) {
