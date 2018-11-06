@@ -6,11 +6,11 @@
 #include "utils.hpp"
 
 Camera::Camera() : mYaw(0.0), mPitch(0.0) {
-    glm::vec3 eyes(mDistance * std::sin(glm::radians(mYaw)) * std::cos(glm::radians(mPitch)),
-                   mDistance * -std::cos(glm::radians(mYaw)) * std::cos(glm::radians(mPitch)),
-                   mDistance * std::sin(glm::radians(mPitch)));
+    mPosition = glm::vec3(mDistance * std::sin(glm::radians(mYaw)) * std::cos(glm::radians(mPitch)),
+                          mDistance * -std::cos(glm::radians(mYaw)) * std::cos(glm::radians(mPitch)),
+                          mDistance * std::sin(glm::radians(mPitch)));
 
-    mView = glm::lookAt(eyes,
+    mView = glm::lookAt(mPosition,
                         glm::vec3(0.0, 0.0, 0.0),
                         glm::vec3(0.0, 0.0, 1.0));
 }
@@ -26,11 +26,11 @@ void Camera::update(double deltaPitch, double deltaYaw) {
         mYaw += 360.0;
     }
 
-    glm::vec3 eyes(mDistance * std::sin(glm::radians(mYaw)) * std::cos(glm::radians(mPitch)),
-                   mDistance * -std::cos(glm::radians(mYaw)) * std::cos(glm::radians(mPitch)),
-                   mDistance * std::sin(glm::radians(mPitch)));
+    mPosition = glm::vec3(mDistance * std::sin(glm::radians(mYaw)) * std::cos(glm::radians(mPitch)),
+                          mDistance * -std::cos(glm::radians(mYaw)) * std::cos(glm::radians(mPitch)),
+                          mDistance * std::sin(glm::radians(mPitch)));
 
-    mView = glm::lookAt(eyes,
+    mView = glm::lookAt(mPosition,
                         glm::vec3(0.0, 0.0, 0.0),
                         glm::vec3(0.0, 0.0, 1.0));
 }
@@ -51,4 +51,8 @@ glm::mat4 Camera::getView() const {
 
 glm::mat4 Camera::getProj() const {
     return mProj;
+}
+
+glm::vec3 Camera::getPosition() const {
+    return mPosition;
 }

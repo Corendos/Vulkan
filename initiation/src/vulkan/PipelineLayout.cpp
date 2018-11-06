@@ -10,14 +10,6 @@ void PipelineLayout::create(VkDevice device) {
     if (mCreated) {
         return;
     }
-    
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(CameraInfo);
-
-    mInfo.pushConstantRangeCount = 1;
-    mInfo.pPushConstantRanges = &pushConstantRange;
 
     if (vkCreatePipelineLayout(device, &mInfo, nullptr, &mHandler) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create pipeline layout");

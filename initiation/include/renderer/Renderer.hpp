@@ -15,6 +15,7 @@
 #include "vulkan/Image.hpp"
 #include "vulkan/VulkanContext.hpp"
 #include "camera/Camera.hpp"
+#include "renderer/Light.hpp"
 #include "memory/MemoryManager.hpp"
 #include "environment.hpp"
 
@@ -28,6 +29,7 @@ class Renderer {
         void update();
 
         void setCamera(Camera& camera);
+        void setLight(Light& light);
 
         MemoryManager& getMemoryManager();
         VkDescriptorPool getDescriptorPool() const;
@@ -48,6 +50,7 @@ class Renderer {
         std::vector<bool> mIsFenceSubmitted;
 
         Camera* mCamera;
+        Light* mLight;
         VulkanContext* mContext;
 
         SwapChain mSwapChain;

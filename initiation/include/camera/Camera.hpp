@@ -12,10 +12,12 @@ class Camera {
         void setFov(double fov);
         glm::mat4 getView() const;
         glm::mat4 getProj() const;
+        glm::vec3 getPosition() const;
 
     private:
         glm::mat4 mView;
         glm::mat4 mProj;
+        glm::vec3 mPosition;
 
         VkExtent2D mExtent;
         double mFov;

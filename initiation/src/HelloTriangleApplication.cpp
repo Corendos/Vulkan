@@ -12,6 +12,9 @@ void HelloTriangleApplication::run() {
 }
 
 void HelloTriangleApplication::mainLoop() {
+    int i{0};
+    uint32_t updateMean = {0};
+    uint32_t renderMean = {0};
     while(!glfwWindowShouldClose(mWindow)) {
         auto startTime = std::chrono::high_resolution_clock::now();
         glfwPollEvents();
@@ -22,9 +25,26 @@ void HelloTriangleApplication::mainLoop() {
 
             mCamera.update(deltaPitch, deltaYaw);
         }
-
+        auto start = std::chrono::high_resolution_clock::now();
         mRenderer.update();
+        auto updateEnd = std::chrono::high_resolution_clock::now();
         mRenderer.render();
+        auto end = std::chrono::high_resolution_clock::now();
+        uint32_t updateDuration = std::chrono::duration_cast<std::chrono::microseconds>(updateEnd - start).count();
+        uint32_t renderDuration = std::chrono::duration_cast<std::chrono::microseconds>(end - updateEnd).count();
+        
+        updateMean += updateDuration;
+        renderMean += renderDuration;
+        i++;
+
+        if (i % 10 == 0) {
+            std::cout << "Update: " << (float)updateMean / 10.0f << "µs" << std::endl;
+            std::cout << "Render: " << (float)renderMean / 10.0f << "µs" << std::endl;
+            i = 0;
+            updateMean = 0;
+            renderMean = 0;
+        }
+        
 
         auto endTime = std::chrono::high_resolution_clock::now();
         auto elapsed = std::chrono::duration<double>(endTime - startTime);
@@ -63,15 +83,18 @@ void HelloTriangleApplication::init() {
     mCamera.setFov(70);
     mContext.create(mWindow);
 
+    mLight = {{2.0, 2.0, 2.0}};
+
     mTexture.loadFromFile(std::string(ROOT_PATH) + std::string("textures/diamond.png"), mContext);
     mTexture.create(mContext);
 
-    TexturedCube cube{0.5f, {1.0, 0.0, 0.0}, {1.0f, 1.0f, 1.0f}};
+    TexturedCube cube{1.0f, {0.0, 0.0, 0.0}, {1.0f, 1.0f, 1.0f}};
     cube.setTexture(mTexture);
     mRenderer.getStaticObjectManager().addStaticObject(cube);
 
     mRenderer.create(mContext);
     mRenderer.setCamera(mCamera);
+    mRenderer.setLight(mLight);
 }
 
 void HelloTriangleApplication::windowResizedCallback(GLFWwindow* window, int width, int height) {

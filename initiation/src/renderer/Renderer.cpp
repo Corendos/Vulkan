@@ -18,7 +18,7 @@ Renderer::Renderer() {
     mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
     mFragmentShader = Shader(shaderPath + "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
 
-    mClearValues[0].color = {0.01f, 0.01f, 0.01f, 1.0f};
+    mClearValues[0].color = {0.325f, 0.694f, 0.937f, 1.0f};
     mClearValues[1].depthStencil = {1.0f, 0};
 }
 
@@ -179,6 +179,10 @@ void Renderer::update() {
 
 void Renderer::setCamera(Camera& camera) {
     mCamera = &camera;
+}
+
+void Renderer::setLight(Light& light) {
+    mLight = &light;
 }
 
 VkDescriptorPool Renderer::getDescriptorPool() const {
@@ -399,10 +403,6 @@ void Renderer::createFences() {
 }
 
 void Renderer::updateCommandBuffer(uint32_t index) {
-    CameraInfo cameraInfo;
-    cameraInfo.proj = mCamera->getProj();
-    cameraInfo.view = mCamera->getView();
-
     if (mIsFenceSubmitted[index]) {
         if (vkGetFenceStatus(mContext->getDevice(), mFences[index]) == VK_NOT_READY) {
             std::cout << "Fence #" << index << " not ready" << std::endl;
@@ -463,6 +463,8 @@ void Renderer::updateUniformBuffer(uint32_t index) {
     CameraInfo cameraInfo;
     cameraInfo.proj = mCamera->getProj();
     cameraInfo.view = mCamera->getView();
+    cameraInfo.position = glm::vec4(mCamera->getPosition(), 1.0);
+    cameraInfo.light = glm::vec4(mLight->position, 1.0);
 
     void* data;
     mContext->getMemoryManager().mapMemory(mCameraUniformBuffers[index], sizeof(CameraInfo), &data);

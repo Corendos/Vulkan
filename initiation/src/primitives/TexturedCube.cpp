@@ -3,40 +3,40 @@
 TexturedCube::TexturedCube(float size, glm::vec3 position, Color3f color) {
     mVertices = {
         // Front face
-        {{position.x - size, position.y - size, position.z - size}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
-        {{position.x + size, position.y - size, position.z - size}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
-        {{position.x + size, position.y - size, position.z + size}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
-        {{position.x - size, position.y - size, position.z + size}, {color.r, color.g, color.b}, {0.0f, 0.0f}},
+        {{position.x - size, position.y - size, position.z - size}, {0.0, -1.0, 0.0}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
+        {{position.x + size, position.y - size, position.z - size}, {0.0, -1.0, 0.0}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
+        {{position.x + size, position.y - size, position.z + size}, {0.0, -1.0, 0.0}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
+        {{position.x - size, position.y - size, position.z + size}, {0.0, -1.0, 0.0}, {color.r, color.g, color.b}, {0.0f, 0.0f}},
 
         // Back Face
-        {{position.x + size, position.y + size, position.z - size}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
-        {{position.x - size, position.y + size, position.z - size}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
-        {{position.x - size, position.y + size, position.z + size}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
-        {{position.x + size, position.y + size, position.z + size}, {color.r, color.g, color.b}, {0.0f, 0.0f}},
+        {{position.x + size, position.y + size, position.z - size}, {0.0, 1.0, 0.0}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
+        {{position.x - size, position.y + size, position.z - size}, {0.0, 1.0, 0.0}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
+        {{position.x - size, position.y + size, position.z + size}, {0.0, 1.0, 0.0}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
+        {{position.x + size, position.y + size, position.z + size}, {0.0, 1.0, 0.0}, {color.r, color.g, color.b}, {0.0f, 0.0f}},
         
         // Top Face
-        {{position.x - size, position.y - size, position.z + size}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
-        {{position.x + size, position.y - size, position.z + size}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
-        {{position.x + size, position.y + size, position.z + size}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
-        {{position.x - size, position.y + size, position.z + size}, {color.r, color.g, color.b}, {0.0f, 0.0f}},
+        {{position.x - size, position.y - size, position.z + size}, {0.0, 0.0, 1.0}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
+        {{position.x + size, position.y - size, position.z + size}, {0.0, 0.0, 1.0}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
+        {{position.x + size, position.y + size, position.z + size}, {0.0, 0.0, 1.0}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
+        {{position.x - size, position.y + size, position.z + size}, {0.0, 0.0, 1.0}, {color.r, color.g, color.b}, {0.0f, 0.0f}},
         
         // Bottom Face
-        {{position.x - size, position.y + size, position.z - size}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
-        {{position.x + size, position.y + size, position.z - size}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
-        {{position.x + size, position.y - size, position.z - size}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
-        {{position.x - size, position.y - size, position.z - size}, {color.r, color.g, color.b}, {0.0f, 0.0f}},
+        {{position.x - size, position.y + size, position.z - size}, {0.0, 0.0, -1.0}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
+        {{position.x + size, position.y + size, position.z - size}, {0.0, 0.0, -1.0}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
+        {{position.x + size, position.y - size, position.z - size}, {0.0, 0.0, -1.0}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
+        {{position.x - size, position.y - size, position.z - size}, {0.0, 0.0, -1.0}, {color.r, color.g, color.b}, {0.0f, 0.0f}},
         
         // Right Face
-        {{position.x + size, position.y - size, position.z - size}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
-        {{position.x + size, position.y + size, position.z - size}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
-        {{position.x + size, position.y + size, position.z + size}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
-        {{position.x + size, position.y - size, position.z + size}, {color.r, color.g, color.b}, {0.0f, 0.0f}},
+        {{position.x + size, position.y - size, position.z - size}, {1.0, 0.0, 0.0}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
+        {{position.x + size, position.y + size, position.z - size}, {1.0, 0.0, 0.0}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
+        {{position.x + size, position.y + size, position.z + size}, {1.0, 0.0, 0.0}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
+        {{position.x + size, position.y - size, position.z + size}, {1.0, 0.0, 0.0}, {color.r, color.g, color.b}, {0.0f, 0.0f}},
         
         // Left Face
-        {{position.x - size, position.y + size, position.z - size}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
-        {{position.x - size, position.y - size, position.z - size}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
-        {{position.x - size, position.y - size, position.z + size}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
-        {{position.x - size, position.y + size, position.z + size}, {color.r, color.g, color.b}, {0.0f, 0.0f}}
+        {{position.x - size, position.y + size, position.z - size}, {-1.0, 0.0, 0.0}, {color.r, color.g, color.b}, {0.0f, 1.0f}},
+        {{position.x - size, position.y - size, position.z - size}, {-1.0, 0.0, 0.0}, {color.r, color.g, color.b}, {1.0f, 1.0f}},
+        {{position.x - size, position.y - size, position.z + size}, {-1.0, 0.0, 0.0}, {color.r, color.g, color.b}, {1.0f, 0.0f}},
+        {{position.x - size, position.y + size, position.z + size}, {-1.0, 0.0, 0.0}, {color.r, color.g, color.b}, {0.0f, 0.0f}}
     };
 
     mIndices = {

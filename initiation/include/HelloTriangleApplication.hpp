@@ -19,6 +19,7 @@
 #include "vulkan/Image.hpp"
 #include "camera/Camera.hpp"
 #include "renderer/Renderer.hpp"
+#include "renderer/Light.hpp"
 #include "inputs/Input.hpp"
 #include "utils.hpp"
 #include "BasicLogger.hpp"
@@ -35,6 +36,7 @@ class HelloTriangleApplication {
 
         Renderer mRenderer;
         Camera mCamera;
+        Light mLight;
         Image mTexture;
 
         BasicLogger mOutLogger{"../out.log"};
