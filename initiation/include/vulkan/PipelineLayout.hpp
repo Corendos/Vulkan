@@ -12,15 +12,18 @@ class PipelineLayout {
 
         void create(VkDevice device);
         void destroy(VkDevice device);
-
-        void addDescriptorSetLayout(VkDescriptorSetLayout layout);
         VkPipelineLayout getHandler() const;
+
+        void setFlags(VkPipelineLayoutCreateFlags flags);
+        void setDescriptorSetLayouts(std::vector<VkDescriptorSetLayout> layouts);
+        void setPushConstants(std::vector<VkPushConstantRange> pushConstants);
 
     private:
         VkPipelineLayout mHandler;
         VkPipelineLayoutCreateInfo mInfo{};
 
         std::vector<VkDescriptorSetLayout> mDescriptorSetLayouts;
+        std::vector<VkPushConstantRange> mPushConstantRanges;
 
         bool mCreated{false};
 };
