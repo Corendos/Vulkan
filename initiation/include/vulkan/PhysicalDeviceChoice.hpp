@@ -7,6 +7,7 @@
 
 struct PhysicalDeviceChoice {
     VkPhysicalDevice physicalDevice{VK_NULL_HANDLE};
+    VkPhysicalDeviceLimits limits;
     QueueFamilyIndices queueFamilyIndices;
 
     bool isComplete() {

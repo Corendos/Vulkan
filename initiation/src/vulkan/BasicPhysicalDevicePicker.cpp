@@ -23,7 +23,11 @@ PhysicalDeviceChoice BasicPhysicalDevicePicker::pick() {
         deviceList.begin(), deviceList.end(), PhysicalDeviceComparator());
 
     if (bestPhysicalDeviceInfo != deviceList.end()) {
-        choice = {bestPhysicalDeviceInfo->device, bestPhysicalDeviceInfo->queueFamilyIndices};
+        choice = {
+            bestPhysicalDeviceInfo->device,
+            bestPhysicalDeviceInfo->properties.limits,
+            bestPhysicalDeviceInfo->queueFamilyIndices
+        };
     }
 
     return choice;

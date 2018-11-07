@@ -48,6 +48,10 @@ VkDevice VulkanContext::getDevice() const {
     return mDevice;
 }
 
+VkPhysicalDeviceLimits VulkanContext::getLimits() const {
+    return mPhysicalDeviceLimits;
+}
+
 VkQueue VulkanContext::getGraphicsQueue() const {
     return mGraphicsQueue;
 }

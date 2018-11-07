@@ -19,6 +19,7 @@ class VulkanContext {
         VkInstance getInstance() const;
         VkPhysicalDevice getPhysicalDevice() const;
         VkDevice getDevice() const;
+        VkPhysicalDeviceLimits getLimits() const;
         VkQueue getGraphicsQueue() const;
         VkQueue getPresentQueue() const;
         VkQueue getTransferQueue() const;
@@ -36,13 +37,14 @@ class VulkanContext {
         VkDevice mDevice;                                   // Vulkan logical device handler
         VkQueue mGraphicsQueue;                             // Device graphic queue
         VkQueue mPresentQueue;                              // Device present queue
-        VkQueue mTransferQueue;                              // Device present queue
+        VkQueue mTransferQueue;                             // Device transfer queue
         VkSurfaceKHR mSurface;                              // Vulkan surface handler
         QueueFamilyIndices mIndices;
         CommandPool mGraphicsCommandPool;
         CommandPool mTransferCommandPool;
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
         MemoryManager mMemoryManager;
+        VkPhysicalDeviceLimits mPhysicalDeviceLimits;
 
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_LUNARG_standard_validation"

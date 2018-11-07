@@ -9,6 +9,7 @@ struct PhysicalDeviceInfo {
     VkPhysicalDevice device;
     VkPhysicalDeviceProperties properties;
     VkPhysicalDeviceFeatures features;
+    VkPhysicalDeviceLimits limits;
     QueueFamilyIndices queueFamilyIndices;
     std::vector<std::string> supportedExtensions;
 };
