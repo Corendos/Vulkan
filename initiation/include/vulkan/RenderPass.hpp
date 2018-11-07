@@ -3,15 +3,18 @@
 
 #include <vector>
 #include <stdexcept>
+#include <algorithm>
 
 #include <vulkan/vulkan.h>
+
+#include "vulkan/Attachment.hpp"
 
 class RenderPass {
     public:
         void create(VkDevice device);
         void destroy(VkDevice device);
 
-        void addAttachment(VkAttachmentDescription description, VkAttachmentReference attachmentReference);
+        void setAttachments(std::vector<Attachment> attachments);
         void addSubpass(VkSubpassDescription description);
         void addSubpassDependency(VkSubpassDependency dependency);
 

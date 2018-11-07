@@ -220,8 +220,9 @@ void Renderer::createRenderPass() {
     depthAttachment.setFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
     depthAttachment.setReferenceIndex(1);
 
-    mRenderPass.addAttachment(colorAttachment.getDescription(), colorAttachment.getReference());
-    mRenderPass.addAttachment(depthAttachment.getDescription(), depthAttachment.getReference());
+    std::vector<Attachment> attachments = {colorAttachment, depthAttachment};
+
+    mRenderPass.setAttachments(attachments);
 
     Subpass subpass;
     subpass.setBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -230,7 +231,6 @@ void Renderer::createRenderPass() {
     mRenderPass.addSubpass(subpass.getDescription());
 
     SubpassDependency dependency;
-
     dependency.setSourceSubpass(VK_SUBPASS_EXTERNAL);
     dependency.setDestinationSubpass(0);
     dependency.setSourceStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);

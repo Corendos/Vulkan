@@ -160,7 +160,6 @@ void SwapChain::createFrameBuffers(VkDevice device,
     }
 }
 
-
 SwapChainSupportDetails SwapChain::querySupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
     SwapChainSupportDetails details;
 

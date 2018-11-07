@@ -31,9 +31,16 @@ void RenderPass::destroy(VkDevice device) {
     }
 }
 
-void RenderPass::addAttachment(VkAttachmentDescription description, VkAttachmentReference reference) {
-    mAttachmentsDescription.push_back(description);
-    mAttachmentsReference.push_back(reference);
+void RenderPass::setAttachments(std::vector<Attachment> attachments) {
+    mAttachmentsDescription.resize(attachments.size());
+    mAttachmentsReference.resize(attachments.size());
+
+    std::transform(
+        attachments.begin(), attachments.end(),
+        mAttachmentsDescription.begin(), [](const Attachment& a) { return a.getDescription(); });
+    std::transform(
+        attachments.begin(), attachments.end(),
+        mAttachmentsReference.begin(), [](const Attachment& a) { return a.getReference(); });
 }
 
 void RenderPass::addSubpass(VkSubpassDescription description) {
