@@ -21,6 +21,8 @@ class ObjectManager {
         void addObject(Object& object);
         void removeObject(Object& object);
 
+        VkDescriptorSetLayout getDescriptorSetLayout() const;
+
         void update();
 
     private:
@@ -31,8 +33,12 @@ class ObjectManager {
         VkBuffer mVertexBuffer;
         VkBuffer mIndexBuffer;
 
+        VkDescriptorSetLayout mDescriptorSetLayout;
+
         bool mUpdateNeeded{false};
         bool mFirstAllocation{true};
+
+        void createDescriptorPool();
 };
 
 #endif

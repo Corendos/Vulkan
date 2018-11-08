@@ -5,6 +5,21 @@
 
 void ObjectManager::create(VulkanContext& context) {
     mContext = &context;
+
+    VkDescriptorSetLayoutBinding textureBinding{};
+    textureBinding.binding = 0;
+    textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    textureBinding.descriptorCount = 1;
+    textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    createInfo.bindingCount = 1;
+    createInfo.pBindings = &textureBinding;
+
+    if (vkCreateDescriptorSetLayout(mContext->getDevice(), &createInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create descriptor set layout");
+    }
 }
 
 void ObjectManager::destroy() {
@@ -21,6 +36,10 @@ void ObjectManager::removeObject(Object& object) {
     auto it = std::find(mObjects.begin(), mObjects.end(), &object);
     mObjects.erase(it);
     mUpdateNeeded = true;
+}
+
+VkDescriptorSetLayout ObjectManager::getDescriptorSetLayout() const {
+    return mDescriptorSetLayout;
 }
 
 void ObjectManager::update() {

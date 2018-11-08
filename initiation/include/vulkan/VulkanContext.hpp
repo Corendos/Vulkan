@@ -8,6 +8,7 @@
 
 #include "vulkan/QueueFamilyIndices.hpp"
 #include "vulkan/CommandPool.hpp"
+#include "vulkan/DescriptorPool.hpp"
 #include "memory/MemoryManager.hpp"
 
 class VulkanContext {
@@ -45,6 +46,7 @@ class VulkanContext {
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
         MemoryManager mMemoryManager;
         VkPhysicalDeviceLimits mPhysicalDeviceLimits;
+        DescriptorPool mDescriptorPool;
 
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_LUNARG_standard_validation"
@@ -64,6 +66,7 @@ class VulkanContext {
         void createSurface();
         void pickPhysicalDevice();
         void createLogicalDevice();
+        void createDescriptorPool();
         void setupDebugCallback();
     
         bool checkValidationLayerSupport();

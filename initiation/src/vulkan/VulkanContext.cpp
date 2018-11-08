@@ -31,6 +31,7 @@ void VulkanContext::destroy() {
     mMemoryManager.memoryCheckLog();
     mGraphicsCommandPool.destroy(mDevice);
     mTransferCommandPool.destroy(mDevice);
+    mDescriptorPool.destroy(mDevice);
     vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
     vkDestroyDevice(mDevice, nullptr);
     vkDestroyInstance(mInstance, nullptr);
@@ -243,6 +244,23 @@ std::vector<const char*> VulkanContext::getRequiredExtensions() {
     }
 
     return extensions;
+}
+
+void VulkanContext::createDescriptorPool() {
+    std::vector<VkDescriptorPoolSize> poolSizes = {
+        {
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            mPhysicalDeviceLimits.maxDescriptorSetUniformBuffers
+        },
+        {
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            mPhysicalDeviceLimits.maxDescriptorSetSampledImages
+        },
+    };
+    mDescriptorPool.setPoolSizes(poolSizes);
+    // TODO: remove this magical constant
+    mDescriptorPool.setMaxSets(10000);
+    mDescriptorPool.create(mDevice);
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanContext::debugCallback(
