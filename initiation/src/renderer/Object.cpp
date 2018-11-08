@@ -24,3 +24,21 @@ uint32_t Object::getVertexCount() const {
 uint32_t Object::getIndexCount() const {
     return mVertices.size();
 }
+
+std::vector<Vertex>& Object::getVertices() {
+    return mVertices;
+}
+
+std::vector<uint16_t>& Object::getIndices() {
+    return mIndices;
+}
+
+Object Object::temp() {
+    std::vector<Vertex> vertices = {
+        {{0.0, 0.0, 0.0}, {0.0, 0.0, 1.0}, {0.1, 0.1, 0.1}, {0.0, 0.0}},
+        {{1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}, {0.1, 0.1, 0.1}, {1.0, 0.0}},
+        {{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {0.1, 0.1, 0.1}, {0.0, 1.0}},
+    };
+    std::vector<uint16_t> indices = {0, 1, 2};
+    return Object(vertices, indices);
+}

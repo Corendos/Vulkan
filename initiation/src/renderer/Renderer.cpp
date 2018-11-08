@@ -14,7 +14,7 @@
 #include "renderer/RenderInfo.hpp"
 #include "environment.hpp"
 
-Renderer::Renderer() {
+Renderer::Renderer() : mObject(Object::temp()) {
     mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
     mFragmentShader = Shader(shaderPath + "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
 
@@ -28,6 +28,9 @@ void Renderer::create(VulkanContext& context) {
     }
 
     mContext = &context;
+    mObjectManager.create(*mContext);
+    mObjectManager.addObject(mObject);
+    mObjectManager.update();
 
     mSwapChain.query(mContext->getWindow(),
                      mContext->getPhysicalDevice(),
@@ -94,6 +97,7 @@ void Renderer::destroy() {
         for (size_t i{0};i < mSwapChain.getImageCount();++i) {
             mContext->getMemoryManager().freeBuffer(mCameraUniformBuffers[i]);
         }
+        mObjectManager.destroy();
         mVertexShader.destroy(mContext->getDevice());
         mFragmentShader.destroy(mContext->getDevice());
         mContext->getMemoryManager().freeImage(mDepthImage);

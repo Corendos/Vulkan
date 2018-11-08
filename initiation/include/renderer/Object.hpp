@@ -20,6 +20,11 @@ class Object {
         uint32_t getVertexCount() const;
         uint32_t getIndexCount() const;
 
+        std::vector<Vertex>& getVertices();
+        std::vector<uint16_t>& getIndices();
+
+        static Object temp();
+
     private:
         std::vector<Vertex> mVertices;
         std::vector<uint16_t> mIndices;

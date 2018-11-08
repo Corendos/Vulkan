@@ -15,8 +15,10 @@
 #include "vulkan/Image.hpp"
 #include "vulkan/VulkanContext.hpp"
 #include "camera/Camera.hpp"
+#include "renderer/ObjectManager.hpp"
 #include "renderer/Light.hpp"
 #include "memory/MemoryManager.hpp"
+#include "renderer/Object.hpp"
 #include "environment.hpp"
 
 class Renderer {
@@ -62,6 +64,9 @@ class Renderer {
 
         Shader mVertexShader;
         Shader mFragmentShader;
+
+        ObjectManager mObjectManager;
+        Object mObject;
 
         uint32_t mNextImageIndex;
         std::array<VkClearValue, 2> mClearValues;

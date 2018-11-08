@@ -10,6 +10,7 @@
 
 class ObjectManager {
     public:
+        ObjectManager() = default;
         ObjectManager(ObjectManager& other) = delete;
 
         ObjectManager& operator=(ObjectManager& other) = delete;
