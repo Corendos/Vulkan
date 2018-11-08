@@ -25,7 +25,8 @@ void ObjectManager::removeObject(Object& object) {
 
 void ObjectManager::update() {
     if (!mUpdateNeeded) return;
-
+    
+    // TODO: handle update when it's not the first allocation
     if (mFirstAllocation) {
         if (mObjects.empty()) return;
         mFirstAllocation = false;
