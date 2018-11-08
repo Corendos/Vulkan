@@ -86,7 +86,6 @@ void Renderer::recreate() {
     mSwapChain.create(mContext->getWindow(), mContext->getPhysicalDevice(), mContext->getDevice(),
                       mContext->getSurface(), mContext->getQueueFamilyIndices(), mDepthImageView,
                       mRenderPass);
-    createRenderPass();
     createGraphicsPipeline();
     createCommandBuffers();
     mCamera->setExtent(mSwapChain.getExtent());
