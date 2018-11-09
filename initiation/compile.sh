@@ -1,7 +1,15 @@
 #!/usr/bin/zsh
 
-temp="$(dirname "$0")"
-
-$VULKAN_SDK/bin/glslangValidator -V $temp/shaders/shader.vert -o $temp/shaders/build/vert.spv
-$VULKAN_SDK/bin/glslangValidator -V $temp/shaders/shader.frag -o $temp/shaders/build/frag.spv
-$VULKAN_SDK/bin/glslangValidator -V $temp/shaders/shaderColor.frag -o $temp/shaders/build/fragColor.spv
+if [ "$1" = "release" ]; then
+    echo "Building Release"
+    cd build/
+    cmake .. -DCMAKE_BUILD_TYPE=Release
+    make -j4
+elif [ "$1" = "debug" ]; then
+    echo "Building Release"
+    cd build/
+    cmake .. -DCMAKE_BUILD_TYPE=Debug
+    make -j4
+else
+    echo "Positional parameter not specified (release/debug)"
+fi
