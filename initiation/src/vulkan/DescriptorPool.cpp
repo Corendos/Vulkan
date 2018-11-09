@@ -1,6 +1,7 @@
 #include "vulkan/DescriptorPool.hpp"
 
 void DescriptorPool::create(VkDevice device) {
+    mInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     if (vkCreateDescriptorPool(device, &mInfo, nullptr, &mHandler) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor pool");
     }

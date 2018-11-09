@@ -15,6 +15,7 @@ void VulkanContext::create(GLFWwindow* window) {
     setupDebugCallback();
     pickPhysicalDevice();
     createLogicalDevice();
+    createDescriptorPool();
     mGraphicsCommandPool.create(mDevice, mIndices.graphicsFamily.value());
     mTransferCommandPool.create(mDevice, mIndices.transferFamily.value());
     mMemoryManager.init();
@@ -87,6 +88,10 @@ GLFWwindow* VulkanContext::getWindow() const {
 
 MemoryManager& VulkanContext::getMemoryManager() {
     return mMemoryManager;
+}
+
+DescriptorPool& VulkanContext::getDescriptorPool() {
+    return mDescriptorPool;
 }
 
 void VulkanContext::createInstance() {
@@ -247,14 +252,27 @@ std::vector<const char*> VulkanContext::getRequiredExtensions() {
 }
 
 void VulkanContext::createDescriptorPool() {
+    uint32_t maxDescriptorSetUniformBuffers;
+    uint32_t maxDescriptorSetSampledImages;
+
+    if (mPhysicalDeviceLimits.maxDescriptorSetUniformBuffers == 0)
+        maxDescriptorSetUniformBuffers = 1000;
+    else
+        maxDescriptorSetUniformBuffers = mPhysicalDeviceLimits.maxDescriptorSetUniformBuffers;
+
+    if (mPhysicalDeviceLimits.maxDescriptorSetSampledImages == 0)
+        maxDescriptorSetSampledImages = 1000;
+    else
+        maxDescriptorSetSampledImages = mPhysicalDeviceLimits.maxDescriptorSetSampledImages;
+
     std::vector<VkDescriptorPoolSize> poolSizes = {
         {
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            mPhysicalDeviceLimits.maxDescriptorSetUniformBuffers
+            maxDescriptorSetUniformBuffers
         },
         {
             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            mPhysicalDeviceLimits.maxDescriptorSetSampledImages
+            maxDescriptorSetSampledImages
         },
     };
     mDescriptorPool.setPoolSizes(poolSizes);

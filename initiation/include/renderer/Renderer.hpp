@@ -2,6 +2,7 @@
 #define RENDERER
 
 #include <vector>
+#include <memory>
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -37,8 +38,6 @@ class Renderer {
         VkDescriptorPool getDescriptorPool() const;
         VkDescriptorSetLayout getDescriptorSetLayout() const;
 
-        StaticObjectsManager& getStaticObjectManager();
-
     private:
         VkSemaphore mImageAvailableSemaphore;
         VkSemaphore mRenderFinishedSemaphore;
@@ -50,6 +49,7 @@ class Renderer {
         std::vector<VkCommandBuffer> mCommandBuffers;
         std::vector<VkFence> mFences;
         std::vector<bool> mIsFenceSubmitted;
+        std::vector<bool> mCommandBufferNeedUpdate;
 
         Camera* mCamera;
         Light* mLight;
@@ -59,14 +59,13 @@ class Renderer {
         RenderPass mRenderPass;
         VkImage mDepthImage;
         VkImageView mDepthImageView;
-        StaticObjectsManager mStaticObjectManager;
         GraphicsPipeline mPipeline;
 
         Shader mVertexShader;
         Shader mFragmentShader;
 
         ObjectManager mObjectManager;
-        Object mObject;
+        std::vector<std::unique_ptr<Object>> mObjects;
 
         uint32_t mNextImageIndex;
         std::array<VkClearValue, 2> mClearValues;

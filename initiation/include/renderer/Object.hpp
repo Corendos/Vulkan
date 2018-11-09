@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 #include "vulkan/Vertex.hpp"
 
@@ -22,13 +23,17 @@ class Object {
 
         std::vector<Vertex>& getVertices();
         std::vector<uint16_t>& getIndices();
+        VkDescriptorSet getDescriptorSet() const;
+        void setDescriptorSet(VkDescriptorSet descriptorSet);
 
-        static Object temp();
+        static Object temp(glm::vec3 position);
 
     private:
         std::vector<Vertex> mVertices;
         std::vector<uint16_t> mIndices;
         unsigned long mUniqueId;
+
+        VkDescriptorSet mDescriptorSet;
 
         static unsigned long nextId;
 };

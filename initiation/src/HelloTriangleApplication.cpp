@@ -88,10 +88,6 @@ void HelloTriangleApplication::init() {
     mTexture.loadFromFile(std::string(ROOT_PATH) + std::string("textures/diamond.png"), mContext);
     mTexture.create(mContext);
 
-    TexturedCube cube{1.0f, {0.0, 0.0, 0.0}, {1.0f, 1.0f, 1.0f}};
-    cube.setTexture(mTexture);
-    mRenderer.getStaticObjectManager().addStaticObject(cube);
-
     mRenderer.create(mContext);
     mRenderer.setCamera(mCamera);
     mRenderer.setLight(mLight);

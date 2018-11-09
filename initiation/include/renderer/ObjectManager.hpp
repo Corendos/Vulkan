@@ -2,11 +2,18 @@
 #define OBJECTMANAGER
 
 #include <vector>
+#include <map>
 
 #include <vulkan/vulkan.hpp>
 
 #include "renderer/Object.hpp"
 #include "vulkan/VulkanContext.hpp"
+#include "vulkan/Image.hpp"
+
+struct DescriptorSetHandler {
+    VkDescriptorSet descriptorSet;
+    bool used{false};
+};
 
 class ObjectManager {
     public:
@@ -21,7 +28,10 @@ class ObjectManager {
         void addObject(Object& object);
         void removeObject(Object& object);
 
+        void render(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout);
+
         VkDescriptorSetLayout getDescriptorSetLayout() const;
+        std::vector<Object*>& getObjects();
 
         void update();
 
@@ -29,16 +39,21 @@ class ObjectManager {
         VulkanContext* mContext;
 
         std::vector<Object*> mObjects;
-
         VkBuffer mVertexBuffer;
         VkBuffer mIndexBuffer;
 
+        Image mImage;
+
         VkDescriptorSetLayout mDescriptorSetLayout;
+        std::vector<DescriptorSetHandler> mDescriptorSetHandlers;
+
+        const uint32_t mInitialDescriptorSetsCount{1000};
 
         bool mUpdateNeeded{false};
         bool mFirstAllocation{true};
 
-        void createDescriptorPool();
+        void createDescriptorSetLayout();
+        void allocateDescriptorSets();
 };
 
 #endif

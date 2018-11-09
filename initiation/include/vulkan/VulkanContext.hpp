@@ -30,6 +30,7 @@ class VulkanContext {
         VkSurfaceKHR getSurface() const;
         GLFWwindow* getWindow() const;
         MemoryManager& getMemoryManager();
+        DescriptorPool& getDescriptorPool();
 
     private:
         GLFWwindow* mWindow;

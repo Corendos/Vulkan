@@ -14,7 +14,7 @@
 #include "renderer/RenderInfo.hpp"
 #include "environment.hpp"
 
-Renderer::Renderer() : mObject(Object::temp()) {
+Renderer::Renderer() {
     mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
     mFragmentShader = Shader(shaderPath + "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
 
@@ -29,7 +29,22 @@ void Renderer::create(VulkanContext& context) {
 
     mContext = &context;
     mObjectManager.create(*mContext);
-    mObjectManager.addObject(mObject);
+    int size = 10;
+    float space = 1.1f;
+    for (int i = 0;i < size*size*size;++i) {
+        int zInt = i / (size * size);
+        int yInt = (i % (size * size)) / size;
+        int xInt = (i % (size * size)) % size;
+        float z = space * (float)zInt - space * (float)(size - 1) / 2.0f;
+        float y = space * (float)yInt - space * (float)(size - 1) / 2.0f;
+        float x = space * (float)xInt - space * (float)(size - 1) / 2.0f;
+        Object o = Object::temp({x, y, z});
+        mObjects.push_back(std::make_unique<Object>(std::move(o)));
+    }
+    for (size_t i{0};i < mObjects.size();++i) {
+        mObjectManager.addObject(*mObjects[i]);
+    }
+
     mObjectManager.update();
 
     mSwapChain.query(mContext->getWindow(),
@@ -51,7 +66,6 @@ void Renderer::create(VulkanContext& context) {
     createDescriptorPool();
     createCameraUniformBuffers();
     createCameraDescriptorSets();
-    mStaticObjectManager.create(*mContext, *this);
     createCommandBuffers();
     createSemaphores();
     createFences();
@@ -105,7 +119,6 @@ void Renderer::destroy() {
         mPipeline.destroy(mContext->getDevice());
         mRenderPass.destroy(mContext->getDevice());
         mSwapChain.destroy(mContext->getDevice());
-        mStaticObjectManager.destroy();
         vkDestroyDescriptorPool(mContext->getDevice(), mDescriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(mContext->getDevice(), mTextureDescriptorSetLayout, nullptr);
         vkDestroyDescriptorSetLayout(mContext->getDevice(), mCameraDescriptorSetLayout, nullptr);
@@ -139,6 +152,7 @@ void Renderer::render() {
     if (vkQueueSubmit(mContext->getGraphicsQueue(), 1, &submitInfo, mFences[mNextImageIndex]) != VK_SUCCESS) {
         throw std::runtime_error("Failed to submit draw command buffer");
     }
+
     mIsFenceSubmitted[mNextImageIndex] = true;
 
     VkPresentInfoKHR presentInfo{};
@@ -175,8 +189,20 @@ void Renderer::update() {
         throw std::runtime_error("Failed to acquire swap chain image");
     }
 
+    if (mIsFenceSubmitted[mNextImageIndex]) {
+        if (vkGetFenceStatus(mContext->getDevice(), mFences[mNextImageIndex]) == VK_NOT_READY) {
+            std::cout << "Fence #" << mNextImageIndex << " not ready" << std::endl;
+            return;
+        } else {
+            vkResetFences(mContext->getDevice(), 1, &mFences[mNextImageIndex]);
+        }
+    }
+
     updateUniformBuffer(mNextImageIndex);
-    updateCommandBuffer(mNextImageIndex);
+    if (mCommandBufferNeedUpdate[mNextImageIndex]) {
+        updateCommandBuffer(mNextImageIndex);
+        mCommandBufferNeedUpdate[mNextImageIndex] = false;
+    }
 }
 
 void Renderer::setCamera(Camera& camera) {
@@ -194,10 +220,6 @@ VkDescriptorPool Renderer::getDescriptorPool() const {
 // TODO: rename this
 VkDescriptorSetLayout Renderer::getDescriptorSetLayout() const {
     return mTextureDescriptorSetLayout;
-}
-
-StaticObjectsManager& Renderer::getStaticObjectManager() {
-    return mStaticObjectManager;
 }
 
 void Renderer::createRenderPass() {
@@ -340,6 +362,7 @@ void Renderer::createDescriptorSetLayout() {
 
 void Renderer::createCommandBuffers() {
     mCommandBuffers.resize(mSwapChain.getImageCount());
+    mCommandBufferNeedUpdate.resize(mSwapChain.getImageCount(), true);
 
     Commands::allocateBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool(), mCommandBuffers);
 }
@@ -412,15 +435,6 @@ void Renderer::createFences() {
 }
 
 void Renderer::updateCommandBuffer(uint32_t index) {
-    if (mIsFenceSubmitted[index]) {
-        if (vkGetFenceStatus(mContext->getDevice(), mFences[index]) == VK_NOT_READY) {
-            std::cout << "Fence #" << index << " not ready" << std::endl;
-            return;
-        } else {
-            vkResetFences(mContext->getDevice(), 1, &mFences[index]);
-        }
-    }
-
     Commands::begin(mCommandBuffers[index], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
     VkRenderPassBeginInfo renderPassInfo{};
@@ -437,16 +451,18 @@ void Renderer::updateCommandBuffer(uint32_t index) {
     vkCmdBeginRenderPass(mCommandBuffers[index], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(mCommandBuffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.getHandler());
     
-    VkBuffer vertexBuffers[] = {mStaticObjectManager.getVertexBuffer()};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(mCommandBuffers[index], 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(mCommandBuffers[index], mStaticObjectManager.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
-    
     vkCmdBindDescriptorSets(mCommandBuffers[index],
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             mPipeline.getLayout().getHandler(),
                             1, 1, &mCameraDescriptorSets[index],
                             0, nullptr);
+
+    mObjectManager.render(mCommandBuffers[index], mPipeline.getLayout().getHandler());
+
+    /* VkBuffer vertexBuffers[] = {mStaticObjectManager.getVertexBuffer()};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(mCommandBuffers[index], 0, 1, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(mCommandBuffers[index], mStaticObjectManager.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
 
     for (size_t i{0};i < mStaticObjectManager.getObjectInfos().size();++i) {
         VkDescriptorSet descriptors[] = {mStaticObjectManager.getDescriptor(i)};
@@ -459,7 +475,7 @@ void Renderer::updateCommandBuffer(uint32_t index) {
         vkCmdDrawIndexed(mCommandBuffers[index],
                          mStaticObjectManager.getObjectInfo(i).indiceCount,
                          1, mStaticObjectManager.getObjectInfo(i).indicesOffset, 0, 0);
-    }        
+    }   */      
 
     vkCmdEndRenderPass(mCommandBuffers[index]);
 
