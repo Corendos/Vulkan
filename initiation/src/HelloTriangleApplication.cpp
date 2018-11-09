@@ -3,7 +3,6 @@
 
 #include "HelloTriangleApplication.hpp"
 #include "utils.hpp"
-#include "primitives/TexturedCube.hpp"
 
 void HelloTriangleApplication::run() {
     init();

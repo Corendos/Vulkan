@@ -47,7 +47,7 @@ class ObjectManager {
         VkDescriptorSetLayout mDescriptorSetLayout;
         std::vector<DescriptorSetHandler> mDescriptorSetHandlers;
 
-        const uint32_t mInitialDescriptorSetsCount{1000};
+        const uint32_t mInitialDescriptorSetsCount{50000};
 
         bool mUpdateNeeded{false};
         bool mFirstAllocation{true};

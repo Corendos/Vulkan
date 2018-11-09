@@ -192,7 +192,8 @@ void Renderer::update() {
     if (mIsFenceSubmitted[mNextImageIndex]) {
         if (vkGetFenceStatus(mContext->getDevice(), mFences[mNextImageIndex]) == VK_NOT_READY) {
             std::cout << "Fence #" << mNextImageIndex << " not ready" << std::endl;
-            return;
+            vkWaitForFences(mContext->getDevice(), 1, &mFences[mNextImageIndex], VK_TRUE, 0);
+            vkResetFences(mContext->getDevice(), 1, &mFences[mNextImageIndex]);
         } else {
             vkResetFences(mContext->getDevice(), 1, &mFences[mNextImageIndex]);
         }

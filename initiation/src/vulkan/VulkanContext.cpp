@@ -256,12 +256,12 @@ void VulkanContext::createDescriptorPool() {
     uint32_t maxDescriptorSetSampledImages;
 
     if (mPhysicalDeviceLimits.maxDescriptorSetUniformBuffers == 0)
-        maxDescriptorSetUniformBuffers = 1000;
+        maxDescriptorSetUniformBuffers = 50000;
     else
         maxDescriptorSetUniformBuffers = mPhysicalDeviceLimits.maxDescriptorSetUniformBuffers;
 
     if (mPhysicalDeviceLimits.maxDescriptorSetSampledImages == 0)
-        maxDescriptorSetSampledImages = 1000;
+        maxDescriptorSetSampledImages = 50000;
     else
         maxDescriptorSetSampledImages = mPhysicalDeviceLimits.maxDescriptorSetSampledImages;
 
@@ -277,7 +277,7 @@ void VulkanContext::createDescriptorPool() {
     };
     mDescriptorPool.setPoolSizes(poolSizes);
     // TODO: remove this magical constant
-    mDescriptorPool.setMaxSets(10000);
+    mDescriptorPool.setMaxSets(100000);
     mDescriptorPool.create(mDevice);
 }
 
