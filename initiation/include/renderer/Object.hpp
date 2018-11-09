@@ -12,8 +12,8 @@ class Object {
     public:
         Object(Object& other);
         Object(Object&& other) = default;
-        Object(std::vector<Vertex> vertices, std::vector<uint16_t> indices);
-        Object(std::vector<Vertex>&& vertices, std::vector<uint16_t>&& indices);
+        Object(std::vector<Vertex> vertices, std::vector<uint32_t> indices);
+        Object(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices);
 
         Object& operator=(Object& other);
         Object& operator=(Object&& other) = default;
@@ -22,7 +22,7 @@ class Object {
         uint32_t getIndexCount() const;
 
         std::vector<Vertex>& getVertices();
-        std::vector<uint16_t>& getIndices();
+        std::vector<uint32_t>& getIndices();
         VkDescriptorSet getDescriptorSet() const;
         void setDescriptorSet(VkDescriptorSet descriptorSet);
 
@@ -30,7 +30,7 @@ class Object {
 
     private:
         std::vector<Vertex> mVertices;
-        std::vector<uint16_t> mIndices;
+        std::vector<uint32_t> mIndices;
         unsigned long mUniqueId;
 
         VkDescriptorSet mDescriptorSet;

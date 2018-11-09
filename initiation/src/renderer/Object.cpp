@@ -6,10 +6,10 @@ unsigned long Object::nextId{0};
 Object::Object(Object& other)
     : mVertices(other.mVertices), mIndices(other.mIndices), mUniqueId(nextId++) {}
 
-Object::Object(std::vector<Vertex> vertices, std::vector<uint16_t> indices)
+Object::Object(std::vector<Vertex> vertices, std::vector<uint32_t> indices)
     : mVertices(vertices), mIndices(indices), mUniqueId(nextId++) {}
 
-Object::Object(std::vector<Vertex>&& vertices, std::vector<uint16_t>&& indices)
+Object::Object(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices)
     : mVertices(std::move(vertices)), mIndices(std::move(indices)), mUniqueId(nextId++) {}
 
 Object& Object::operator=(Object& other) {
@@ -30,7 +30,7 @@ std::vector<Vertex>& Object::getVertices() {
     return mVertices;
 }
 
-std::vector<uint16_t>& Object::getIndices() {
+std::vector<uint32_t>& Object::getIndices() {
     return mIndices;
 }
 VkDescriptorSet Object::getDescriptorSet() const {
@@ -82,7 +82,7 @@ Object Object::temp(glm::vec3 position) {
         {{position.x - size, position.y + size, position.z + size}, {-1.0, 0.0, 0.0}, {color.r, color.g, color.b}, {0.0f, 0.0f}}
     };
 
-    std::vector<uint16_t> indices = {
+    std::vector<uint32_t> indices = {
         0, 1, 2, 0, 2, 3,
         4, 5, 6, 4, 6, 7,
         8, 9, 10, 8, 10, 11,

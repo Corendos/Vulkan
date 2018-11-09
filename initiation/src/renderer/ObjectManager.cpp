@@ -84,7 +84,7 @@ void ObjectManager::render(VkCommandBuffer commandBuffer, VkPipelineLayout pipel
     uint32_t offset{0};
     VkDeviceSize size{0};
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mVertexBuffer, &size);
-    vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     for (Object* o : mObjects) {
         VkDescriptorSet descriptorSet = o->getDescriptorSet();
@@ -112,7 +112,7 @@ void ObjectManager::update() {
         }
 
         uint32_t vertexBufferSizeInBytes = vertexBufferSize * sizeof(Vertex);
-        uint32_t indexBufferSizeInBytes = indexBufferSize * sizeof(uint16_t);
+        uint32_t indexBufferSizeInBytes = indexBufferSize * sizeof(uint32_t);
 
         /* If it's the first update, allocate without freeing the buffers */
         BufferHelper::createBuffer(*mContext,
@@ -128,7 +128,7 @@ void ObjectManager::update() {
         
         /* Copy and transform the data locally */
         std::vector<Vertex> hostVertexBuffer;
-        std::vector<uint16_t> hostIndexBuffer;
+        std::vector<uint32_t> hostIndexBuffer;
 
         hostVertexBuffer.resize(vertexBufferSize);
         hostIndexBuffer.resize(indexBufferSize);
@@ -143,7 +143,7 @@ void ObjectManager::update() {
             );
             indexIterator = std::transform(
                 o->getIndices().begin(), o->getIndices().end(),
-                indexIterator, [&indexOffset](const uint16_t& index) { return index + indexOffset; }
+                indexIterator, [&indexOffset](const uint32_t& index) { return index + indexOffset; }
             );
             indexOffset += o->getVertexCount();
         }
