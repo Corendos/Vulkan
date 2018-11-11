@@ -22,12 +22,13 @@ Renderer::Renderer() {
     mClearValues[1].depthStencil = {1.0f, 0};
 }
 
-void Renderer::create(VulkanContext& context) {
+void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
     if (mCreated) {
         return;
     }
 
     mContext = &context;
+    mTextureManager = &textureManager;
     mObjectManager.create(*mContext);
     int size = 10;
     float space = 1.1f;
@@ -39,6 +40,7 @@ void Renderer::create(VulkanContext& context) {
         float y = space * (float)yInt - space * (float)(size - 1) / 2.0f;
         float x = space * (float)xInt - space * (float)(size - 1) / 2.0f;
         Object o = Object::temp({x, y, z});
+        o.setTexture(mTextureManager->getTexture("dirt"));
         mObjects.push_back(std::make_unique<Object>(std::move(o)));
     }
     for (size_t i{0};i < mObjects.size();++i) {

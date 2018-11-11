@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.h>
 
 #include "vulkan/Vertex.hpp"
+#include "resources/Texture.hpp"
 
 class Object {
     public:
@@ -23,8 +24,10 @@ class Object {
 
         std::vector<Vertex>& getVertices();
         std::vector<uint32_t>& getIndices();
+        Texture& getTexture();
         VkDescriptorSet getDescriptorSet() const;
         void setDescriptorSet(VkDescriptorSet descriptorSet);
+        void setTexture(Texture& texture);
 
         static Object temp(glm::vec3 position);
 
@@ -32,6 +35,8 @@ class Object {
         std::vector<Vertex> mVertices;
         std::vector<uint32_t> mIndices;
         unsigned long mUniqueId;
+
+        Texture* mTexture;
 
         VkDescriptorSet mDescriptorSet;
 

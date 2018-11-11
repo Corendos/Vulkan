@@ -17,6 +17,7 @@
 
 #include "vulkan/VulkanContext.hpp"
 #include "vulkan/Image.hpp"
+#include "resources/TextureManager.hpp"
 #include "camera/Camera.hpp"
 #include "renderer/Renderer.hpp"
 #include "renderer/Light.hpp"
@@ -37,7 +38,7 @@ class HelloTriangleApplication {
         Renderer mRenderer;
         Camera mCamera;
         Light mLight;
-        Image mTexture;
+        TextureManager mTextureManager;
 
         BasicLogger mOutLogger{"../out.log"};
         BasicLogger mErrLogger{"../err.log"};

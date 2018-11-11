@@ -33,8 +33,8 @@ void ObjectManager::addObject(Object& object) {
     /* Update the descriptor */
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = mImage.getViewHandler();
-    imageInfo.sampler = mImage.getSamplerHandler();
+    imageInfo.imageView = object.getTexture().getImageView().getHandler();
+    imageInfo.sampler = object.getTexture().getSampler().getHandler();
 
     VkWriteDescriptorSet descriptorSetUpdate{};
     descriptorSetUpdate.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

@@ -57,8 +57,8 @@ void HelloTriangleApplication::mainLoop() {
 void HelloTriangleApplication::cleanup() {
     vkDeviceWaitIdle(mContext.getDevice());
     mInput.stop();
-    mTexture.destroy(mContext);
     mRenderer.destroy();
+    mTextureManager.destroy();
     mContext.destroy();
     glfwDestroyWindow(mWindow);
     glfwTerminate();
@@ -84,10 +84,11 @@ void HelloTriangleApplication::init() {
 
     mLight = {{2.0, 2.0, 2.0}};
 
-    mTexture.loadFromFile(std::string(ROOT_PATH) + std::string("textures/diamond.png"), mContext);
-    mTexture.create(mContext);
+    mTextureManager.create(mContext);
+    mTextureManager.load("diamond", std::string(ROOT_PATH) + std::string("textures/diamond.png"));
+    mTextureManager.load("dirt", std::string(ROOT_PATH) + std::string("textures/dirt.png"));
 
-    mRenderer.create(mContext);
+    mRenderer.create(mContext, mTextureManager);
     mRenderer.setCamera(mCamera);
     mRenderer.setLight(mLight);
 }

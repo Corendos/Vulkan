@@ -19,12 +19,13 @@
 #include "renderer/Light.hpp"
 #include "memory/MemoryManager.hpp"
 #include "renderer/Object.hpp"
+#include "resources/TextureManager.hpp"
 #include "environment.hpp"
 
 class Renderer {
     public:
         Renderer();
-        void create(VulkanContext& context);
+        void create(VulkanContext& context, TextureManager& textureManager);
         void recreate();
         void destroy();
         void render();
@@ -53,6 +54,7 @@ class Renderer {
         Camera* mCamera;
         Light* mLight;
         VulkanContext* mContext;
+        TextureManager* mTextureManager;
 
         SwapChain mSwapChain;
         RenderPass mRenderPass;

@@ -33,12 +33,21 @@ std::vector<Vertex>& Object::getVertices() {
 std::vector<uint32_t>& Object::getIndices() {
     return mIndices;
 }
+
+Texture& Object::getTexture() {
+    return *mTexture;
+}
+
 VkDescriptorSet Object::getDescriptorSet() const {
     return mDescriptorSet;
 }
 
 void Object::setDescriptorSet(VkDescriptorSet descriptorSet) {
     mDescriptorSet = descriptorSet;
+}
+
+void Object::setTexture(Texture& texture) {
+    mTexture = &texture;
 }
 
 Object Object::temp(glm::vec3 position) {
