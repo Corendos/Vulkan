@@ -30,7 +30,7 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
     mContext = &context;
     mTextureManager = &textureManager;
     mObjectManager.create(*mContext);
-    int size = 10;
+    int size = 2;
     float space = 1.1f;
     for (int i = 0;i < size*size*size;++i) {
         int zInt = i / (size * size);
@@ -105,6 +105,9 @@ void Renderer::recreate() {
     createGraphicsPipeline();
     createCommandBuffers();
     mCamera->setExtent(mSwapChain.getExtent());
+    for (size_t i{0};i < mCommandBufferNeedUpdate.size();++i) {
+        mCommandBufferNeedUpdate[i] = true;
+    }
 }
 
 void Renderer::destroy() {
@@ -122,7 +125,6 @@ void Renderer::destroy() {
         mRenderPass.destroy(mContext->getDevice());
         mSwapChain.destroy(mContext->getDevice());
         vkDestroyDescriptorPool(mContext->getDevice(), mDescriptorPool, nullptr);
-        vkDestroyDescriptorSetLayout(mContext->getDevice(), mTextureDescriptorSetLayout, nullptr);
         vkDestroyDescriptorSetLayout(mContext->getDevice(), mCameraDescriptorSetLayout, nullptr);
         vkDestroySemaphore(mContext->getDevice(), mImageAvailableSemaphore, nullptr);
         vkDestroySemaphore(mContext->getDevice(), mRenderFinishedSemaphore, nullptr);
@@ -220,11 +222,6 @@ VkDescriptorPool Renderer::getDescriptorPool() const {
     return mDescriptorPool;
 }
 
-// TODO: rename this
-VkDescriptorSetLayout Renderer::getDescriptorSetLayout() const {
-    return mTextureDescriptorSetLayout;
-}
-
 void Renderer::createRenderPass() {
     ColorAttachment colorAttachment;
     colorAttachment.setFormat(mSwapChain.getFormat());
@@ -276,7 +273,7 @@ void Renderer::createGraphicsPipeline() {
     mFragmentShader.create(mContext->getDevice());
 
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
-        mTextureDescriptorSetLayout,
+        mObjectManager.getDescriptorSetLayout(),
         mCameraDescriptorSetLayout
     };
 
@@ -331,21 +328,6 @@ void Renderer::createDescriptorPool() {
 }
 
 void Renderer::createDescriptorSetLayout() {
-    VkDescriptorSetLayoutBinding textureBinding{};
-    textureBinding.binding = 0;
-    textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    textureBinding.descriptorCount = 1;
-    textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
-    textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    textureLayoutInfo.bindingCount = 1;
-    textureLayoutInfo.pBindings = &textureBinding;
-
-    if (vkCreateDescriptorSetLayout(mContext->getDevice(), &textureLayoutInfo, nullptr, &mTextureDescriptorSetLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create descriptor set layout");
-    }
-
     VkDescriptorSetLayoutBinding cameraLayoutBinding{};
     cameraLayoutBinding.binding = 0;
     cameraLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;

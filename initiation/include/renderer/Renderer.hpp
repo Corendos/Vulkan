@@ -36,13 +36,11 @@ class Renderer {
 
         MemoryManager& getMemoryManager();
         VkDescriptorPool getDescriptorPool() const;
-        VkDescriptorSetLayout getDescriptorSetLayout() const;
 
     private:
         VkSemaphore mImageAvailableSemaphore;
         VkSemaphore mRenderFinishedSemaphore;
         VkDescriptorPool mDescriptorPool;
-        VkDescriptorSetLayout mTextureDescriptorSetLayout;
         VkDescriptorSetLayout mCameraDescriptorSetLayout;
         VkDescriptorSet mDescriptorSet;
         VkExtent2D mExtent;

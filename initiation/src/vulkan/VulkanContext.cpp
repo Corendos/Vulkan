@@ -252,18 +252,9 @@ std::vector<const char*> VulkanContext::getRequiredExtensions() {
 }
 
 void VulkanContext::createDescriptorPool() {
-    uint32_t maxDescriptorSetUniformBuffers;
-    uint32_t maxDescriptorSetSampledImages;
-
-    if (mPhysicalDeviceLimits.maxDescriptorSetUniformBuffers == 0)
-        maxDescriptorSetUniformBuffers = 50000;
-    else
-        maxDescriptorSetUniformBuffers = mPhysicalDeviceLimits.maxDescriptorSetUniformBuffers;
-
-    if (mPhysicalDeviceLimits.maxDescriptorSetSampledImages == 0)
-        maxDescriptorSetSampledImages = 50000;
-    else
-        maxDescriptorSetSampledImages = mPhysicalDeviceLimits.maxDescriptorSetSampledImages;
+    uint32_t maxDescriptorSetUniformBuffers = 10000;
+    uint32_t maxDescriptorSetSampledImages = 10000;
+    uint32_t maxDescriptorSetDynamicUniformBuffers = 10000;
 
     std::vector<VkDescriptorPoolSize> poolSizes = {
         {
@@ -273,6 +264,10 @@ void VulkanContext::createDescriptorPool() {
         {
             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             maxDescriptorSetSampledImages
+        },
+        {
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+            maxDescriptorSetDynamicUniformBuffers
         },
     };
     mDescriptorPool.setPoolSizes(poolSizes);

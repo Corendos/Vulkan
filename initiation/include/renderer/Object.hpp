@@ -8,6 +8,7 @@
 
 #include "vulkan/Vertex.hpp"
 #include "resources/Texture.hpp"
+#include "Transform.hpp"
 
 class Object {
     public:
@@ -29,12 +30,15 @@ class Object {
         void setDescriptorSet(VkDescriptorSet descriptorSet);
         void setTexture(Texture& texture);
 
+        Transform& getTransform();
+
         static Object temp(glm::vec3 position);
 
     private:
         std::vector<Vertex> mVertices;
         std::vector<uint32_t> mIndices;
         unsigned long mUniqueId;
+        Transform mTransform;
 
         Texture* mTexture;
 

@@ -41,13 +41,14 @@ class ObjectManager {
         std::vector<Object*> mObjects;
         VkBuffer mVertexBuffer;
         VkBuffer mIndexBuffer;
+        VkBuffer mModelMatrixBuffer;
 
-        Image mImage;
+        std::map<Object*, uint32_t> mObjectDynamicOffset;
 
         VkDescriptorSetLayout mDescriptorSetLayout;
         std::vector<DescriptorSetHandler> mDescriptorSetHandlers;
 
-        const uint32_t mInitialDescriptorSetsCount{50000};
+        const uint32_t mInitialDescriptorSetsCount{2000};
 
         bool mUpdateNeeded{false};
         bool mFirstAllocation{true};

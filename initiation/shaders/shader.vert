@@ -19,12 +19,16 @@ layout(set = 1, binding = 0) uniform RenderInfo {
     vec4 lightPosition;
 } renderInfo;
 
+layout(set = 0, binding = 1) uniform ModelMatrix {
+    mat4 matrix;
+} model;
+
 out gl_PerVertex {
     vec4 gl_Position;
 };
 
 void main() {
-    gl_Position = renderInfo.proj * renderInfo.view * vec4(inPosition, 1.0);
+    gl_Position = renderInfo.proj * renderInfo.view * model.matrix * vec4(inPosition, 1.0);
     fragPosition = inPosition;
     fragNormal = inNormal;
     fragColor = vec3(1.0);
