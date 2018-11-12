@@ -34,6 +34,7 @@ class ObjectManager {
         std::vector<Object*>& getObjects();
 
         void update();
+        void updateUniformBuffer();
 
     private:
         VulkanContext* mContext;

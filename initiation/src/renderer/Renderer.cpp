@@ -31,7 +31,7 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
     mContext = &context;
     mTextureManager = &textureManager;
     mObjectManager.create(*mContext);
-    int size = 2;
+    int size = 4;
     float space = 1.1f;
     for (int i = 0;i < size*size*size;++i) {
         int zInt = i / (size * size);
@@ -41,6 +41,7 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
         float y = space * (float)yInt - space * (float)(size - 1) / 2.0f;
         float x = space * (float)xInt - space * (float)(size - 1) / 2.0f;
         Object o = Object::temp({x, y, z});
+        o.getTransform().setRotation({0.0, 0.0, 0.9});
         o.setTexture(mTextureManager->getTexture("dirt"));
         mObjects.push_back(std::make_unique<Object>(std::move(o)));
     }
@@ -180,7 +181,7 @@ void Renderer::render() {
     }
 }
 
-void Renderer::update() {
+void Renderer::update(double dt) {
     mBypassRendering = false;
     VkResult result = vkAcquireNextImageKHR(
         mContext->getDevice(), mSwapChain.getHandler(), std::numeric_limits<uint64_t>::max(),
@@ -205,6 +206,10 @@ void Renderer::update() {
     }
 
     updateUniformBuffer(mNextImageIndex);
+    for (auto& o : mObjects) {
+        o->getTransform().rotate(3.14159265 * dt, glm::vec3(0.0, 0.0, 1.0));
+    }
+    mObjectManager.updateUniformBuffer();
     if (mCommandBufferNeedUpdate[mNextImageIndex]) {
         updateCommandBuffer(mNextImageIndex);
         mCommandBufferNeedUpdate[mNextImageIndex] = false;

@@ -30,7 +30,7 @@ void Transform::scale(glm::vec3 dScale) {
 }
 
 void Transform::rotate(float angle, glm::vec3 axis) {
-    glm::rotate(mRotationQuaternion, angle, axis);
+    mRotationQuaternion = glm::rotate(mRotationQuaternion, angle, axis);
     mRotation = glm::eulerAngles(mRotationQuaternion);
 }
 

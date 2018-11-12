@@ -29,7 +29,7 @@ class Renderer {
         void recreate();
         void destroy();
         void render();
-        void update();
+        void update(double dt);
 
         void setCamera(Camera& camera);
         void setLight(Light& light);

@@ -248,6 +248,39 @@ void ObjectManager::update() {
     }
 }
 
+void ObjectManager::updateUniformBuffer() {
+    std::vector<glm::mat4> hostModelMatrixBuffer(mObjects.size());
+    auto modelMatrixIterator = hostModelMatrixBuffer.begin();
+    for (Object* o : mObjects) {
+        *modelMatrixIterator++ = o->getTransform().getMatrix();
+    }
+
+    uint32_t modelMatrixBufferSizeInBytes = hostModelMatrixBuffer.size() * sizeof(glm::mat4);
+
+    VkBuffer stagingModelMatrixBuffer;
+    BufferHelper::createBuffer(*mContext,
+                               modelMatrixBufferSizeInBytes,
+                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                               stagingModelMatrixBuffer);
+
+    void* data;
+    mContext->getMemoryManager().mapMemory(stagingModelMatrixBuffer, modelMatrixBufferSizeInBytes, &data);
+    memcpy(data, hostModelMatrixBuffer.data(), modelMatrixBufferSizeInBytes);
+    mContext->getMemoryManager().unmapMemory(stagingModelMatrixBuffer);
+
+    VkCommandBuffer transferCommandBuffer = Commands::beginSingleTime(mContext->getDevice(), mContext->getTransferCommandPool());
+    BufferHelper::copyBuffer(*mContext,
+                                mContext->getTransferCommandPool(),
+                                mContext->getTransferQueue(),
+                                stagingModelMatrixBuffer,
+                                mModelMatrixBuffer,
+                                modelMatrixBufferSizeInBytes);
+    Commands::endSingleTime(mContext->getDevice(), mContext->getTransferCommandPool(), transferCommandBuffer, mContext->getTransferQueue());
+
+    mContext->getMemoryManager().freeBuffer(stagingModelMatrixBuffer);
+}
+
 void ObjectManager::createDescriptorSetLayout() {
     VkDescriptorSetLayoutBinding bindings[2] = {};
     bindings[0].binding = 0;

@@ -14,6 +14,7 @@ void HelloTriangleApplication::mainLoop() {
     int i{0};
     uint32_t updateMean = {0};
     uint32_t renderMean = {0};
+    auto updateEnd = std::chrono::high_resolution_clock::now();
     while(!glfwWindowShouldClose(mWindow)) {
         auto startTime = std::chrono::high_resolution_clock::now();
         glfwPollEvents();
@@ -25,8 +26,9 @@ void HelloTriangleApplication::mainLoop() {
             mCamera.update(deltaPitch, deltaYaw);
         }
         auto start = std::chrono::high_resolution_clock::now();
-        mRenderer.update();
-        auto updateEnd = std::chrono::high_resolution_clock::now();
+        double dt = std::chrono::duration<double>(start - updateEnd).count();
+        mRenderer.update(dt);
+        updateEnd = std::chrono::high_resolution_clock::now();
         mRenderer.render();
         auto end = std::chrono::high_resolution_clock::now();
         uint32_t updateDuration = std::chrono::duration_cast<std::chrono::microseconds>(updateEnd - start).count();
