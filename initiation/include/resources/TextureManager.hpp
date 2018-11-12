@@ -18,6 +18,13 @@ class TextureManager {
     private:
         VulkanContext* mContext;
         std::map<std::string, Texture> mTextures;
+
+        VkBuffer _loadToStaging(std::string& filename,
+                                uint32_t& width,
+                                uint32_t& height);
+        Image _createImage(std::string& filename);
+        ImageView _createImageView(Image& image);
+        Sampler _createSampler();
 };
 
 #endif

@@ -11,46 +11,29 @@
 
 class Image {
     public:
-        static VkImage create(VulkanContext& context,
-                           uint32_t width, uint32_t height,
-                           VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
-                           VkMemoryPropertyFlags properties);
-        static VkImageView createImageView(VulkanContext& context,
-                                    VkImage image,
-                                    VkFormat format,
-                                    VkImageAspectFlags aspectFlags);
-        static void transitionImageLayout(VulkanContext& context,
-                                          VkImage image,
-                                          VkFormat format,
-                                          VkImageLayout oldLayout,
-                                          VkImageLayout newLayout);
-
+        Image();
         void create(VulkanContext& context);
         void destroy(VulkanContext& context);
 
-        void loadFromFile(const std::string filename, VulkanContext& context);
+        void setImageType(VkImageType imageType);
+        void setExtent(VkExtent3D extent);
+        void setMipLevels(uint32_t mipLevels);
+        void setArrayLayers(uint32_t arrayLayers);
+        void setFormat(VkFormat format);
+        void setTiling(VkImageTiling tiling);
+        void setInitialLayout(VkImageLayout initialLayout);
+        void setUsage(VkImageUsageFlags usage);
+        void setSharingMode(VkSharingMode sharingMode);
+        void setSamples(VkSampleCountFlagBits samples);
+        void setFlags(VkFlags flags);
 
-        VkImage getHandler() const;
-        VkImageView getViewHandler() const;
-        VkSampler getSamplerHandler() const;
+        VkImage getHandler();
 
     private:
-        static bool hasStencilComponent(VkFormat format);
         void _createImage(VkDevice device, MemoryManager& manager);
-        void _createImageView(VkDevice device);
-        void _createImageSampler(VkDevice device);
 
         VkImage mImage;
-        VkImageView mImageView;
-        VkSampler mSampler;
-
-        VkBuffer mStagingBuffer;
-
-        uint32_t mWidth;
-        uint32_t mHeight;
-        uint32_t mBpp;
-
-        bool mLoaded{false};
+        VkImageCreateInfo mInfo{};
         bool mCreated{false};
 };
 

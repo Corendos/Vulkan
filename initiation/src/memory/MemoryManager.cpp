@@ -99,7 +99,7 @@ void MemoryManager::cleanup() {
     }
 }
 
-void MemoryManager::allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags properties) {
+void MemoryManager::allocateForBuffer(VkBuffer buffer, VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags properties) {
     int32_t memoryTypeIndex = findMemoryType(memoryRequirements, properties);
 
     if (memoryTypeIndex == -1) {
@@ -135,7 +135,7 @@ void MemoryManager::allocateForBuffer(VkBuffer& buffer, VkMemoryRequirements& me
     }
 }
 
-void MemoryManager::allocateForImage(VkImage& image, VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags properties) {
+void MemoryManager::allocateForImage(VkImage image, VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags properties) {
     int32_t memoryTypeIndex = findMemoryType(memoryRequirements, properties);
 
     if (memoryTypeIndex == -1) {
@@ -171,7 +171,7 @@ void MemoryManager::allocateForImage(VkImage& image, VkMemoryRequirements& memor
     }
 }
 
-void MemoryManager::freeBuffer(VkBuffer& buffer) {
+void MemoryManager::freeBuffer(VkBuffer buffer) {
     BufferInfo bufferInfo = mBuffersInfo[buffer];
 
     for (uint32_t i{0};i < bufferInfo.blockCount;i++) {
@@ -182,7 +182,7 @@ void MemoryManager::freeBuffer(VkBuffer& buffer) {
     vkDestroyBuffer(mDevice, buffer, nullptr);
 }
 
-void MemoryManager::freeImage(VkImage& image) {
+void MemoryManager::freeImage(VkImage image) {
     BufferInfo imageInfo = mImagesInfo[image];
 
     for (uint32_t i{0};i < imageInfo.blockCount;i++) {
@@ -193,7 +193,7 @@ void MemoryManager::freeImage(VkImage& image) {
     vkDestroyImage(mDevice, image, nullptr);
 }
 
-void MemoryManager::mapMemory(VkBuffer& buffer, VkDeviceSize size, void** data) {
+void MemoryManager::mapMemory(VkBuffer buffer, VkDeviceSize size, void** data) {
     BufferInfo bufferInfo = mBuffersInfo[buffer];
     vkMapMemory(
         mDevice,
@@ -202,7 +202,7 @@ void MemoryManager::mapMemory(VkBuffer& buffer, VkDeviceSize size, void** data) 
         size, 0, data);
 }
 
-void MemoryManager::unmapMemory(VkBuffer& buffer) {
+void MemoryManager::unmapMemory(VkBuffer buffer) {
     BufferInfo bufferInfo = mBuffersInfo[buffer];
     vkUnmapMemory(mDevice, mDeviceMemoryAllocation[bufferInfo.memoryTypeIndex][bufferInfo.memoryTypeOffset]);
 }
@@ -262,7 +262,7 @@ int32_t MemoryManager::findSuitableMemoryBlock(uint32_t blockCount, uint32_t mem
     return -1;
 }
 
-uint32_t MemoryManager::getBlockCount(VkMemoryRequirements memoryRequirements) {
+uint32_t MemoryManager::getBlockCount(VkMemoryRequirements& memoryRequirements) {
     uint32_t blockCount = memoryRequirements.size / pageSize;
     if (memoryRequirements.size & (pageSize - 1)) {
         return blockCount + 1;
@@ -271,7 +271,7 @@ uint32_t MemoryManager::getBlockCount(VkMemoryRequirements memoryRequirements) {
     }
 }
 
-uint32_t MemoryManager::getAlignment(VkMemoryRequirements memoryRequirements) {
+uint32_t MemoryManager::getAlignment(VkMemoryRequirements& memoryRequirements) {
     uint32_t requiredAlignment = memoryRequirements.alignment;
     uint32_t multiple = requiredAlignment / pageSize;
 }

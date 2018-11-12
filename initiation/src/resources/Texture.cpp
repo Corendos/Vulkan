@@ -1,14 +1,7 @@
 #include "resources/Texture.hpp"
 
-VkImage* Texture::getImagePtr() {
-    return &mImage;
-}
 
-VkImage& Texture::getImageRef() {
-    return mImage;
-}
-
-VkImage Texture::getImage() const {
+Image& Texture::getImage() {
     return mImage;
 }
 
@@ -26,4 +19,8 @@ void Texture::setImageView(ImageView imageView) {
 
 void Texture::setSampler(Sampler sampler) {
     mSampler = sampler;
+}
+
+void Texture::setImage(Image image) {
+    mImage = image;
 }

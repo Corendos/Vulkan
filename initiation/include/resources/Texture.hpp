@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "vulkan/Image.hpp"
 #include "vulkan/ImageView.hpp"
 #include "vulkan/Sampler.hpp"
 
@@ -10,17 +11,16 @@ class Texture {
     public:
         Texture() = default;
         Texture(VkImage image, ImageView imageView, Sampler sampler);
-        VkImage* getImagePtr();
-        VkImage& getImageRef();
-        VkImage getImage() const;
+        Image& getImage();
         ImageView& getImageView();
         Sampler& getSampler();
 
         void setImageView(ImageView imageView);
         void setSampler(Sampler sampler);
+        void setImage(Image image);
         
     private:
-        VkImage mImage;
+        Image mImage;
         ImageView mImageView;
         Sampler mSampler;
 };

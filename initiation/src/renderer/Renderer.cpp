@@ -10,6 +10,7 @@
 #include "vulkan/UniformBufferObject.hpp"
 #include "vulkan/Commands.hpp"
 #include "vulkan/BufferHelper.hpp"
+#include "vulkan/ImageHelper.hpp"
 #include "colors/Color.hpp"
 #include "renderer/RenderInfo.hpp"
 #include "environment.hpp"
@@ -292,7 +293,7 @@ void Renderer::createGraphicsPipeline() {
 void Renderer::createDepthResources() {
     VkFormat format = findDepthFormat();
 
-    mDepthImage = Image::create(
+    mDepthImage = ImageHelper::create(
         *mContext,
         mExtent.width, mExtent.height,
         format, VK_IMAGE_TILING_OPTIMAL,
@@ -300,11 +301,11 @@ void Renderer::createDepthResources() {
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
     );
 
-    mDepthImageView = Image::createImageView(*mContext, mDepthImage,
+    mDepthImageView = ImageHelper::createImageView(*mContext, mDepthImage,
                                              format,
                                              VK_IMAGE_ASPECT_DEPTH_BIT);
     
-    Image::transitionImageLayout(*mContext, mDepthImage,
+    ImageHelper::transitionImageLayout(*mContext, mDepthImage,
                                  format, VK_IMAGE_LAYOUT_UNDEFINED,
                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
