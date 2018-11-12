@@ -36,8 +36,8 @@ void Transform::rotate(float angle, glm::vec3 axis) {
 
 glm::mat4 Transform::getMatrix() {
     glm::mat4 model(1.0f);
+    model = glm::translate(model, mPosition);
     model *= glm::mat4_cast(mRotationQuaternion);
     model = glm::scale(model, mScale);
-    model = glm::translate(model, mPosition);
     return model;
 }
