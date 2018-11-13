@@ -33,7 +33,7 @@ class ObjectManager {
         VkDescriptorSetLayout getDescriptorSetLayout() const;
         std::vector<Object*>& getObjects();
 
-        void update();
+        void updateBuffers();
         void updateUniformBuffer();
 
     private:
@@ -49,13 +49,16 @@ class ObjectManager {
         VkDescriptorSetLayout mDescriptorSetLayout;
         std::vector<DescriptorSetHandler> mDescriptorSetHandlers;
 
-        const uint32_t mInitialDescriptorSetsCount{2000};
+        uint32_t mObjectsCount{0};
 
         bool mUpdateNeeded{false};
         bool mFirstAllocation{true};
 
         void createDescriptorSetLayout();
+        void createAndAllocateUniformBuffer();
         void allocateDescriptorSets();
+
+        static constexpr uint32_t mMaxObjectCount{1024};
 };
 
 #endif

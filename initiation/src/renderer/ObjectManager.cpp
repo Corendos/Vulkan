@@ -9,6 +9,7 @@
 void ObjectManager::create(VulkanContext& context) {
     mContext = &context;
     createDescriptorSetLayout();
+    createAndAllocateUniformBuffer();
     allocateDescriptorSets();
 }
 
@@ -26,6 +27,7 @@ void ObjectManager::addObject(Object& object) {
     if (it == mDescriptorSetHandlers.end()) {
         throw std::runtime_error("unable to find a free descriptor set");
     }
+
     /* Bind it to the object */
     object.setDescriptorSet(it->descriptorSet);
     it->used = true;
@@ -50,7 +52,7 @@ void ObjectManager::addObject(Object& object) {
 
     /* Add the object to the list of rendered objects */
     mObjects.push_back(&object);
-    mUpdateNeeded = true;
+    mObjectsCount++;
 }
 
 void ObjectManager::removeObject(Object& object) {
@@ -69,7 +71,7 @@ void ObjectManager::removeObject(Object& object) {
     
     /* Erase the object from the list of rendered objects */
     mObjects.erase(objectIt);
-    mUpdateNeeded = true;
+    mObjectsCount++;
 }
 
 VkDescriptorSetLayout ObjectManager::getDescriptorSetLayout() const {
@@ -97,25 +99,21 @@ void ObjectManager::render(VkCommandBuffer commandBuffer, VkPipelineLayout pipel
     }
 }
 
-void ObjectManager::update() {
-    if (!mUpdateNeeded) return;
-    
+void ObjectManager::updateBuffers() {    
     // TODO: handle update when it's not the first allocation
     if (mFirstAllocation) {
         if (mObjects.empty()) return;
         mFirstAllocation = false;
 
         /* Retrieve the buffer size */
-        uint32_t vertexBufferSize{0}, indexBufferSize{0}, modelMatrixBufferSize{0};
+        uint32_t vertexBufferSize{0}, indexBufferSize{0};
         for (Object* o : mObjects) {
             vertexBufferSize += o->getVertexCount();
             indexBufferSize += o->getIndexCount();
-            modelMatrixBufferSize++;
         }
 
         uint32_t vertexBufferSizeInBytes = vertexBufferSize * sizeof(Vertex);
         uint32_t indexBufferSizeInBytes = indexBufferSize * sizeof(uint32_t);
-        uint32_t modelMatrixBufferSizeInBytes = modelMatrixBufferSize * sizeof(glm::mat4);
 
         /* If it's the first update, allocate without freeing the buffers */
         BufferHelper::createBuffer(*mContext,
@@ -128,22 +126,15 @@ void ObjectManager::update() {
                                    VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                    mIndexBuffer);
-        BufferHelper::createBuffer(*mContext,
-                                   modelMatrixBufferSizeInBytes,
-                                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                   mModelMatrixBuffer);
         
         /* Copy and transform the data locally */
         std::vector<Vertex> hostVertexBuffer(vertexBufferSize);
         std::vector<uint32_t> hostIndexBuffer(indexBufferSize);
-        std::vector<glm::mat4> hostModelMatrixBuffer(modelMatrixBufferSize);
 
         uint32_t indexOffset{0};
         uint32_t dynamicOffset{0};
         auto vertexIterator = hostVertexBuffer.begin();
         auto indexIterator = hostIndexBuffer.begin();
-        auto modelMatrixIterator = hostModelMatrixBuffer.begin();
         for (Object* o : mObjects) {
             vertexIterator = std::copy(
                 o->getVertices().begin(), o->getVertices().end(),
@@ -155,15 +146,17 @@ void ObjectManager::update() {
             );
             indexOffset += o->getVertexCount();
             glm::mat4 m = o->getTransform().getMatrix();
-            *modelMatrixIterator++ = m;
             mObjectDynamicOffset.insert(std::make_pair(o, dynamicOffset));
-            dynamicOffset += sizeof(glm::mat4);
+            if (sizeof(glm::mat4) < mContext->getLimits().minUniformBufferOffsetAlignment) {
+                dynamicOffset += mContext->getLimits().minUniformBufferOffsetAlignment;
+            } else {
+                dynamicOffset += sizeof(glm::mat4);
+            }
         }
 
         /* Allocate for the staging buffers */
         VkBuffer stagingVertexBuffer;
         VkBuffer stagingIndexBuffer;
-        VkBuffer stagingModelMatrixBuffer;
 
         BufferHelper::createBuffer(*mContext,
                                    vertexBufferSizeInBytes,
@@ -175,11 +168,6 @@ void ObjectManager::update() {
                                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                    stagingIndexBuffer);
-        BufferHelper::createBuffer(*mContext,
-                                   modelMatrixBufferSizeInBytes,
-                                   VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                   stagingModelMatrixBuffer);
 
         /* Copy the data in the staging buffers */
         void* data;
@@ -190,10 +178,6 @@ void ObjectManager::update() {
         mContext->getMemoryManager().mapMemory(stagingIndexBuffer, indexBufferSizeInBytes, &data);
         memcpy(data, hostIndexBuffer.data(), indexBufferSizeInBytes);
         mContext->getMemoryManager().unmapMemory(stagingIndexBuffer);
-
-        mContext->getMemoryManager().mapMemory(stagingModelMatrixBuffer, modelMatrixBufferSizeInBytes, &data);
-        memcpy(data, hostModelMatrixBuffer.data(), modelMatrixBufferSizeInBytes);
-        mContext->getMemoryManager().unmapMemory(stagingModelMatrixBuffer);
 
         /* Transfer the data to the device */
         VkCommandBuffer transferCommandBuffer = Commands::beginSingleTime(mContext->getDevice(), mContext->getTransferCommandPool());
@@ -209,12 +193,6 @@ void ObjectManager::update() {
                                  stagingIndexBuffer,
                                  mIndexBuffer,
                                  indexBufferSizeInBytes);
-        BufferHelper::copyBuffer(*mContext,
-                                 mContext->getTransferCommandPool(),
-                                 mContext->getTransferQueue(),
-                                 stagingModelMatrixBuffer,
-                                 mModelMatrixBuffer,
-                                 modelMatrixBufferSizeInBytes);
         Commands::endSingleTime(mContext->getDevice(), mContext->getTransferCommandPool(), transferCommandBuffer, mContext->getTransferQueue());
 
         VkDescriptorBufferInfo bufferInfo{};
@@ -222,19 +200,31 @@ void ObjectManager::update() {
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(glm::mat4);
 
+        uint32_t size, offset;
+        if (sizeof(glm::mat4) < mContext->getLimits().minUniformBufferOffsetAlignment) {
+            size = mContext->getLimits().minUniformBufferOffsetAlignment * mObjectsCount;
+            offset = mContext->getLimits().minUniformBufferOffsetAlignment;
+        } else {
+            size = sizeof(glm::mat4) * mObjectsCount;
+            offset = sizeof(glm::mat4);
+        }
+
         std::vector<VkWriteDescriptorSet> descriptorSetUpdates(mObjects.size());
 
-        auto it = descriptorSetUpdates.begin();
-        for (Object* o : mObjects) {
-            *it = {};
-            it->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            it->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-            it->descriptorCount = 1;
-            it->dstSet = o->getDescriptorSet();
-            it->dstBinding = 1;
-            it->pBufferInfo = &bufferInfo;
-            it++;
+        mContext->getMemoryManager().mapMemory(mModelMatrixBuffer, size, &data);
+        for (size_t i{0}; i < mObjectsCount;i++) {
+            Object* o = mObjects[i];
+            descriptorSetUpdates[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorSetUpdates[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+            descriptorSetUpdates[i].descriptorCount = 1;
+            descriptorSetUpdates[i].dstSet = o->getDescriptorSet();
+            descriptorSetUpdates[i].dstBinding = 1;
+            descriptorSetUpdates[i].pBufferInfo = &bufferInfo;
+            glm::mat4 mat = o->getTransform().getMatrix();
+            memcpy(data, &mat, sizeof(glm::mat4));
+            data = data + offset;
         }
+        mContext->getMemoryManager().unmapMemory(mModelMatrixBuffer);
 
         vkUpdateDescriptorSets(mContext->getDevice(),
                                static_cast<uint32_t>(descriptorSetUpdates.size()),
@@ -244,41 +234,26 @@ void ObjectManager::update() {
         /* Free the staging buffers */
         mContext->getMemoryManager().freeBuffer(stagingVertexBuffer);
         mContext->getMemoryManager().freeBuffer(stagingIndexBuffer);
-        mContext->getMemoryManager().freeBuffer(stagingModelMatrixBuffer);
     }
 }
 
 void ObjectManager::updateUniformBuffer() {
-    std::vector<glm::mat4> hostModelMatrixBuffer(mObjects.size());
-    auto modelMatrixIterator = hostModelMatrixBuffer.begin();
-    for (Object* o : mObjects) {
-        *modelMatrixIterator++ = o->getTransform().getMatrix();
+    uint32_t size, offset;
+    if (sizeof(glm::mat4) < mContext->getLimits().minUniformBufferOffsetAlignment) {
+        size = mContext->getLimits().minUniformBufferOffsetAlignment * mObjectsCount;
+        offset = mContext->getLimits().minUniformBufferOffsetAlignment;
+    } else {
+        size = sizeof(glm::mat4) * mObjectsCount;
+        offset = sizeof(glm::mat4);
     }
-
-    uint32_t modelMatrixBufferSizeInBytes = hostModelMatrixBuffer.size() * sizeof(glm::mat4);
-
-    VkBuffer stagingModelMatrixBuffer;
-    BufferHelper::createBuffer(*mContext,
-                               modelMatrixBufferSizeInBytes,
-                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               stagingModelMatrixBuffer);
-
     void* data;
-    mContext->getMemoryManager().mapMemory(stagingModelMatrixBuffer, modelMatrixBufferSizeInBytes, &data);
-    memcpy(data, hostModelMatrixBuffer.data(), modelMatrixBufferSizeInBytes);
-    mContext->getMemoryManager().unmapMemory(stagingModelMatrixBuffer);
-
-    VkCommandBuffer transferCommandBuffer = Commands::beginSingleTime(mContext->getDevice(), mContext->getTransferCommandPool());
-    BufferHelper::copyBuffer(*mContext,
-                                mContext->getTransferCommandPool(),
-                                mContext->getTransferQueue(),
-                                stagingModelMatrixBuffer,
-                                mModelMatrixBuffer,
-                                modelMatrixBufferSizeInBytes);
-    Commands::endSingleTime(mContext->getDevice(), mContext->getTransferCommandPool(), transferCommandBuffer, mContext->getTransferQueue());
-
-    mContext->getMemoryManager().freeBuffer(stagingModelMatrixBuffer);
+    mContext->getMemoryManager().mapMemory(mModelMatrixBuffer, size, &data);
+    for (size_t i{0}; i < mObjectsCount;i++) {
+        glm::mat4 mat = mObjects[i]->getTransform().getMatrix();
+        memcpy(data, &mat, sizeof(glm::mat4));
+        data = data + offset;
+    }
+    mContext->getMemoryManager().unmapMemory(mModelMatrixBuffer);
 }
 
 void ObjectManager::createDescriptorSetLayout() {
@@ -303,16 +278,32 @@ void ObjectManager::createDescriptorSetLayout() {
     }
 }
 
+void ObjectManager::createAndAllocateUniformBuffer() {
+    uint32_t size;
+
+    if (sizeof(glm::mat4) > mContext->getLimits().minUniformBufferOffsetAlignment) {
+        size = mMaxObjectCount * sizeof(glm::mat4);
+    } else {
+        size = mContext->getLimits().minUniformBufferOffsetAlignment;
+    }
+
+    BufferHelper::createBuffer(*mContext,
+                               size,
+                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                               mModelMatrixBuffer);
+}
+
 void ObjectManager::allocateDescriptorSets() {
     /* Create a temporary array to store the descriptor handlers */
-    std::vector<VkDescriptorSet> descriptorSets(mInitialDescriptorSetsCount);
+    std::vector<VkDescriptorSet> descriptorSets(mMaxObjectCount);
 
     /* Allocate the descriptors */
-    std::vector<VkDescriptorSetLayout> layouts(mInitialDescriptorSetsCount, mDescriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> layouts(mMaxObjectCount, mDescriptorSetLayout);
     VkDescriptorSetAllocateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     info.descriptorPool = mContext->getDescriptorPool().getHandler();
-    info.descriptorSetCount = mInitialDescriptorSetsCount;
+    info.descriptorSetCount = mMaxObjectCount;
     info.pSetLayouts = layouts.data();
 
     if (vkAllocateDescriptorSets(mContext->getDevice(), &info, descriptorSets.data()) != VK_SUCCESS) {
@@ -320,7 +311,7 @@ void ObjectManager::allocateDescriptorSets() {
     }
 
     /* Copy them in the descriptor smart handler array */
-    mDescriptorSetHandlers.resize(mInitialDescriptorSetsCount);
+    mDescriptorSetHandlers.resize(mMaxObjectCount);
 
     for (size_t i{0};i < descriptorSets.size();++i) {
         mDescriptorSetHandlers[i].descriptorSet = descriptorSets[i];

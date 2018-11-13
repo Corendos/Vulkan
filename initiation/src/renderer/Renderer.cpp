@@ -31,7 +31,7 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
     mContext = &context;
     mTextureManager = &textureManager;
     mObjectManager.create(*mContext);
-    int size = 4;
+    int size = 10;
     float space = 1.1f;
     for (int i = 0;i < size*size*size;++i) {
         int zInt = i / (size * size);
@@ -49,7 +49,7 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
         mObjectManager.addObject(*mObjects[i]);
     }
 
-    mObjectManager.update();
+    mObjectManager.updateBuffers();
 
     mSwapChain.query(mContext->getWindow(),
                      mContext->getPhysicalDevice(),
