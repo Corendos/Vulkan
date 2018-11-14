@@ -284,7 +284,7 @@ void ObjectManager::createAndAllocateUniformBuffer() {
     if (sizeof(glm::mat4) > mContext->getLimits().minUniformBufferOffsetAlignment) {
         size = mMaxObjectCount * sizeof(glm::mat4);
     } else {
-        size = mContext->getLimits().minUniformBufferOffsetAlignment;
+        size = mMaxObjectCount * mContext->getLimits().minUniformBufferOffsetAlignment;
     }
 
     BufferHelper::createBuffer(*mContext,

@@ -164,6 +164,7 @@ void VulkanContext::pickPhysicalDevice() {
 
     mPhysicalDevice = pickedDevice.physicalDevice;
     mIndices = pickedDevice.queueFamilyIndices;
+    mPhysicalDeviceLimits = pickedDevice.limits;
 }
 
 void VulkanContext::createLogicalDevice() {
