@@ -448,25 +448,7 @@ void Renderer::updateCommandBuffer(uint32_t index) {
                             1, 1, &mCameraDescriptorSets[index],
                             0, nullptr);
 
-    mObjectManager.render(mCommandBuffers[index], mPipeline.getLayout().getHandler());
-
-    /* VkBuffer vertexBuffers[] = {mStaticObjectManager.getVertexBuffer()};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(mCommandBuffers[index], 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(mCommandBuffers[index], mStaticObjectManager.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
-
-    for (size_t i{0};i < mStaticObjectManager.getObjectInfos().size();++i) {
-        VkDescriptorSet descriptors[] = {mStaticObjectManager.getDescriptor(i)};
-        vkCmdBindDescriptorSets(mCommandBuffers[index],
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                mPipeline.getLayout().getHandler(),
-                                0, 1, descriptors,
-                                0, nullptr);
-        
-        vkCmdDrawIndexed(mCommandBuffers[index],
-                         mStaticObjectManager.getObjectInfo(i).indiceCount,
-                         1, mStaticObjectManager.getObjectInfo(i).indicesOffset, 0, 0);
-    }   */      
+    mObjectManager.render(mCommandBuffers[index], mPipeline.getLayout().getHandler()); 
 
     vkCmdEndRenderPass(mCommandBuffers[index]);
 
