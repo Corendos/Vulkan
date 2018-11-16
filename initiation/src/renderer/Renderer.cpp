@@ -430,7 +430,7 @@ void Renderer::updateCommandBuffer(uint32_t index) {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = mRenderPass.getHandler();
-    renderPassInfo.framebuffer = mSwapChain.getFramebuffers()[index];
+    renderPassInfo.framebuffer = mSwapChain.getFramebuffer(index);
 
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = mSwapChain.getExtent();
