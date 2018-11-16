@@ -1,4 +1,3 @@
-#include <chrono>
 #include <thread>
 
 #include "HelloTriangleApplication.hpp"
@@ -12,19 +11,16 @@ void HelloTriangleApplication::run() {
 
 void HelloTriangleApplication::mainLoop() {
     int i{0};
-    uint32_t updateMean = {0};
-    uint32_t renderMean = {0};
-    auto updateEnd = std::chrono::high_resolution_clock::now();
-    while(!glfwWindowShouldClose(mWindow)) {
-        auto startTime = std::chrono::high_resolution_clock::now();
-        glfwPollEvents();
-        
-        if (mInput.getMouse().button[MouseButton::Left].pressed) {
-            double deltaYaw = mInput.getMouse().delta.x * -0.5;
-            double deltaPitch = mInput.getMouse().delta.y * 0.5;
+    uint32_t updateMean{0}, renderMean{0};
 
-            mCamera.update(deltaPitch, deltaYaw);
-        }
+    auto updateEnd = std::chrono::high_resolution_clock::now();
+    mFrameStartTime = std::chrono::high_resolution_clock::now();
+
+    while(!glfwWindowShouldClose(mWindow)) {
+        glfwPollEvents();
+
+        processInputs();
+
         auto start = std::chrono::high_resolution_clock::now();
         double dt = std::chrono::duration<double>(start - updateEnd).count();
         mRenderer.update(dt);
@@ -46,13 +42,7 @@ void HelloTriangleApplication::mainLoop() {
             renderMean = 0;
         }
         
-
-        auto endTime = std::chrono::high_resolution_clock::now();
-        auto elapsed = std::chrono::duration<double>(endTime - startTime);
-        auto target = std::chrono::duration<double>(1.0 / TARGET_FPS);
-        if (elapsed < target) {
-            std::this_thread::sleep_for(target - elapsed);
-        }
+        sleepUntilNextFrame();
     }
 }
 
@@ -82,6 +72,7 @@ void HelloTriangleApplication::init() {
     
     mCamera.setExtent({WIDTH, HEIGHT});
     mCamera.setFov(70);
+    
     mContext.create(mWindow);
 
     mLight = {{2.0, 2.0, 2.0}};
@@ -93,6 +84,27 @@ void HelloTriangleApplication::init() {
     mRenderer.create(mContext, mTextureManager);
     mRenderer.setCamera(mCamera);
     mRenderer.setLight(mLight);
+}
+
+void HelloTriangleApplication::sleepUntilNextFrame() {
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration<double>(currentTime - mFrameStartTime);
+    auto target = std::chrono::duration<double>(1.0 / TARGET_FPS);
+    
+    if (elapsed < target) {
+        std::this_thread::sleep_for(target - elapsed);
+    }
+
+    mFrameStartTime = std::chrono::high_resolution_clock::now();
+}
+
+void HelloTriangleApplication::processInputs() {
+    if (mInput.getMouse().button[MouseButton::Left].pressed) {
+        double deltaYaw = mInput.getMouse().delta.x * -0.5;
+        double deltaPitch = mInput.getMouse().delta.y * 0.5;
+
+        mCamera.update(deltaPitch, deltaYaw);
+    }
 }
 
 void HelloTriangleApplication::windowResizedCallback(GLFWwindow* window, int width, int height) {

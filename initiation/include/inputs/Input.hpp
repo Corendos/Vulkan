@@ -26,7 +26,7 @@ class Input {
 
         Mouse mMouse;
         std::mutex mMouseMutex;
-        const double UPDATE_FREQUENCY{60.0};
+        const double UPDATE_FREQUENCY{100.0};
         bool mShouldStop{false};
 
         std::thread mThread;

@@ -31,7 +31,7 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
     mContext = &context;
     mTextureManager = &textureManager;
     mObjectManager.create(*mContext);
-    int size = 10;
+    int size = 2;
     float space = 1.1f;
     for (int i = 0;i < size*size*size;++i) {
         int zInt = i / (size * size);
@@ -41,7 +41,6 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
         float y = space * (float)yInt - space * (float)(size - 1) / 2.0f;
         float x = space * (float)xInt - space * (float)(size - 1) / 2.0f;
         Object o = Object::temp({x, y, z});
-        o.getTransform().setRotation({0.0, 0.0, 0.9});
         o.setTexture(mTextureManager->getTexture("dirt"));
         mObjects.push_back(std::make_unique<Object>(std::move(o)));
     }
@@ -448,7 +447,7 @@ void Renderer::updateCommandBuffer(uint32_t index) {
                             1, 1, &mCameraDescriptorSets[index],
                             0, nullptr);
 
-    mObjectManager.render(mCommandBuffers[index], mPipeline.getLayout().getHandler()); 
+    mObjectManager.render(mCommandBuffers[index], mPipeline.getLayout().getHandler());    
 
     vkCmdEndRenderPass(mCommandBuffers[index]);
 

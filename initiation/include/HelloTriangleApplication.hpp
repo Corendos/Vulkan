@@ -8,6 +8,7 @@
 #include <vector>
 #include <set>
 #include <fstream>
+#include <chrono>
 #include <thread>
 
 #include <vulkan/vulkan.h>
@@ -47,10 +48,15 @@ class HelloTriangleApplication {
         const unsigned int HEIGHT{1080};
         const double TARGET_FPS{60.0};
 
+        std::chrono::time_point<std::chrono::high_resolution_clock> mFrameStartTime;
+
         void init();
         void mainLoop();
         void drawFrame();
         void cleanup();
+
+        void sleepUntilNextFrame();
+        void processInputs();
 
         static void windowResizedCallback(GLFWwindow* window, int width, int height);
         static void mousePosCallback(GLFWwindow* window, double xPos, double yPos);
