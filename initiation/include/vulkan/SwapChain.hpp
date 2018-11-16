@@ -10,6 +10,7 @@
 
 #include "vulkan/QueueFamilyIndices.hpp"
 #include "vulkan/RenderPass.hpp"
+#include "vulkan/ImageView.hpp"
 
 struct SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -38,14 +39,14 @@ class SwapChain {
         VkFormat getFormat() const;
         VkSwapchainKHR getHandler() const;
         uint32_t getImageCount() const;
-        std::vector<VkImageView>& getImagesView();
         std::vector<VkFramebuffer>& getFramebuffers();
 
     private:
         VkSwapchainKHR mSwapChain;
 
         std::vector<VkImage> mImages;
-        std::vector<VkImageView> mImagesView;
+        //std::vector<VkImageView> mImagesView;
+        std::vector<ImageView> mImagesView;
         std::vector<VkFramebuffer> mSwapChainFrameBuffers;
         VkExtent2D mExtent;
         VkSurfaceFormatKHR mSurfaceFormat;

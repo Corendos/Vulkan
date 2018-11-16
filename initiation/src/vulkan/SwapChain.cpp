@@ -42,7 +42,7 @@ void SwapChain::create(GLFWwindow* window,
 void SwapChain::destroy(VkDevice device) {
     if (mCreated) {
         for (auto imageView : mImagesView) {
-            vkDestroyImageView(device, imageView, nullptr);
+            imageView.destroy(device);
         }
 
         for (auto framebuffer : mSwapChainFrameBuffers) {
@@ -56,10 +56,6 @@ void SwapChain::destroy(VkDevice device) {
 
 VkExtent2D SwapChain::getExtent() const {
     return mExtent;
-}
-
-std::vector<VkImageView>& SwapChain::getImagesView() {
-    return mImagesView;
 }
 
 std::vector<VkFramebuffer>& SwapChain::getFramebuffers() {
@@ -130,7 +126,17 @@ void SwapChain::createImageViews(VkDevice device) {
     mImagesView.resize(mImageCount);
 
     for (size_t i{0}; i < mImages.size();++i) {
-        mImagesView[i] = createImageView(device, mImages[i], mSurfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
+        mImagesView[i].setImage(mImages[i]);
+        mImagesView[i].setImageViewType(VK_IMAGE_VIEW_TYPE_2D);
+        mImagesView[i].setFormat(mSurfaceFormat.format);
+        VkImageSubresourceRange range;
+        range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        range.baseMipLevel = 0;
+        range.levelCount = 1;
+        range.baseArrayLayer = 0;
+        range.layerCount = 1;
+        mImagesView[i].setSubresourceRange(range);
+        mImagesView[i].create(device);
     }
 }
 
@@ -141,7 +147,7 @@ void SwapChain::createFrameBuffers(VkDevice device,
 
     for (size_t i{0}; i < mImageCount;++i) {
         std::array<VkImageView, 2> attachments = {
-            mImagesView[i],
+            mImagesView[i].getHandler(),
             depthImageView
         };
 
@@ -161,17 +167,20 @@ void SwapChain::createFrameBuffers(VkDevice device,
 }
 
 SwapChainSupportDetails SwapChain::querySupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
+    /* Get surface capabilities */
     SwapChainSupportDetails details;
-
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
+    
+    /* Get surface supported formats */
     uint32_t formatCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
-
+    
     if (formatCount != 0) {
         details.formats.resize(formatCount);
         vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats.data());
     }
 
+    /* Get surface supported present modes */
     uint32_t presentModeCount;
     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
 
@@ -184,20 +193,24 @@ SwapChainSupportDetails SwapChain::querySupport(VkPhysicalDevice physicalDevice,
 }
 
 VkSurfaceFormatKHR SwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+    /* If the only supported format is undefined, force the format we want */
     if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED) {
         return {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
     }
 
+    /* Otherwise, try to find the format we want in the list */
     for (const auto& format : availableFormats) {
         if (format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             return format;
         }
     }
 
+    /* If nothing was foudn return the first format of the list */
     return availableFormats[0];
 }
 
 VkPresentModeKHR SwapChain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+    /* Find the best present mode */
     VkPresentModeKHR bestMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     
     for (const auto& presentMode : availablePresentModes) {
@@ -212,6 +225,7 @@ VkPresentModeKHR SwapChain::chooseSwapPresentMode(const std::vector<VkPresentMod
 }
 
 VkExtent2D SwapChain::chooseSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& capabilities) {
+    /* Select the swapchain extent based on the window size */
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     VkExtent2D extent = {
