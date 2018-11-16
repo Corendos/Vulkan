@@ -32,7 +32,6 @@ class SwapChain {
                     VkDevice device,
                     VkSurfaceKHR surface,
                     QueueFamilyIndices indices,
-                    VkImageView depthImageView,
                     RenderPass& renderPass);
         void destroy(VkDevice device);
 
@@ -40,14 +39,13 @@ class SwapChain {
         VkFormat getFormat() const;
         VkSwapchainKHR getHandler() const;
         uint32_t getImageCount() const;
-        VkFramebuffer getFramebuffer(uint32_t index);
+        VkImageView getImageView(uint32_t index);
 
     private:
         VkSwapchainKHR mSwapChain;
 
         std::vector<VkImage> mImages;
         std::vector<ImageView> mImagesView;
-        std::vector<Framebuffer> mSwapChainFrameBuffers;
         VkExtent2D mExtent;
         VkSurfaceFormatKHR mSurfaceFormat;
         SwapChainSupportDetails mSwapChainSupport;
@@ -63,9 +61,6 @@ class SwapChain {
                              QueueFamilyIndices indices);
         void createImages(VkDevice device);
         void createImageViews(VkDevice device);
-        void createFrameBuffers(VkDevice device,
-                                RenderPass& renderPass,
-                                VkImageView depthImageView);
 
         SwapChainSupportDetails querySupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);

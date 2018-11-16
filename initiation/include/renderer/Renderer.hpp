@@ -22,6 +22,16 @@
 #include "resources/TextureManager.hpp"
 #include "environment.hpp"
 
+struct FrameBufferAttachment {
+    Image image;
+    ImageView imageView;
+};
+
+struct RendererAttachments {
+    FrameBufferAttachment normal;
+    FrameBufferAttachment depth;
+};
+
 class Renderer {
     public:
         Renderer();
@@ -49,6 +59,8 @@ class Renderer {
         std::vector<bool> mIsFenceSubmitted;
         std::vector<bool> mCommandBufferNeedUpdate;
 
+        std::vector<Framebuffer> mFrameBuffers;
+
         Camera* mCamera;
         Light* mLight;
         VulkanContext* mContext;
@@ -56,8 +68,6 @@ class Renderer {
 
         SwapChain mSwapChain;
         RenderPass mRenderPass;
-        VkImage mDepthImage;
-        VkImageView mDepthImageView;
         GraphicsPipeline mPipeline;
 
         Shader mVertexShader;
@@ -67,10 +77,12 @@ class Renderer {
         std::vector<std::unique_ptr<Object>> mObjects;
 
         uint32_t mNextImageIndex;
-        std::array<VkClearValue, 2> mClearValues;
+        std::array<VkClearValue, 3> mClearValues;
 
         std::vector<VkBuffer> mCameraUniformBuffers;
         std::vector<VkDescriptorSet> mCameraDescriptorSets;
+
+        std::vector<RendererAttachments> mFramebufferAttachments;
 
         bool mCreated{false};
         bool mRecreated{false};
@@ -80,7 +92,7 @@ class Renderer {
 
         void createRenderPass();
         void createGraphicsPipeline();
-        void createDepthResources();
+        void createFramebuffers();
         void createDescriptorPool();
         void createDescriptorSetLayout();
         void createCommandBuffers();

@@ -20,7 +20,8 @@ Renderer::Renderer() {
     mFragmentShader = Shader(shaderPath + "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
 
     mClearValues[0].color = {0.325f, 0.694f, 0.937f, 1.0f};
-    mClearValues[1].depthStencil = {1.0f, 0};
+    mClearValues[1].color = {0.0f, 0.0f, 0.0f, 0.0f};
+    mClearValues[2].depthStencil = {1.0f, 0};
 }
 
 void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
@@ -56,14 +57,13 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
                      mContext->getSurface());
     mExtent = mSwapChain.getExtent();
     createRenderPass();
-    createDepthResources();
     mSwapChain.create(mContext->getWindow(),
                       mContext->getPhysicalDevice(),
                       mContext->getDevice(),
                       mContext->getSurface(),
                       mContext->getQueueFamilyIndices(),
-                      mDepthImageView,
                       mRenderPass);
+    createFramebuffers();
     createDescriptorSetLayout();
     createGraphicsPipeline();
     createDescriptorPool();
@@ -86,8 +86,17 @@ void Renderer::recreate() {
     
     vkDeviceWaitIdle(mContext->getDevice());
 
-    vkDestroyImageView(mContext->getDevice(), mDepthImageView, nullptr);
-    mContext->getMemoryManager().freeImage(mDepthImage);
+    for (auto& framebufferAttachment : mFramebufferAttachments) {
+        framebufferAttachment.normal.image.destroy(*mContext);
+        framebufferAttachment.normal.imageView.destroy(mContext->getDevice());
+        framebufferAttachment.depth.image.destroy(*mContext);
+        framebufferAttachment.depth.imageView.destroy(mContext->getDevice());
+    }
+
+    for (auto& framebuffer : mFrameBuffers) {
+        framebuffer.destroy(mContext->getDevice());
+    }
+
     vkFreeCommandBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool().getHandler(),
                          static_cast<uint32_t>(mCommandBuffers.size()),
                          mCommandBuffers.data());
@@ -99,10 +108,10 @@ void Renderer::recreate() {
     mSwapChain.query(mContext->getWindow(), mContext->getPhysicalDevice(), mContext->getDevice(), mContext->getSurface());
     mExtent = mSwapChain.getExtent();
     createRenderPass();
-    createDepthResources();
     mSwapChain.create(mContext->getWindow(), mContext->getPhysicalDevice(), mContext->getDevice(),
-                      mContext->getSurface(), mContext->getQueueFamilyIndices(), mDepthImageView,
+                      mContext->getSurface(), mContext->getQueueFamilyIndices(),
                       mRenderPass);
+    createFramebuffers();
     createGraphicsPipeline();
     createCommandBuffers();
     mCamera->setExtent(mSwapChain.getExtent());
@@ -116,11 +125,21 @@ void Renderer::destroy() {
         for (size_t i{0};i < mSwapChain.getImageCount();++i) {
             mContext->getMemoryManager().freeBuffer(mCameraUniformBuffers[i]);
         }
+
+        for (auto& framebufferAttachment : mFramebufferAttachments) {
+            framebufferAttachment.normal.image.destroy(*mContext);
+            framebufferAttachment.normal.imageView.destroy(mContext->getDevice());
+            framebufferAttachment.depth.image.destroy(*mContext);
+            framebufferAttachment.depth.imageView.destroy(mContext->getDevice());
+        }
+
+        for (auto& framebuffer : mFrameBuffers) {
+            framebuffer.destroy(mContext->getDevice());
+        }
+
         mObjectManager.destroy();
         mVertexShader.destroy(mContext->getDevice());
         mFragmentShader.destroy(mContext->getDevice());
-        mContext->getMemoryManager().freeImage(mDepthImage);
-        vkDestroyImageView(mContext->getDevice(), mDepthImageView, nullptr);
         vkFreeCommandBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool().getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
         mPipeline.destroy(mContext->getDevice());
         mRenderPass.destroy(mContext->getDevice());
@@ -228,16 +247,88 @@ VkDescriptorPool Renderer::getDescriptorPool() const {
 }
 
 void Renderer::createRenderPass() {
-    ColorAttachment colorAttachment;
-    colorAttachment.setFormat(mSwapChain.getFormat());
-    colorAttachment.setSamples(VK_SAMPLE_COUNT_1_BIT);
-    colorAttachment.setLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
-    colorAttachment.setStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
-    colorAttachment.setStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
-    colorAttachment.setStencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
-    colorAttachment.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
-    colorAttachment.setFinalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-    colorAttachment.setReferenceIndex(0);
+    mFramebufferAttachments.resize(mSwapChain.getImageCount());
+    
+    VkMemoryRequirements memoryRequirements;
+    VkImageSubresourceRange subresourceRange{};
+    for (auto& framebufferAttachment : mFramebufferAttachments) {
+        framebufferAttachment.normal.image.setImageType(VK_IMAGE_TYPE_2D);
+        framebufferAttachment.normal.image.setFormat(VK_FORMAT_R8G8B8A8_UNORM);
+        framebufferAttachment.normal.image.setExtent({mExtent.width, mExtent.height, 1});
+        framebufferAttachment.normal.image.setMipLevels(1);
+        framebufferAttachment.normal.image.setArrayLayers(1);
+        framebufferAttachment.normal.image.setSamples(VK_SAMPLE_COUNT_1_BIT);
+        framebufferAttachment.normal.image.setTiling(VK_IMAGE_TILING_OPTIMAL);
+        framebufferAttachment.normal.image.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+        framebufferAttachment.normal.image.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+        framebufferAttachment.normal.image.create(*mContext);
+        vkGetImageMemoryRequirements(mContext->getDevice(), framebufferAttachment.normal.image.getHandler(), &memoryRequirements);
+        mContext->getMemoryManager().allocateForImage(
+            framebufferAttachment.normal.image.getHandler(),
+            memoryRequirements,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+        );
+
+        framebufferAttachment.normal.imageView.setImageViewType(VK_IMAGE_VIEW_TYPE_2D);
+        framebufferAttachment.normal.imageView.setFormat(VK_FORMAT_R8G8B8A8_UNORM);
+        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        subresourceRange.baseMipLevel = 0;
+        subresourceRange.levelCount = 1;
+        subresourceRange.baseArrayLayer = 0;
+        subresourceRange.layerCount = 1;
+        framebufferAttachment.normal.imageView.setSubresourceRange(subresourceRange);
+        framebufferAttachment.normal.imageView.setImage(framebufferAttachment.normal.image.getHandler());
+        framebufferAttachment.normal.imageView.create(mContext->getDevice());
+
+        framebufferAttachment.depth.image.setImageType(VK_IMAGE_TYPE_2D);
+        framebufferAttachment.depth.image.setFormat(findDepthFormat());
+        framebufferAttachment.depth.image.setExtent({mExtent.width, mExtent.height, 1});
+        framebufferAttachment.depth.image.setMipLevels(1);
+        framebufferAttachment.depth.image.setArrayLayers(1);
+        framebufferAttachment.depth.image.setSamples(VK_SAMPLE_COUNT_1_BIT);
+        framebufferAttachment.depth.image.setTiling(VK_IMAGE_TILING_OPTIMAL);
+        framebufferAttachment.depth.image.setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        framebufferAttachment.depth.image.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+        framebufferAttachment.depth.image.create(*mContext);
+        vkGetImageMemoryRequirements(mContext->getDevice(), framebufferAttachment.depth.image.getHandler(), &memoryRequirements);
+        mContext->getMemoryManager().allocateForImage(
+            framebufferAttachment.depth.image.getHandler(),
+            memoryRequirements,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+        );
+
+        framebufferAttachment.depth.imageView.setImageViewType(VK_IMAGE_VIEW_TYPE_2D);
+        framebufferAttachment.depth.imageView.setFormat(findDepthFormat());
+        subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        subresourceRange.baseMipLevel = 0;
+        subresourceRange.levelCount = 1;
+        subresourceRange.baseArrayLayer = 0;
+        subresourceRange.layerCount = 1;
+        framebufferAttachment.depth.imageView.setSubresourceRange(subresourceRange);
+        framebufferAttachment.depth.imageView.setImage(framebufferAttachment.depth.image.getHandler());
+        framebufferAttachment.depth.imageView.create(mContext->getDevice());
+    }
+
+    ColorAttachment colorAttachment[2];
+    colorAttachment[0].setFormat(mSwapChain.getFormat());
+    colorAttachment[0].setSamples(VK_SAMPLE_COUNT_1_BIT);
+    colorAttachment[0].setLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+    colorAttachment[0].setStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
+    colorAttachment[0].setStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+    colorAttachment[0].setStencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
+    colorAttachment[0].setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+    colorAttachment[0].setFinalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    colorAttachment[0].setReferenceIndex(0);
+
+    colorAttachment[1].setFormat(VK_FORMAT_R8G8B8A8_UNORM);
+    colorAttachment[1].setSamples(VK_SAMPLE_COUNT_1_BIT);
+    colorAttachment[1].setLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+    colorAttachment[1].setStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
+    colorAttachment[1].setStencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+    colorAttachment[1].setStencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
+    colorAttachment[1].setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+    colorAttachment[1].setFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    colorAttachment[1].setReferenceIndex(1);
 
     DepthAttachment depthAttachment;
     depthAttachment.setFormat(findDepthFormat());
@@ -248,15 +339,21 @@ void Renderer::createRenderPass() {
     depthAttachment.setStencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
     depthAttachment.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
     depthAttachment.setFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-    depthAttachment.setReferenceIndex(1);
+    depthAttachment.setReferenceIndex(2);
 
-    std::vector<Attachment> attachments = {colorAttachment, depthAttachment};
+    std::vector<Attachment> attachments = {colorAttachment[0], colorAttachment[1], depthAttachment};
 
     mRenderPass.setAttachments(attachments);
 
     Subpass subpass;
     subpass.setBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
-    subpass.addAttachment(colorAttachment, depthAttachment);
+    std::vector<VkAttachmentReference> colorAttachments = {
+        colorAttachment[0].getReference(),
+        colorAttachment[1].getReference()
+    };
+
+    subpass.setColorAttachments(colorAttachments);
+    subpass.setDepthAttachment(depthAttachment.getReference());
 
     mRenderPass.addSubpass(subpass.getDescription());
 
@@ -294,24 +391,23 @@ void Renderer::createGraphicsPipeline() {
     mPipeline.create(mContext->getDevice());
 }
 
-void Renderer::createDepthResources() {
-    VkFormat format = findDepthFormat();
+void Renderer::createFramebuffers() {
+    mFrameBuffers.resize(mSwapChain.getImageCount());
 
-    mDepthImage = ImageHelper::create(
-        *mContext,
-        mExtent.width, mExtent.height,
-        format, VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-    );
+    for (size_t i{0}; i < mSwapChain.getImageCount();++i) {
+        std::vector<VkImageView> attachments = {
+            mSwapChain.getImageView(i),
+            mFramebufferAttachments[i].normal.imageView.getHandler(),
+            mFramebufferAttachments[i].depth.imageView.getHandler(),
+        };
 
-    mDepthImageView = ImageHelper::createImageView(*mContext, mDepthImage,
-                                             format,
-                                             VK_IMAGE_ASPECT_DEPTH_BIT);
-    
-    ImageHelper::transitionImageLayout(*mContext, mDepthImage,
-                                 format, VK_IMAGE_LAYOUT_UNDEFINED,
-                                 VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+        mFrameBuffers[i].setRenderPass(mRenderPass.getHandler());
+        mFrameBuffers[i].setAttachments(attachments);
+        mFrameBuffers[i].setWidth(mExtent.width);
+        mFrameBuffers[i].setHeight(mExtent.height);
+        mFrameBuffers[i].setLayers(1);
+        mFrameBuffers[i].create(mContext->getDevice());
+    }
 }
 
 void Renderer::createDescriptorPool() {
@@ -430,7 +526,7 @@ void Renderer::updateCommandBuffer(uint32_t index) {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = mRenderPass.getHandler();
-    renderPassInfo.framebuffer = mSwapChain.getFramebuffer(index);
+    renderPassInfo.framebuffer = mFrameBuffers[index].getHandler();
 
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = mSwapChain.getExtent();

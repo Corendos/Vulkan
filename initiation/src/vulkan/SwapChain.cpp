@@ -25,7 +25,6 @@ void SwapChain::create(GLFWwindow* window,
                        VkDevice device,
                        VkSurfaceKHR surface,
                        QueueFamilyIndices indices,
-                       VkImageView depthImageView,
                        RenderPass& renderPass) {
     if (mCreated) {
         return;
@@ -34,7 +33,6 @@ void SwapChain::create(GLFWwindow* window,
     createSwapChain(window, physicalDevice, device, surface, indices);
     createImages(device);
     createImageViews(device);
-    createFrameBuffers(device, renderPass, depthImageView);
 
     mCreated = true;
 }
@@ -43,10 +41,6 @@ void SwapChain::destroy(VkDevice device) {
     if (mCreated) {
         for (auto imageView : mImagesView) {
             imageView.destroy(device);
-        }
-
-        for (auto framebuffer : mSwapChainFrameBuffers) {
-            framebuffer.destroy(device);
         }
 
         vkDestroySwapchainKHR(device, mSwapChain, nullptr);
@@ -58,8 +52,8 @@ VkExtent2D SwapChain::getExtent() const {
     return mExtent;
 }
 
-VkFramebuffer SwapChain::getFramebuffer(uint32_t index) {
-    return mSwapChainFrameBuffers[index].getHandler();
+VkImageView SwapChain::getImageView(uint32_t index) {
+    return mImagesView[index].getHandler();
 }
 
 VkFormat SwapChain::getFormat() const {
@@ -137,25 +131,6 @@ void SwapChain::createImageViews(VkDevice device) {
         range.layerCount = 1;
         mImagesView[i].setSubresourceRange(range);
         mImagesView[i].create(device);
-    }
-}
-
-void SwapChain::createFrameBuffers(VkDevice device,
-                                   RenderPass& renderPass,
-                                   VkImageView depthImageView) {
-    mSwapChainFrameBuffers.resize(mImageCount);
-
-    for (size_t i{0}; i < mImageCount;++i) {
-        std::vector<VkImageView> attachments = {
-            mImagesView[i].getHandler(),
-            depthImageView
-        };
-        mSwapChainFrameBuffers[i].setRenderPass(renderPass.getHandler());
-        mSwapChainFrameBuffers[i].setAttachments(attachments);
-        mSwapChainFrameBuffers[i].setWidth(mExtent.width);
-        mSwapChainFrameBuffers[i].setHeight(mExtent.height);
-        mSwapChainFrameBuffers[i].setLayers(1);
-        mSwapChainFrameBuffers[i].create(device);
     }
 }
 

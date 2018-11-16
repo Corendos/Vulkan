@@ -10,15 +10,21 @@
 
 class Subpass {
     public:
+        void setFlags(VkSubpassDescriptionFlags flags);
         void setBindPoint(VkPipelineBindPoint bindPoint);
-        void addAttachment(ColorAttachment colorAttachment, DepthAttachment depthAttachment);
+        void setInputAttachments(std::vector<VkAttachmentReference>& inputAttachments);
+        void setColorAttachments(std::vector<VkAttachmentReference>& colorAttachments);
+        void setResolveAttachments(std::vector<VkAttachmentReference>& resolveAttachments);
+        void setDepthAttachment(VkAttachmentReference depthStencilAttachment);
 
         VkSubpassDescription getDescription() const;
 
     private:
         VkSubpassDescription mDescription{};
-        std::vector<VkAttachmentReference> mColorAttachmentReferences;
-        std::vector<VkAttachmentReference> mDepthAttachmentReferences;
+        std::vector<VkAttachmentReference> mInputAttachments;
+        std::vector<VkAttachmentReference> mColorAttachments;
+        std::vector<VkAttachmentReference> mResolveAttachments;
+        VkAttachmentReference mDepthStencilAttachment;
 };
 
 #endif
