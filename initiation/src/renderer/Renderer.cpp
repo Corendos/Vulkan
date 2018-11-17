@@ -252,61 +252,15 @@ void Renderer::createRenderPass() {
     VkMemoryRequirements memoryRequirements;
     VkImageSubresourceRange subresourceRange{};
     for (auto& framebufferAttachment : mFramebufferAttachments) {
-        framebufferAttachment.normal.image.setImageType(VK_IMAGE_TYPE_2D);
-        framebufferAttachment.normal.image.setFormat(VK_FORMAT_R8G8B8A8_UNORM);
-        framebufferAttachment.normal.image.setExtent({mExtent.width, mExtent.height, 1});
-        framebufferAttachment.normal.image.setMipLevels(1);
-        framebufferAttachment.normal.image.setArrayLayers(1);
-        framebufferAttachment.normal.image.setSamples(VK_SAMPLE_COUNT_1_BIT);
-        framebufferAttachment.normal.image.setTiling(VK_IMAGE_TILING_OPTIMAL);
-        framebufferAttachment.normal.image.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-        framebufferAttachment.normal.image.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
-        framebufferAttachment.normal.image.create(*mContext);
-        vkGetImageMemoryRequirements(mContext->getDevice(), framebufferAttachment.normal.image.getHandler(), &memoryRequirements);
-        mContext->getMemoryManager().allocateForImage(
-            framebufferAttachment.normal.image.getHandler(),
-            memoryRequirements,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-        );
-
-        framebufferAttachment.normal.imageView.setImageViewType(VK_IMAGE_VIEW_TYPE_2D);
-        framebufferAttachment.normal.imageView.setFormat(VK_FORMAT_R8G8B8A8_UNORM);
-        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        subresourceRange.baseMipLevel = 0;
-        subresourceRange.levelCount = 1;
-        subresourceRange.baseArrayLayer = 0;
-        subresourceRange.layerCount = 1;
-        framebufferAttachment.normal.imageView.setSubresourceRange(subresourceRange);
-        framebufferAttachment.normal.imageView.setImage(framebufferAttachment.normal.image.getHandler());
-        framebufferAttachment.normal.imageView.create(mContext->getDevice());
-
-        framebufferAttachment.depth.image.setImageType(VK_IMAGE_TYPE_2D);
-        framebufferAttachment.depth.image.setFormat(findDepthFormat());
-        framebufferAttachment.depth.image.setExtent({mExtent.width, mExtent.height, 1});
-        framebufferAttachment.depth.image.setMipLevels(1);
-        framebufferAttachment.depth.image.setArrayLayers(1);
-        framebufferAttachment.depth.image.setSamples(VK_SAMPLE_COUNT_1_BIT);
-        framebufferAttachment.depth.image.setTiling(VK_IMAGE_TILING_OPTIMAL);
-        framebufferAttachment.depth.image.setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-        framebufferAttachment.depth.image.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
-        framebufferAttachment.depth.image.create(*mContext);
-        vkGetImageMemoryRequirements(mContext->getDevice(), framebufferAttachment.depth.image.getHandler(), &memoryRequirements);
-        mContext->getMemoryManager().allocateForImage(
-            framebufferAttachment.depth.image.getHandler(),
-            memoryRequirements,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-        );
-
-        framebufferAttachment.depth.imageView.setImageViewType(VK_IMAGE_VIEW_TYPE_2D);
-        framebufferAttachment.depth.imageView.setFormat(findDepthFormat());
-        subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        subresourceRange.baseMipLevel = 0;
-        subresourceRange.levelCount = 1;
-        subresourceRange.baseArrayLayer = 0;
-        subresourceRange.layerCount = 1;
-        framebufferAttachment.depth.imageView.setSubresourceRange(subresourceRange);
-        framebufferAttachment.depth.imageView.setImage(framebufferAttachment.depth.image.getHandler());
-        framebufferAttachment.depth.imageView.create(mContext->getDevice());
+        framebufferAttachment.normal = createAttachment(
+            VK_FORMAT_R8G8B8A8_UNORM,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            VK_IMAGE_ASPECT_COLOR_BIT);
+        
+        framebufferAttachment.depth = createAttachment(
+            findDepthFormat(),
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            VK_IMAGE_ASPECT_DEPTH_BIT);
     }
 
     ColorAttachment colorAttachment[2];
@@ -518,6 +472,44 @@ void Renderer::createFences() {
             throw std::runtime_error("failed to create fences");
         }
     }
+}
+
+FrameBufferAttachment Renderer::createAttachment(VkFormat format,
+                                                 VkImageUsageFlags usage,
+                                                 VkImageAspectFlags aspect) {
+    VkMemoryRequirements memoryRequirements;
+    VkImageSubresourceRange subresourceRange{};
+
+    FrameBufferAttachment attachment;
+    attachment.image.setImageType(VK_IMAGE_TYPE_2D);
+    attachment.image.setFormat(format);
+    attachment.image.setExtent({mExtent.width, mExtent.height, 1});
+    attachment.image.setMipLevels(1);
+    attachment.image.setArrayLayers(1);
+    attachment.image.setSamples(VK_SAMPLE_COUNT_1_BIT);
+    attachment.image.setTiling(VK_IMAGE_TILING_OPTIMAL);
+    attachment.image.setUsage(usage);
+    attachment.image.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+    attachment.image.create(*mContext);
+    vkGetImageMemoryRequirements(mContext->getDevice(), attachment.image.getHandler(), &memoryRequirements);
+    mContext->getMemoryManager().allocateForImage(
+        attachment.image.getHandler(),
+        memoryRequirements,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+    );
+
+    attachment.imageView.setImageViewType(VK_IMAGE_VIEW_TYPE_2D);
+    attachment.imageView.setFormat(format);
+    subresourceRange.aspectMask = aspect;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = 1;
+    subresourceRange.baseArrayLayer = 0;
+    subresourceRange.layerCount = 1;
+    attachment.imageView.setSubresourceRange(subresourceRange);
+    attachment.imageView.setImage(attachment.image.getHandler());
+    attachment.imageView.create(mContext->getDevice());
+
+    return attachment;
 }
 
 void Renderer::updateCommandBuffer(uint32_t index) {

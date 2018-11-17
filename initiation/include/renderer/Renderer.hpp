@@ -101,6 +101,10 @@ class Renderer {
         void createSemaphores();
         void createFences();
 
+        FrameBufferAttachment createAttachment(VkFormat format,
+                                               VkImageUsageFlags usage,
+                                               VkImageAspectFlags aspect);
+
         void updateCommandBuffer(uint32_t index);
         void updateUniformBuffer(uint32_t index);
 
