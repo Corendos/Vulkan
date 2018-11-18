@@ -14,7 +14,7 @@ class RenderPass {
         void create(VkDevice device);
         void destroy(VkDevice device);
 
-        void setAttachments(std::vector<Attachment> attachments);
+        void setAttachments(std::vector<Attachment>& attachments);
         void addSubpass(VkSubpassDescription description);
         void addSubpassDependency(VkSubpassDependency dependency);
 
@@ -24,7 +24,6 @@ class RenderPass {
         VkRenderPass mHandler;
         VkRenderPassCreateInfo mInfo{};
         std::vector<VkAttachmentDescription> mAttachmentsDescription;
-        std::vector<VkAttachmentReference> mAttachmentsReference;
         std::vector<VkSubpassDescription> mSubpassesDescription;
         std::vector<VkSubpassDependency> mSubpassesDependency;
 

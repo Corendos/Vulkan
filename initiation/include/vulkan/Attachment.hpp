@@ -6,14 +6,11 @@
 class Attachment {
     public:
         VkAttachmentDescription getDescription() const;
-        VkAttachmentReference getReference() const;
-        VkAttachmentReference* getReferencePtr() const;
 
         void setFormat(VkFormat format);
         void setSamples(VkSampleCountFlagBits samples);
         void setInitialLayout(VkImageLayout layout);
         void setFinalLayout(VkImageLayout layout);
-        void setReferenceIndex(uint32_t index);
         void setLoadOp(VkAttachmentLoadOp op);
         void setStoreOp(VkAttachmentStoreOp op);
         void setStencilLoadOp(VkAttachmentLoadOp op);
@@ -21,7 +18,6 @@ class Attachment {
     
     protected:
         VkAttachmentDescription mDescription{};
-        VkAttachmentReference mReference{};
 };
 
 #endif

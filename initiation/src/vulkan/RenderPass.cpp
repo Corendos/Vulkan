@@ -24,23 +24,18 @@ void RenderPass::destroy(VkDevice device) {
     if (mCreated) {
         vkDestroyRenderPass(device, mHandler, nullptr);
         mAttachmentsDescription.clear();
-        mAttachmentsReference.clear();
         mSubpassesDependency.clear();
         mSubpassesDescription.clear();
         mCreated = false;
     }
 }
 
-void RenderPass::setAttachments(std::vector<Attachment> attachments) {
+void RenderPass::setAttachments(std::vector<Attachment>& attachments) {
     mAttachmentsDescription.resize(attachments.size());
-    mAttachmentsReference.resize(attachments.size());
 
     std::transform(
         attachments.begin(), attachments.end(),
         mAttachmentsDescription.begin(), [](const Attachment& a) { return a.getDescription(); });
-    std::transform(
-        attachments.begin(), attachments.end(),
-        mAttachmentsReference.begin(), [](const Attachment& a) { return a.getReference(); });
 }
 
 void RenderPass::addSubpass(VkSubpassDescription description) {

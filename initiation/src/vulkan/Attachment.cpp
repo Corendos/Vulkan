@@ -4,10 +4,6 @@ VkAttachmentDescription Attachment::getDescription() const {
     return mDescription;
 }
 
-VkAttachmentReference Attachment::getReference() const {
-    return mReference;
-}
-
 void Attachment::setFormat(VkFormat format) {
     mDescription.format = format;
 }
@@ -38,8 +34,4 @@ void Attachment::setInitialLayout(VkImageLayout layout) {
 
 void Attachment::setFinalLayout(VkImageLayout layout) {
     mDescription.finalLayout = layout;
-}
-
-void Attachment::setReferenceIndex(uint32_t index) {
-    mReference.attachment = index;
 }
