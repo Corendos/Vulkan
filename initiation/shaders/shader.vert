@@ -6,11 +6,13 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inColor;
 layout(location = 3) in vec2 inTexCoord;
 
-layout(location = 0) out vec3 fragPosition;
-layout(location = 1) out vec3 fragNormal;
-layout(location = 2) out vec3 fragColor;
-layout(location = 3) out vec2 fragTexCoord;
-layout(location = 4) out vec3 cameraPosition;
+layout(location = 0) out vec3 outPosition;
+layout(location = 1) out vec4 outNormal;
+layout(location = 2) out vec3 outColor;
+layout(location = 3) out vec2 outTexCoord;
+layout(location = 4) out vec3 outLightPosition;
+layout(location = 5) out mat4 outModelMatrix;
+layout(location = 9) out mat4 outViewMatrix;
 
 layout(set = 1, binding = 0) uniform RenderInfo {
     mat4 view;
@@ -29,9 +31,12 @@ out gl_PerVertex {
 
 void main() {
     gl_Position = renderInfo.proj * renderInfo.view * model.matrix * vec4(inPosition, 1.0);
-    fragPosition = inPosition;
-    fragNormal = inNormal;
-    fragColor = vec3(1.0);
-    fragTexCoord = inTexCoord;
-    cameraPosition = renderInfo.lightPosition.xyz;
+
+    outPosition = inPosition;
+    outNormal = vec4(inNormal, 0.0);
+    outColor = vec3(1.0);
+    outTexCoord = inTexCoord;
+    outLightPosition = renderInfo.lightPosition.xyz;
+    outModelMatrix = model.matrix;
+    outViewMatrix = renderInfo.view;
 }
