@@ -5,9 +5,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "vulkan/ColorAttachment.hpp"
-#include "vulkan/DepthAttachment.hpp"
-
 class Subpass {
     public:
         void setFlags(VkSubpassDescriptionFlags flags);
