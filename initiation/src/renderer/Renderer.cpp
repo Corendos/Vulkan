@@ -31,7 +31,7 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
     mTextureManager = &textureManager;
     mObjectManager.create(*mContext);
     int size = 2;
-    float space = 1.1f;
+    float space = 2.0f;
     for (int i = 0;i < size*size*size;++i) {
         int zInt = i / (size * size);
         int yInt = (i % (size * size)) / size;
@@ -83,6 +83,8 @@ void Renderer::recreate() {
     
     vkDeviceWaitIdle(mContext->getDevice());
 
+    /* Destroying resources that need to be recreated */
+
     for (auto& framebufferAttachment : mFramebufferAttachments) {
         framebufferAttachment.normal.image.destroy(*mContext);
         framebufferAttachment.normal.imageView.destroy(mContext->getDevice());
@@ -97,10 +99,12 @@ void Renderer::recreate() {
     vkFreeCommandBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool().getHandler(),
                          static_cast<uint32_t>(mCommandBuffers.size()),
                          mCommandBuffers.data());
-
-    mPipeline.destroy(mContext->getDevice());
-    mRenderPass.destroy(mContext->getDevice());
+    
     mSwapChain.destroy(mContext->getDevice());
+    mRenderPass.destroy(mContext->getDevice());
+    mPipeline.destroy(mContext->getDevice());
+
+    /* Recreate the resources */
 
     mSwapChain.query(mContext->getWindow(), mContext->getPhysicalDevice(), mContext->getDevice(), mContext->getSurface());
     mExtent = mSwapChain.getExtent();
@@ -137,17 +141,22 @@ void Renderer::destroy() {
         mObjectManager.destroy();
         mVertexShader.destroy(mContext->getDevice());
         mFragmentShader.destroy(mContext->getDevice());
-        vkFreeCommandBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool().getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
-        mPipeline.destroy(mContext->getDevice());
-        mRenderPass.destroy(mContext->getDevice());
-        mSwapChain.destroy(mContext->getDevice());
+
         vkDestroyDescriptorPool(mContext->getDevice(), mDescriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(mContext->getDevice(), mCameraDescriptorSetLayout, nullptr);
+
+        vkFreeCommandBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool().getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
+        
+        mSwapChain.destroy(mContext->getDevice());
+        mRenderPass.destroy(mContext->getDevice());
+        mPipeline.destroy(mContext->getDevice());
+        
         vkDestroySemaphore(mContext->getDevice(), mImageAvailableSemaphore, nullptr);
         vkDestroySemaphore(mContext->getDevice(), mRenderFinishedSemaphore, nullptr);
-        for (size_t i{0};i < mFences.size();++i) {
-            vkDestroyFence(mContext->getDevice(), mFences[i], nullptr);
+        for (size_t i{0};i < mFencesInfo.size();++i) {
+            vkDestroyFence(mContext->getDevice(), mFencesInfo[i].fence, nullptr);
         }
+
         mCreated = false;
     }
 }
@@ -170,11 +179,11 @@ void Renderer::render() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(mContext->getGraphicsQueue(), 1, &submitInfo, mFences[mNextImageIndex]) != VK_SUCCESS) {
+    if (vkQueueSubmit(mContext->getGraphicsQueue(), 1, &submitInfo, mFencesInfo[mNextImageIndex].fence) != VK_SUCCESS) {
         throw std::runtime_error("Failed to submit draw command buffer");
     }
 
-    mIsFenceSubmitted[mNextImageIndex] = true;
+    mFencesInfo[mNextImageIndex].submitted = true;
 
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -210,13 +219,13 @@ void Renderer::update(double dt) {
         throw std::runtime_error("Failed to acquire swap chain image");
     }
 
-    if (mIsFenceSubmitted[mNextImageIndex]) {
-        if (vkGetFenceStatus(mContext->getDevice(), mFences[mNextImageIndex]) == VK_NOT_READY) {
+    if (mFencesInfo[mNextImageIndex].submitted) {
+        if (vkGetFenceStatus(mContext->getDevice(), mFencesInfo[mNextImageIndex].fence) == VK_NOT_READY) {
             std::cout << "Fence #" << mNextImageIndex << " not ready" << std::endl;
-            vkWaitForFences(mContext->getDevice(), 1, &mFences[mNextImageIndex], VK_TRUE, 0);
-            vkResetFences(mContext->getDevice(), 1, &mFences[mNextImageIndex]);
+            vkWaitForFences(mContext->getDevice(), 1, &mFencesInfo[mNextImageIndex].fence, VK_TRUE, 0);
+            vkResetFences(mContext->getDevice(), 1, &mFencesInfo[mNextImageIndex].fence);
         } else {
-            vkResetFences(mContext->getDevice(), 1, &mFences[mNextImageIndex]);
+            vkResetFences(mContext->getDevice(), 1, &mFencesInfo[mNextImageIndex].fence);
         }
     }
 
@@ -465,12 +474,11 @@ void Renderer::createSemaphores() {
 }
 
 void Renderer::createFences() {
-    mFences.resize(mSwapChain.getImageCount());
-    mIsFenceSubmitted.resize(mSwapChain.getImageCount());
+    mFencesInfo.resize(mSwapChain.getImageCount());
     VkFenceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    for (size_t i{0};i < mFences.size();++i) {
-        if (vkCreateFence(mContext->getDevice(), &createInfo, nullptr, &mFences[i]) != VK_SUCCESS) {
+    for (size_t i{0};i < mFencesInfo.size();++i) {
+        if (vkCreateFence(mContext->getDevice(), &createInfo, nullptr, &mFencesInfo[i].fence) != VK_SUCCESS) {
             throw std::runtime_error("failed to create fences");
         }
     }

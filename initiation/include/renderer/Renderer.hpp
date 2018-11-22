@@ -32,6 +32,11 @@ struct RendererAttachments {
     FrameBufferAttachment depth;
 };
 
+struct FenceInfo {
+    bool submitted{false};
+    VkFence fence;
+};
+
 class Renderer {
     public:
         Renderer();
@@ -55,8 +60,7 @@ class Renderer {
         VkDescriptorSet mDescriptorSet;
         VkExtent2D mExtent;
         std::vector<VkCommandBuffer> mCommandBuffers;
-        std::vector<VkFence> mFences;
-        std::vector<bool> mIsFenceSubmitted;
+        std::vector<FenceInfo> mFencesInfo;
         std::vector<bool> mCommandBufferNeedUpdate;
 
         std::vector<Framebuffer> mFrameBuffers;
