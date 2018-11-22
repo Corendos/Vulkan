@@ -85,7 +85,6 @@ class Renderer {
         std::vector<RendererAttachments> mFramebufferAttachments;
 
         bool mCreated{false};
-        bool mRecreated{false};
         bool mBypassRendering{false};
 
         const std::string shaderPath = std::string(ROOT_PATH) + std::string("shaders/build/");

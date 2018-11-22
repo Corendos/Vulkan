@@ -72,7 +72,6 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
     createFences();
 
     mCreated = true;
-    mRecreated = true;
 }
 
 void Renderer::recreate() {
