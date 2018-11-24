@@ -40,7 +40,7 @@ struct FenceInfo {
 class Renderer {
     public:
         Renderer();
-        void create(VulkanContext& context, TextureManager& textureManager);
+        void create(VulkanContext& context, TextureManager& textureManager, ObjectManager& objectManager);
         void recreate();
         void destroy();
         void render();
@@ -48,6 +48,8 @@ class Renderer {
 
         void setCamera(Camera& camera);
         void setLight(Light& light);
+
+        void setBufferNeedUpdate();
 
         MemoryManager& getMemoryManager();
         VkDescriptorPool getDescriptorPool() const;
@@ -77,8 +79,7 @@ class Renderer {
         Shader mVertexShader;
         Shader mFragmentShader;
 
-        ObjectManager mObjectManager;
-        std::vector<std::unique_ptr<Object>> mObjects;
+        ObjectManager* mObjectManager;
 
         uint32_t mNextImageIndex;
         std::array<VkClearValue, 3> mClearValues;

@@ -22,6 +22,7 @@
 #include "camera/Camera.hpp"
 #include "renderer/Renderer.hpp"
 #include "renderer/Light.hpp"
+#include "renderer/ObjectManager.hpp"
 #include "inputs/Input.hpp"
 #include "utils.hpp"
 #include "BasicLogger.hpp"
@@ -40,6 +41,8 @@ class HelloTriangleApplication {
         Camera mCamera;
         Light mLight;
         TextureManager mTextureManager;
+        ObjectManager mObjectManager;
+        std::vector<std::unique_ptr<Object>> mObjects;
 
         BasicLogger mOutLogger{"../out.log"};
         BasicLogger mErrLogger{"../err.log"};

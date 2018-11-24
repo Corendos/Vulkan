@@ -49,6 +49,9 @@ class ObjectManager {
         VkDescriptorSetLayout mDescriptorSetLayout;
         std::vector<DescriptorSetHandler> mDescriptorSetHandlers;
 
+        uint32_t mCurrentVertexBufferSize{0};
+        uint32_t mCurrentIndexBufferSize{0};
+
         uint32_t mObjectsCount{0};
 
         bool mUpdateNeeded{false};

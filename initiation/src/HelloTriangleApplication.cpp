@@ -21,8 +21,20 @@ void HelloTriangleApplication::mainLoop() {
 
         processInputs();
 
+        if (mInput.getMouse().button[MouseButton::Right].down) {
+            Object o = Object::temp({0, 0, 0});
+            o.setTexture(mTextureManager.getTexture("diamond"));
+            mObjects.push_back(std::make_unique<Object>(std::move(o)));
+            mObjectManager.addObject(*mObjects.back());
+            mObjectManager.updateBuffers();
+            mRenderer.setBufferNeedUpdate();
+        }
+
         auto start = std::chrono::high_resolution_clock::now();
         double dt = std::chrono::duration<double>(start - updateEnd).count();
+        for (auto& o : mObjects) {
+            o->getTransform().rotate(3.14159265 * dt, glm::vec3(0.0, 0.0, 1.0));
+        }
         mRenderer.update(dt);
         updateEnd = std::chrono::high_resolution_clock::now();
         mRenderer.render();
@@ -49,6 +61,7 @@ void HelloTriangleApplication::mainLoop() {
 void HelloTriangleApplication::cleanup() {
     vkDeviceWaitIdle(mContext.getDevice());
     mInput.stop();
+    mObjectManager.destroy();
     mRenderer.destroy();
     mTextureManager.destroy();
     mContext.destroy();
@@ -81,7 +94,26 @@ void HelloTriangleApplication::init() {
     mTextureManager.load("diamond", std::string(ROOT_PATH) + std::string("textures/diamond.png"));
     mTextureManager.load("dirt", std::string(ROOT_PATH) + std::string("textures/dirt.png"));
 
-    mRenderer.create(mContext, mTextureManager);
+    mObjectManager.create(mContext);
+    int size = 2;
+    float space = 2.0f;
+    for (int i = 0;i < size*size*size;++i) {
+        int zInt = i / (size * size);
+        int yInt = (i % (size * size)) / size;
+        int xInt = (i % (size * size)) % size;
+        float z = space * (float)zInt - space * (float)(size - 1) / 2.0f;
+        float y = space * (float)yInt - space * (float)(size - 1) / 2.0f;
+        float x = space * (float)xInt - space * (float)(size - 1) / 2.0f;
+        Object o = Object::temp({x, y, z});
+        o.setTexture(mTextureManager.getTexture("dirt"));
+        mObjects.push_back(std::make_unique<Object>(std::move(o)));
+    }
+    for (size_t i{0};i < mObjects.size();++i) {
+        mObjectManager.addObject(*mObjects[i]);
+        mObjectManager.updateBuffers();
+    }
+
+    mRenderer.create(mContext, mTextureManager, mObjectManager);
     mRenderer.setCamera(mCamera);
     mRenderer.setLight(mLight);
 }

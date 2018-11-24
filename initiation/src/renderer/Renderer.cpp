@@ -22,32 +22,14 @@ Renderer::Renderer() {
     mClearValues[2].depthStencil = {1.0f, 0};
 }
 
-void Renderer::create(VulkanContext& context, TextureManager& textureManager) {
+void Renderer::create(VulkanContext& context, TextureManager& textureManager, ObjectManager& objectManager) {
     if (mCreated) {
         return;
     }
 
     mContext = &context;
     mTextureManager = &textureManager;
-    mObjectManager.create(*mContext);
-    int size = 2;
-    float space = 2.0f;
-    for (int i = 0;i < size*size*size;++i) {
-        int zInt = i / (size * size);
-        int yInt = (i % (size * size)) / size;
-        int xInt = (i % (size * size)) % size;
-        float z = space * (float)zInt - space * (float)(size - 1) / 2.0f;
-        float y = space * (float)yInt - space * (float)(size - 1) / 2.0f;
-        float x = space * (float)xInt - space * (float)(size - 1) / 2.0f;
-        Object o = Object::temp({x, y, z});
-        o.setTexture(mTextureManager->getTexture("dirt"));
-        mObjects.push_back(std::make_unique<Object>(std::move(o)));
-    }
-    for (size_t i{0};i < mObjects.size();++i) {
-        mObjectManager.addObject(*mObjects[i]);
-    }
-
-    mObjectManager.updateBuffers();
+    mObjectManager = &objectManager;
 
     mSwapChain.query(mContext->getWindow(),
                      mContext->getPhysicalDevice(),
@@ -137,8 +119,6 @@ void Renderer::destroy() {
         for (auto& framebuffer : mFrameBuffers) {
             framebuffer.destroy(mContext->getDevice());
         }
-
-        mObjectManager.destroy();
         mVertexShader.destroy(mContext->getDevice());
         mFragmentShader.destroy(mContext->getDevice());
 
@@ -230,10 +210,7 @@ void Renderer::update(double dt) {
     }
 
     updateUniformBuffer(mNextImageIndex);
-    for (auto& o : mObjects) {
-        o->getTransform().rotate(3.14159265 * dt, glm::vec3(0.0, 0.0, 1.0));
-    }
-    mObjectManager.updateUniformBuffer();
+    mObjectManager->updateUniformBuffer();
     if (mCommandBufferNeedUpdate[mNextImageIndex]) {
         updateCommandBuffer(mNextImageIndex);
         mCommandBufferNeedUpdate[mNextImageIndex] = false;
@@ -246,6 +223,12 @@ void Renderer::setCamera(Camera& camera) {
 
 void Renderer::setLight(Light& light) {
     mLight = &light;
+}
+
+void Renderer::setBufferNeedUpdate() {
+    for (size_t i{0};i < mCommandBufferNeedUpdate.size();++i) {
+        mCommandBufferNeedUpdate[i] = true;
+    }
 }
 
 VkDescriptorPool Renderer::getDescriptorPool() const {
@@ -340,7 +323,7 @@ void Renderer::createGraphicsPipeline() {
     mFragmentShader.create(mContext->getDevice());
 
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
-        mObjectManager.getDescriptorSetLayout(),
+        mObjectManager->getDescriptorSetLayout(),
         mCameraDescriptorSetLayout
     };
 
@@ -545,7 +528,7 @@ void Renderer::updateCommandBuffer(uint32_t index) {
                             1, 1, &mCameraDescriptorSets[index],
                             0, nullptr);
 
-    mObjectManager.render(mCommandBuffers[index], mPipeline.getLayout().getHandler());    
+    mObjectManager->render(mCommandBuffers[index], mPipeline.getLayout().getHandler());    
 
     vkCmdEndRenderPass(mCommandBuffers[index]);
 
