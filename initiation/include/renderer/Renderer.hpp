@@ -49,8 +49,6 @@ class Renderer {
         void setCamera(Camera& camera);
         void setLight(Light& light);
 
-        void setBufferNeedUpdate();
-
         MemoryManager& getMemoryManager();
         VkDescriptorPool getDescriptorPool() const;
 
@@ -93,6 +91,9 @@ class Renderer {
         bool mBypassRendering{false};
 
         const std::string shaderPath = std::string(ROOT_PATH) + std::string("shaders/build/");
+
+        void acquireNextImage();
+        void waitForFence();
 
         void createRenderPass();
         void createGraphicsPipeline();

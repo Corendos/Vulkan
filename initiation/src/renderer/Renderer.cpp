@@ -186,28 +186,8 @@ void Renderer::render() {
 }
 
 void Renderer::update(double dt) {
-    mBypassRendering = false;
-    VkResult result = vkAcquireNextImageKHR(
-        mContext->getDevice(), mSwapChain.getHandler(), std::numeric_limits<uint64_t>::max(),
-        mImageAvailableSemaphore, VK_NULL_HANDLE, &mNextImageIndex);
-
-    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        recreate();
-        mBypassRendering = true;
-        return;
-    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-        throw std::runtime_error("Failed to acquire swap chain image");
-    }
-
-    if (mFencesInfo[mNextImageIndex].submitted) {
-        if (vkGetFenceStatus(mContext->getDevice(), mFencesInfo[mNextImageIndex].fence) == VK_NOT_READY) {
-            std::cout << "Fence #" << mNextImageIndex << " not ready" << std::endl;
-            vkWaitForFences(mContext->getDevice(), 1, &mFencesInfo[mNextImageIndex].fence, VK_TRUE, 0);
-            vkResetFences(mContext->getDevice(), 1, &mFencesInfo[mNextImageIndex].fence);
-        } else {
-            vkResetFences(mContext->getDevice(), 1, &mFencesInfo[mNextImageIndex].fence);
-        }
-    }
+    acquireNextImage();
+    waitForFence();
 
     updateUniformBuffer(mNextImageIndex);
     mObjectManager->updateUniformBuffer();
@@ -225,14 +205,33 @@ void Renderer::setLight(Light& light) {
     mLight = &light;
 }
 
-void Renderer::setBufferNeedUpdate() {
-    for (size_t i{0};i < mCommandBufferNeedUpdate.size();++i) {
-        mCommandBufferNeedUpdate[i] = true;
+VkDescriptorPool Renderer::getDescriptorPool() const {
+    return mDescriptorPool;
+}
+
+void Renderer::acquireNextImage() {
+    mBypassRendering = false;
+    VkResult result = vkAcquireNextImageKHR(
+        mContext->getDevice(), mSwapChain.getHandler(), std::numeric_limits<uint64_t>::max(),
+        mImageAvailableSemaphore, VK_NULL_HANDLE, &mNextImageIndex);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        recreate();
+        mBypassRendering = true;
+        return;
+    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        throw std::runtime_error("Failed to acquire swap chain image");
     }
 }
 
-VkDescriptorPool Renderer::getDescriptorPool() const {
-    return mDescriptorPool;
+void Renderer::waitForFence() {
+    if (mFencesInfo[mNextImageIndex].submitted) {
+        if (vkGetFenceStatus(mContext->getDevice(), mFencesInfo[mNextImageIndex].fence) == VK_NOT_READY) {
+            std::cout << "Fence #" << mNextImageIndex << " not ready" << std::endl;
+            vkWaitForFences(mContext->getDevice(), 1, &mFencesInfo[mNextImageIndex].fence, VK_TRUE, 0);
+        }
+        vkResetFences(mContext->getDevice(), 1, &mFencesInfo[mNextImageIndex].fence);
+    }
 }
 
 void Renderer::createRenderPass() {
