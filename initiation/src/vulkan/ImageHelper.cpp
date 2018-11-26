@@ -31,7 +31,7 @@ VkImage ImageHelper::create(VulkanContext& context,
     VkMemoryRequirements memoryRequirements;
     vkGetImageMemoryRequirements(context.getDevice(), image, &memoryRequirements);
 
-    context.getMemoryManager().allocateForImage(image, memoryRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    context.getMemoryManager().allocateForImage(image, memoryRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Image");
     
     return image;
 }

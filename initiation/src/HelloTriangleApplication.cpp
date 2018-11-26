@@ -26,8 +26,6 @@ void HelloTriangleApplication::mainLoop() {
             o.setTexture(mTextureManager.getTexture("diamond"));
             mObjects.push_back(std::make_unique<Object>(std::move(o)));
             mObjectManager.addObject(*mObjects.back());
-            mObjectManager.updateBuffers();
-            mRenderer.setBufferNeedUpdate();
         }
 
         auto start = std::chrono::high_resolution_clock::now();

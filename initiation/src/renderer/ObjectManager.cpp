@@ -118,12 +118,14 @@ void ObjectManager::updateBuffers() {
                                    vertexBufferSizeInBytes,
                                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                   mVertexBuffer);
+                                   mVertexBuffer,
+                                   "Vertex Buffer");
         BufferHelper::createBuffer(*mContext,
                                    indexBufferSizeInBytes,
                                    VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                   mIndexBuffer);
+                                   mIndexBuffer,
+                                   "Index Buffer");
         mCurrentVertexBufferSize = vertexBufferSize;
         mCurrentIndexBufferSize = indexBufferSize;
         mFirstAllocation = false;
@@ -137,7 +139,8 @@ void ObjectManager::updateBuffers() {
                                    vertexBufferSizeInBytes,
                                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                   mVertexBuffer);
+                                   mVertexBuffer,
+                                   "Vertex Buffer");
         mCurrentVertexBufferSize = vertexBufferSize;
     }
 
@@ -148,7 +151,8 @@ void ObjectManager::updateBuffers() {
                                    indexBufferSizeInBytes,
                                    VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                   mIndexBuffer);
+                                   mIndexBuffer,
+                                   "Index Buffer");
         mCurrentIndexBufferSize = indexBufferSize;
     }
 
@@ -192,12 +196,14 @@ void ObjectManager::updateBuffers() {
                                 vertexBufferSizeInBytes,
                                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                stagingVertexBuffer);
+                                stagingVertexBuffer,
+                                "Staging Vertex Buffer");
     BufferHelper::createBuffer(*mContext,
                                 indexBufferSizeInBytes,
                                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                stagingIndexBuffer);
+                                stagingIndexBuffer,
+                                "Staging Index Buffer");
 
     /* Copy the data in the staging buffers */
     void* data;
@@ -320,7 +326,8 @@ void ObjectManager::createAndAllocateUniformBuffer() {
                                size,
                                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               mModelMatrixBuffer);
+                               mModelMatrixBuffer,
+                               "Uniform Buffer");
 }
 
 void ObjectManager::allocateDescriptorSets() {

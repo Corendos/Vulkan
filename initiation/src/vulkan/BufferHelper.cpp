@@ -6,7 +6,8 @@ void BufferHelper::createBuffer(VulkanContext& context,
                                 VkDeviceSize size,
                                 VkBufferUsageFlags usage,
                                 VkMemoryPropertyFlags properties,
-                                VkBuffer& buffer) {
+                                VkBuffer& buffer,
+                                std::string name) {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
@@ -19,7 +20,7 @@ void BufferHelper::createBuffer(VulkanContext& context,
     VkMemoryRequirements memoryRequirements{};
     vkGetBufferMemoryRequirements(context.getDevice(), buffer, &memoryRequirements);
 
-    context.getMemoryManager().allocateForBuffer(buffer, memoryRequirements, properties);
+    context.getMemoryManager().allocateForBuffer(buffer, memoryRequirements, properties, name);
 }
 
 void BufferHelper::copyBuffer(VulkanContext& context,

@@ -409,7 +409,8 @@ void Renderer::createCameraUniformBuffers() {
                                bufferSize,
                                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
-                               mCameraUniformBuffers[i]);
+                               mCameraUniformBuffers[i],
+                               "Camera Uniform Buffer");
     }
 }
 
@@ -487,7 +488,8 @@ FrameBufferAttachment Renderer::createAttachment(VkFormat format,
     mContext->getMemoryManager().allocateForImage(
         attachment.image.getHandler(),
         memoryRequirements,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        "attachment"
     );
 
     attachment.imageView.setImageViewType(VK_IMAGE_VIEW_TYPE_2D);

@@ -22,8 +22,14 @@ class MemoryManager {
         void printInfo();
         void cleanup();
 
-        void allocateForBuffer(VkBuffer buffer, VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags properties);
-        void allocateForImage(VkImage image, VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags properties);
+        void allocateForBuffer(VkBuffer buffer,
+                               VkMemoryRequirements& memoryRequirements,
+                               VkMemoryPropertyFlags properties,
+                               std::string name);
+        void allocateForImage(VkImage image,
+                              VkMemoryRequirements& memoryRequirements,
+                              VkMemoryPropertyFlags properties,
+                              std::string name);
         void freeBuffer(VkBuffer buffer);
         void freeImage(VkImage image);
         void mapMemory(VkBuffer buffer, VkDeviceSize size, void** data);

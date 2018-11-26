@@ -56,7 +56,7 @@ void MemoryManager::memoryCheckLog() {
                 if (mMemoryTypeOccupations[i][j].blocks[blockIndex]) {
                     file << "Memory Block #" << blockIndex << std::hex << " (0x"
                         << blockIndex * pageSize << " - 0x" << (blockIndex + 1) * pageSize
-                        << ") not freed" << std::endl;
+                        << ") used by \"" << mMemoryTypeOccupations[i][j].blocks[blockIndex].name << "\" not freed" << std::endl;
                 }
             }
         }
@@ -99,7 +99,10 @@ void MemoryManager::cleanup() {
     }
 }
 
-void MemoryManager::allocateForBuffer(VkBuffer buffer, VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags properties) {
+void MemoryManager::allocateForBuffer(VkBuffer buffer,
+                                      VkMemoryRequirements& memoryRequirements,
+                                      VkMemoryPropertyFlags properties,
+                                      std::string name) {
     int32_t memoryTypeIndex = findMemoryType(memoryRequirements, properties);
 
     if (memoryTypeIndex == -1) {
@@ -120,6 +123,7 @@ void MemoryManager::allocateForBuffer(VkBuffer buffer, VkMemoryRequirements& mem
         for (uint32_t i{static_cast<uint32_t>(pageOffset)};i < pageOffset + blockCount;++i) {
             mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i] = true;
             mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i].buffer = buffer;
+            mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i].name = name;
         }
 
         mBuffersInfo[buffer] = {
@@ -135,7 +139,10 @@ void MemoryManager::allocateForBuffer(VkBuffer buffer, VkMemoryRequirements& mem
     }
 }
 
-void MemoryManager::allocateForImage(VkImage image, VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags properties) {
+void MemoryManager::allocateForImage(VkImage image,
+                                     VkMemoryRequirements& memoryRequirements,
+                                     VkMemoryPropertyFlags properties,
+                                     std::string name) {
     int32_t memoryTypeIndex = findMemoryType(memoryRequirements, properties);
 
     if (memoryTypeIndex == -1) {
@@ -156,6 +163,7 @@ void MemoryManager::allocateForImage(VkImage image, VkMemoryRequirements& memory
         for (uint32_t i{static_cast<uint32_t>(pageOffset)};i < pageOffset + blockCount;++i) {
             mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i] = true;
             mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i].image = image;
+            mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i].name = name;
         }
 
         mImagesInfo[image] = {
@@ -177,6 +185,7 @@ void MemoryManager::freeBuffer(VkBuffer buffer) {
     for (uint32_t i{0};i < bufferInfo.blockCount;i++) {
         mMemoryTypeOccupations[bufferInfo.memoryTypeIndex][bufferInfo.memoryTypeOffset].blocks[bufferInfo.pageOffset + i].buffer = VK_NULL_HANDLE;
         mMemoryTypeOccupations[bufferInfo.memoryTypeIndex][bufferInfo.memoryTypeOffset].blocks[bufferInfo.pageOffset + i].occupied = false;
+        mMemoryTypeOccupations[bufferInfo.memoryTypeIndex][bufferInfo.memoryTypeOffset].blocks[bufferInfo.pageOffset + i].name.clear();
     }
 
     vkDestroyBuffer(mDevice, buffer, nullptr);
@@ -188,6 +197,7 @@ void MemoryManager::freeImage(VkImage image) {
     for (uint32_t i{0};i < imageInfo.blockCount;i++) {
         mMemoryTypeOccupations[imageInfo.memoryTypeIndex][imageInfo.memoryTypeOffset].blocks[imageInfo.pageOffset + i].image = VK_NULL_HANDLE;
         mMemoryTypeOccupations[imageInfo.memoryTypeIndex][imageInfo.memoryTypeOffset].blocks[imageInfo.pageOffset + i].occupied = false;
+        mMemoryTypeOccupations[imageInfo.memoryTypeIndex][imageInfo.memoryTypeOffset].blocks[imageInfo.pageOffset + i].name.clear();
     }
     
     vkDestroyImage(mDevice, image, nullptr);

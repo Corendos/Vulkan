@@ -13,7 +13,8 @@ class BufferHelper {
                                  VkDeviceSize size,
                                  VkBufferUsageFlags usage,
                                  VkMemoryPropertyFlags properties,
-                                 VkBuffer& buffer);
+                                 VkBuffer& buffer,
+                                 std::string name);
         static void copyBuffer(VulkanContext& context,
                                CommandPool& commandPool,
                                VkQueue queue,

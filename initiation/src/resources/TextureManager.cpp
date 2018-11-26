@@ -18,7 +18,7 @@ void TextureManager::destroy() {
     for (auto it{mTextures.begin()};it != mTextures.end();++it) {
         it->second.getImageView().destroy(mContext->getDevice());
         it->second.getSampler().destroy(mContext->getDevice());
-        vkDestroyImage(mContext->getDevice(), it->second.getImage().getHandler(), nullptr);
+        mContext->getMemoryManager().freeImage(it->second.getImage().getHandler());
     }
 }
 
@@ -55,7 +55,7 @@ VkBuffer TextureManager::_loadToStaging(std::string& filename,
     BufferHelper::createBuffer(*mContext, size,
                                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               stagingBuffer);
+                               stagingBuffer, filename);
 
     void* data;
     mContext->getMemoryManager().mapMemory(stagingBuffer, size, &data);
@@ -86,7 +86,7 @@ Image TextureManager::_createImage(std::string& filename) {
     VkMemoryRequirements memoryRequirements;
     vkGetImageMemoryRequirements(mContext->getDevice(), image.getHandler(), &memoryRequirements);
 
-    mContext->getMemoryManager().allocateForImage(image.getHandler(), memoryRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    mContext->getMemoryManager().allocateForImage(image.getHandler(), memoryRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, filename);
 
     ImageHelper::transitionImageLayout(*mContext, image.getHandler(), VK_FORMAT_R8G8B8A8_UNORM,
                                  VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
