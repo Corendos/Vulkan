@@ -11,3 +11,11 @@ Mesh& Mesh::operator=(Mesh&& other) {
     mIndices = std::move(other.mIndices);
     return *this;
 }
+
+Transform& Mesh::getTransform() {
+    return mTransform;
+}
+
+void Mesh::setTexture(Texture& texture) {
+    mTexture = &texture;
+}
