@@ -38,7 +38,7 @@ class MeshManager {
             uint32_t indexBufferSize{0};
             VkBuffer modelTransformBuffer;
             VkDescriptorSetLayout descriptorSetLayout;
-            std::array<DescriptorSetInfo, MaximumMeshCount> descriptorSets;
+            std::array<DescriptorSetInfo, MaximumMeshCount> descriptorSetInfos;
             std::map<Mesh*, VkDescriptorSet> descriptorSetBinding;
         } mRenderData;
 
@@ -51,6 +51,7 @@ class MeshManager {
         void allocateDescriptorSets();
         void updateStaticBuffers();
         void updateUniformBuffer();
+        void updateDescriptorSet(Mesh& mesh, VkDescriptorSet& descriptorSet);
 };
 
 #endif

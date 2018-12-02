@@ -115,6 +115,7 @@ void HelloTriangleApplication::init() {
     mMeshManager.create(mContext);
     Vertex v{};
     mTemp = std::make_unique<Mesh>(std::vector<Vertex>({v, v, v}), std::vector<uint32_t>({1, 2, 3}));
+    mTemp->setTexture(mTextureManager.getTexture("diamond"));
     mMeshManager.addMesh(*mTemp);
 
     mRenderer.create(mContext, mTextureManager, mObjectManager);

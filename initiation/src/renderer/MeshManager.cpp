@@ -25,13 +25,26 @@ void MeshManager::destroy() {
 void MeshManager::addMesh(Mesh& mesh) {
     assert(mMeshes.size() < MaximumMeshCount);
     mMeshes.push_back(&mesh);
+
+    auto descriptorIt = std::find_if(mRenderData.descriptorSetInfos.begin(), mRenderData.descriptorSetInfos.end(),
+                                     [](const DescriptorSetInfo& info) { return info.free; });
+    assert(descriptorIt != mRenderData.descriptorSetInfos.end());
+    descriptorIt->free = false;
+    mRenderData.descriptorSetBinding[&mesh] = descriptorIt->descriptorSet;
     updateStaticBuffers();
+    updateDescriptorSet(mesh, descriptorIt->descriptorSet);
 }
 
 void MeshManager::removeMesh(Mesh& mesh) {
-    auto it = std::find(mMeshes.begin(), mMeshes.end(), &mesh);
-    assert(it != mMeshes.end());
-    mMeshes.erase(it);
+    auto meshIt = std::find(mMeshes.begin(), mMeshes.end(), &mesh);
+    assert(meshIt != mMeshes.end());
+    mMeshes.erase(meshIt);
+
+    VkDescriptorSet descriptorSet = mRenderData.descriptorSetBinding[&mesh];
+    auto descriptorIt = std::find_if(mRenderData.descriptorSetInfos.begin(), mRenderData.descriptorSetInfos.end(),
+                                     [&descriptorSet](const DescriptorSetInfo& info) { return info.descriptorSet == descriptorSet; });
+    descriptorIt->free = true;
+    mRenderData.descriptorSetBinding.erase(&mesh);
 }
 
 void MeshManager::createDescriptorSetLayout() {
@@ -90,7 +103,7 @@ void MeshManager::allocateDescriptorSets() {
     }
 
     for (size_t i{0};i < MaximumMeshCount;++i) {
-        mRenderData.descriptorSets[i].descriptorSet = descriptors[i];
+        mRenderData.descriptorSetInfos[i].descriptorSet = descriptors[i];
     }
 }
 
@@ -200,4 +213,21 @@ void MeshManager::updateUniformBuffer() {
         data = (uint8_t*)data + offset;
     }
     mContext->getMemoryManager().unmapMemory(mRenderData.modelTransformBuffer);
+}
+
+void MeshManager::updateDescriptorSet(Mesh& mesh, VkDescriptorSet& descriptorSet) {
+    VkDescriptorImageInfo info{};
+    info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    info.imageView = mesh.getTexture().getImageView().getHandler();
+    info.sampler = mesh.getTexture().getSampler().getHandler();
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.descriptorCount = 1;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    write.dstBinding = 0;
+    write.dstSet = descriptorSet;
+    write.pImageInfo = &info;
+
+    vkUpdateDescriptorSets(mContext->getDevice(), 1, &write, 0, nullptr);
 }

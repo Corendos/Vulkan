@@ -24,6 +24,11 @@ const std::vector<uint32_t>& Mesh::getIndices() const {
     return mIndices;
 }
 
+Texture& Mesh::getTexture() {
+    assert(mTexture != nullptr);
+    return *mTexture;
+}
+
 void Mesh::setTexture(Texture& texture) {
     mTexture = &texture;
 }

@@ -20,13 +20,14 @@ class Mesh {
         Transform& getTransform();
         const std::vector<Vertex>& getVertices() const;
         const std::vector<uint32_t>& getIndices() const;
+        Texture& getTexture();
 
         void setTexture(Texture& texture);
     private:
         std::vector<Vertex> mVertices;
         std::vector<uint32_t> mIndices;
 
-        Texture* mTexture;
+        Texture* mTexture{nullptr};
 
         Transform mTransform;
 };
