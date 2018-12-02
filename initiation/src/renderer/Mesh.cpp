@@ -16,6 +16,14 @@ Transform& Mesh::getTransform() {
     return mTransform;
 }
 
+const std::vector<Vertex>& Mesh::getVertices() const {
+    return mVertices;
+}
+
+const std::vector<uint32_t>& Mesh::getIndices() const {
+    return mIndices;
+}
+
 void Mesh::setTexture(Texture& texture) {
     mTexture = &texture;
 }

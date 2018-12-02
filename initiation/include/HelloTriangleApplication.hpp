@@ -23,6 +23,7 @@
 #include "renderer/Renderer.hpp"
 #include "renderer/Light.hpp"
 #include "renderer/ObjectManager.hpp"
+#include "renderer/MeshManager.hpp"
 #include "inputs/Input.hpp"
 #include "utils.hpp"
 #include "BasicLogger.hpp"
@@ -43,6 +44,10 @@ class HelloTriangleApplication {
         TextureManager mTextureManager;
         ObjectManager mObjectManager;
         std::vector<std::unique_ptr<Object>> mObjects;
+
+        MeshManager mMeshManager;
+        std::unique_ptr<Mesh> mTemp;
+        
 
         BasicLogger mOutLogger{"../out.log"};
         BasicLogger mErrLogger{"../err.log"};

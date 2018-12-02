@@ -18,6 +18,8 @@ class Mesh {
         Mesh& operator=(Mesh&& other);
 
         Transform& getTransform();
+        const std::vector<Vertex>& getVertices() const;
+        const std::vector<uint32_t>& getIndices() const;
 
         void setTexture(Texture& texture);
     private:

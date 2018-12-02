@@ -60,6 +60,7 @@ void HelloTriangleApplication::cleanup() {
     vkDeviceWaitIdle(mContext.getDevice());
     mInput.stop();
     mObjectManager.destroy();
+    mMeshManager.destroy();
     mRenderer.destroy();
     mTextureManager.destroy();
     mContext.destroy();
@@ -110,6 +111,11 @@ void HelloTriangleApplication::init() {
         mObjectManager.addObject(*mObjects[i]);
         mObjectManager.updateBuffers();
     }
+
+    mMeshManager.create(mContext);
+    Vertex v{};
+    mTemp = std::make_unique<Mesh>(std::vector<Vertex>({v, v, v}), std::vector<uint32_t>({1, 2, 3}));
+    mMeshManager.addMesh(*mTemp);
 
     mRenderer.create(mContext, mTextureManager, mObjectManager);
     mRenderer.setCamera(mCamera);
