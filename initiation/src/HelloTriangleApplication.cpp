@@ -2,6 +2,7 @@
 
 #include "HelloTriangleApplication.hpp"
 #include "utils.hpp"
+#include "renderer/MeshHelper.hpp"
 
 void HelloTriangleApplication::run() {
     init();
@@ -113,12 +114,12 @@ void HelloTriangleApplication::init() {
     }
 
     mMeshManager.create(mContext);
-    Vertex v{};
-    mTemp = std::make_unique<Mesh>(std::vector<Vertex>({v, v, v}), std::vector<uint32_t>({1, 2, 3}));
+    mTemp = std::make_unique<Mesh>(std::move(MeshHelper::createCube(1.0)));
     mTemp->setTexture(mTextureManager.getTexture("diamond"));
+    mTemp->getTransform().setPosition({0.0, 0.0, 0.0});
     mMeshManager.addMesh(*mTemp);
 
-    mRenderer.create(mContext, mTextureManager, mObjectManager);
+    mRenderer.create(mContext, mTextureManager, mMeshManager);
     mRenderer.setCamera(mCamera);
     mRenderer.setLight(mLight);
 }
