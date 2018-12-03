@@ -12,7 +12,7 @@ class PipelineLayout {
 
         void create(VkDevice device);
         void destroy(VkDevice device);
-        VkPipelineLayout getHandler() const;
+        VkPipelineLayout getHandler();
 
         void setFlags(VkPipelineLayoutCreateFlags flags);
         void setDescriptorSetLayouts(std::vector<VkDescriptorSetLayout> layouts);

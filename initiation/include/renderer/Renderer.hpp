@@ -15,7 +15,7 @@
 #include "vulkan/Image.hpp"
 #include "vulkan/VulkanContext.hpp"
 #include "camera/Camera.hpp"
-#include "renderer/ObjectManager.hpp"
+#include "renderer/MeshManager.hpp"
 #include "renderer/Light.hpp"
 #include "memory/MemoryManager.hpp"
 #include "renderer/Object.hpp"
@@ -40,7 +40,7 @@ struct FenceInfo {
 class Renderer {
     public:
         Renderer();
-        void create(VulkanContext& context, TextureManager& textureManager, ObjectManager& objectManager);
+        void create(VulkanContext& context, TextureManager& textureManager, MeshManager& meshManager);
         void recreate();
         void destroy();
         void render();
@@ -77,7 +77,7 @@ class Renderer {
         Shader mVertexShader;
         Shader mFragmentShader;
 
-        ObjectManager* mObjectManager;
+        MeshManager* mMeshManager;
 
         uint32_t mNextImageIndex;
         std::array<VkClearValue, 3> mClearValues;

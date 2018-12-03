@@ -22,14 +22,14 @@ Renderer::Renderer() {
     mClearValues[2].depthStencil = {1.0f, 0};
 }
 
-void Renderer::create(VulkanContext& context, TextureManager& textureManager, ObjectManager& objectManager) {
+void Renderer::create(VulkanContext& context, TextureManager& textureManager, MeshManager& meshManager) {
     if (mCreated) {
         return;
     }
 
     mContext = &context;
     mTextureManager = &textureManager;
-    mObjectManager = &objectManager;
+    mMeshManager = &meshManager;
 
     mSwapChain.query(mContext->getWindow(),
                      mContext->getPhysicalDevice(),
@@ -190,7 +190,7 @@ void Renderer::update(double dt) {
     waitForFence();
 
     updateUniformBuffer(mNextImageIndex);
-    mObjectManager->updateUniformBuffer();
+    mMeshManager->updateUniformBuffer();
     if (mCommandBufferNeedUpdate[mNextImageIndex]) {
         updateCommandBuffer(mNextImageIndex);
         mCommandBufferNeedUpdate[mNextImageIndex] = false;
@@ -322,7 +322,7 @@ void Renderer::createGraphicsPipeline() {
     mFragmentShader.create(mContext->getDevice());
 
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
-        mObjectManager->getDescriptorSetLayout(),
+        mMeshManager->getDescriptorSetLayout(),
         mCameraDescriptorSetLayout
     };
 
@@ -529,7 +529,7 @@ void Renderer::updateCommandBuffer(uint32_t index) {
                             1, 1, &mCameraDescriptorSets[index],
                             0, nullptr);
 
-    mObjectManager->render(mCommandBuffers[index], mPipeline.getLayout().getHandler());    
+    mMeshManager->render(mCommandBuffers[index], mPipeline.getLayout().getHandler());    
 
     vkCmdEndRenderPass(mCommandBuffers[index]);
 

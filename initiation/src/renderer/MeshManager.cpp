@@ -26,11 +26,11 @@ void MeshManager::addMesh(Mesh& mesh) {
     assert(mMeshes.size() < MaximumMeshCount);
     mMeshes.push_back(&mesh);
 
-    auto descriptorIt = std::find_if(mRenderData.descriptorSetInfos.begin(), mRenderData.descriptorSetInfos.end(),
-                                     [](const DescriptorSetInfo& info) { return info.free; });
-    assert(descriptorIt != mRenderData.descriptorSetInfos.end());
+    auto descriptorIt = std::find_if(mRenderData.meshDataPool.begin(), mRenderData.meshDataPool.end(),
+                                     [](const MeshData& data) { return data.free; });
+    assert(descriptorIt != mRenderData.meshDataPool.end());
     descriptorIt->free = false;
-    mRenderData.descriptorSetBinding[&mesh] = descriptorIt->descriptorSet;
+    mRenderData.meshDataBinding[&mesh] = &(*descriptorIt);
     updateStaticBuffers();
     updateDescriptorSet(mesh, descriptorIt->descriptorSet);
 }
@@ -40,11 +40,42 @@ void MeshManager::removeMesh(Mesh& mesh) {
     assert(meshIt != mMeshes.end());
     mMeshes.erase(meshIt);
 
-    VkDescriptorSet descriptorSet = mRenderData.descriptorSetBinding[&mesh];
-    auto descriptorIt = std::find_if(mRenderData.descriptorSetInfos.begin(), mRenderData.descriptorSetInfos.end(),
-                                     [&descriptorSet](const DescriptorSetInfo& info) { return info.descriptorSet == descriptorSet; });
+    VkDescriptorSet descriptorSet = mRenderData.meshDataBinding[&mesh]->descriptorSet;
+    auto descriptorIt = std::find_if(mRenderData.meshDataPool.begin(), mRenderData.meshDataPool.end(),
+                                     [&descriptorSet](const MeshData& data) { return data.descriptorSet == descriptorSet; });
     descriptorIt->free = true;
-    mRenderData.descriptorSetBinding.erase(&mesh);
+    mRenderData.meshDataBinding.erase(&mesh);
+}
+
+void MeshManager::render(VkCommandBuffer commandBuffer, VkPipelineLayout layout) {
+    uint32_t offset{0};
+    VkDeviceSize vertexOffset{0};
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mRenderData.vertexBuffer, &vertexOffset);
+    vkCmdBindIndexBuffer(commandBuffer, mRenderData.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+    for (Mesh* mesh : mMeshes) {
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+            layout, 0, 1, &mRenderData.meshDataBinding[mesh]->descriptorSet,
+            1, &mRenderData.meshDataBinding[mesh]->uniformBufferDynamicOffset);
+        vkCmdDrawIndexed(commandBuffer, mesh->getIndices().size(), 1, 0, offset, 0);
+        offset += mesh->getIndices().size();
+    }
+}
+
+VkDescriptorSetLayout MeshManager::getDescriptorSetLayout() const {
+    return mRenderData.descriptorSetLayout;
+}
+
+void MeshManager::updateUniformBuffer() {
+    void* mappingBegin;
+    mContext->getMemoryManager().mapMemory(mRenderData.modelTransformBuffer,
+        mRenderData.modelTransformBufferSize, &mappingBegin);
+    for (Mesh* mesh : mMeshes) {
+        glm::mat4 m = mesh->getTransform().getMatrix();
+        void* ptr = (uint8_t*)mappingBegin + mRenderData.meshDataBinding[mesh]->uniformBufferDynamicOffset;
+        memcpy(ptr, &m, sizeof(glm::mat4));
+    }
+    mContext->getMemoryManager().unmapMemory(mRenderData.modelTransformBuffer);
 }
 
 void MeshManager::createDescriptorSetLayout() {
@@ -85,6 +116,7 @@ void MeshManager::allocateUniformBuffer() {
     BufferHelper::createBuffer(*mContext, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                mRenderData.modelTransformBuffer, "MeshManager::modelTransformBuffer");
+    mRenderData.modelTransformBufferSize = size;
 }
 
 void MeshManager::allocateDescriptorSets() {
@@ -100,10 +132,16 @@ void MeshManager::allocateDescriptorSets() {
 
     if (vkAllocateDescriptorSets(mContext->getDevice(), &infos, descriptors.data()) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate descriptor sets");
-    }
+    }  
+
+    /* Copy to the mesh data pool */
+    uint32_t size = sizeof(glm::mat4) < mContext->getLimits().minUniformBufferOffsetAlignment ?
+        mContext->getLimits().minUniformBufferOffsetAlignment :
+        sizeof(glm::mat4);
 
     for (size_t i{0};i < MaximumMeshCount;++i) {
-        mRenderData.descriptorSetInfos[i].descriptorSet = descriptors[i];
+        mRenderData.meshDataPool[i].descriptorSet = descriptors[i];
+        mRenderData.meshDataPool[i].uniformBufferDynamicOffset = i * size;
     }
 }
 
@@ -159,11 +197,11 @@ void MeshManager::updateStaticBuffers() {
     auto indexIterator = localIndexBuffer.begin();
     uint32_t indexOffset{0};
     for (Mesh* mesh : mMeshes) {
-        vertexIterator = std::copy(mesh->getVertices().begin(), mesh->getVertices().begin(),
+        vertexIterator = std::copy(mesh->getVertices().begin(), mesh->getVertices().end(),
                                    vertexIterator);
 
         indexIterator = std::transform(
-            mesh->getIndices().begin(), mesh->getIndices().begin(),
+            mesh->getIndices().begin(), mesh->getIndices().end(),
             indexIterator, [indexOffset](const uint32_t& i) { return i + indexOffset; });
         indexOffset += mesh->getVertices().size();
     }
@@ -195,39 +233,33 @@ void MeshManager::updateStaticBuffers() {
     mRenderData.indexBufferSize = indexBufferSize;
 }
 
-void MeshManager::updateUniformBuffer() {
-    uint32_t size{0}, offset{0};
-    if (sizeof(glm::mat4) < mContext->getLimits().minUniformBufferOffsetAlignment) {
-        size = mContext->getLimits().minUniformBufferOffsetAlignment * mMeshes.size();
-        offset = mContext->getLimits().minUniformBufferOffsetAlignment;
-    } else {
-        size = sizeof(glm::mat4) * mMeshes.size();
-        offset = sizeof(glm::mat4);
-    }
-
-    void* data;
-    mContext->getMemoryManager().mapMemory(mRenderData.modelTransformBuffer, size, &data);
-    for (Mesh* mesh : mMeshes) {
-        glm::mat4 m = mesh->getTransform().getMatrix();
-        memcpy(data, &m, sizeof(glm::mat4));
-        data = (uint8_t*)data + offset;
-    }
-    mContext->getMemoryManager().unmapMemory(mRenderData.modelTransformBuffer);
-}
-
 void MeshManager::updateDescriptorSet(Mesh& mesh, VkDescriptorSet& descriptorSet) {
+    /* Texture info */
     VkDescriptorImageInfo info{};
     info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     info.imageView = mesh.getTexture().getImageView().getHandler();
     info.sampler = mesh.getTexture().getSampler().getHandler();
 
-    VkWriteDescriptorSet write{};
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.descriptorCount = 1;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    write.dstBinding = 0;
-    write.dstSet = descriptorSet;
-    write.pImageInfo = &info;
+    /* Uniform buffer info */
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = mRenderData.modelTransformBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = mRenderData.modelTransformBufferSize;
 
-    vkUpdateDescriptorSets(mContext->getDevice(), 1, &write, 0, nullptr);
+    VkWriteDescriptorSet writes[2] = {};
+    writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[0].descriptorCount = 1;
+    writes[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writes[0].dstBinding = 0;
+    writes[0].dstSet = descriptorSet;
+    writes[0].pImageInfo = &info;
+
+    writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[1].descriptorCount = 1;
+    writes[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    writes[1].dstBinding = 1;
+    writes[1].dstSet = descriptorSet;
+    writes[1].pBufferInfo = &bufferInfo;
+
+    vkUpdateDescriptorSets(mContext->getDevice(), 2, writes, 0, nullptr);
 }

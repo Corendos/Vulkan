@@ -9,8 +9,9 @@
 
 #include "renderer/Mesh.hpp"
 
-struct DescriptorSetInfo {
+struct MeshData {
     VkDescriptorSet descriptorSet{VK_NULL_HANDLE};
+    uint32_t uniformBufferDynamicOffset{0};
     bool free{true};
 };
 
@@ -29,6 +30,10 @@ class MeshManager {
         void addMesh(Mesh& mesh);
         void removeMesh(Mesh& mesh);
 
+        void updateUniformBuffer();
+        void render(VkCommandBuffer commandBuffer, VkPipelineLayout layout);
+        VkDescriptorSetLayout getDescriptorSetLayout() const;
+
         static constexpr size_t MaximumMeshCount{1024};
     private:
         struct {
@@ -37,9 +42,10 @@ class MeshManager {
             VkBuffer indexBuffer;
             uint32_t indexBufferSize{0};
             VkBuffer modelTransformBuffer;
+            uint32_t modelTransformBufferSize{0};
             VkDescriptorSetLayout descriptorSetLayout;
-            std::array<DescriptorSetInfo, MaximumMeshCount> descriptorSetInfos;
-            std::map<Mesh*, VkDescriptorSet> descriptorSetBinding;
+            std::array<MeshData, MaximumMeshCount> meshDataPool;
+            std::map<Mesh*, MeshData*> meshDataBinding;
         } mRenderData;
 
         VulkanContext* mContext;
@@ -50,7 +56,6 @@ class MeshManager {
         void allocateUniformBuffer();
         void allocateDescriptorSets();
         void updateStaticBuffers();
-        void updateUniformBuffer();
         void updateDescriptorSet(Mesh& mesh, VkDescriptorSet& descriptorSet);
 };
 
