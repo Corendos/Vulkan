@@ -7,7 +7,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "renderer/Mesh.hpp"
+#include "renderer/mesh/Mesh.hpp"
 
 struct MeshData {
     VkDescriptorSet descriptorSet{VK_NULL_HANDLE};
@@ -56,7 +56,7 @@ class MeshManager {
         void allocateUniformBuffer();
         void allocateDescriptorSets();
         void updateStaticBuffers();
-        void updateDescriptorSet(Mesh& mesh, VkDescriptorSet& descriptorSet);
+        void updateDescriptorSet(Mesh& mesh, MeshData& meshData);
 };
 
 #endif

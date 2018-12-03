@@ -15,10 +15,9 @@
 #include "vulkan/Image.hpp"
 #include "vulkan/VulkanContext.hpp"
 #include "camera/Camera.hpp"
-#include "renderer/MeshManager.hpp"
+#include "renderer/mesh/MeshManager.hpp"
 #include "renderer/Light.hpp"
 #include "memory/MemoryManager.hpp"
-#include "renderer/Object.hpp"
 #include "resources/TextureManager.hpp"
 #include "environment.hpp"
 

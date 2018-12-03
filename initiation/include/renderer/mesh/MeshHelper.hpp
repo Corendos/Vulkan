@@ -1,7 +1,7 @@
 #ifndef MESHHELPER
 #define MESHHELPER
 
-#include "renderer/Mesh.hpp"
+#include "renderer/mesh/Mesh.hpp"
 
 class MeshHelper {
     public:

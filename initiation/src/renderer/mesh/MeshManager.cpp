@@ -1,4 +1,4 @@
-#include "renderer/MeshManager.hpp"
+#include "renderer/mesh/MeshManager.hpp"
 
 #include "vulkan/BufferHelper.hpp"
 
@@ -26,13 +26,13 @@ void MeshManager::addMesh(Mesh& mesh) {
     assert(mMeshes.size() < MaximumMeshCount);
     mMeshes.push_back(&mesh);
 
-    auto descriptorIt = std::find_if(mRenderData.meshDataPool.begin(), mRenderData.meshDataPool.end(),
+    auto meshDataIt = std::find_if(mRenderData.meshDataPool.begin(), mRenderData.meshDataPool.end(),
                                      [](const MeshData& data) { return data.free; });
-    assert(descriptorIt != mRenderData.meshDataPool.end());
-    descriptorIt->free = false;
-    mRenderData.meshDataBinding[&mesh] = &(*descriptorIt);
+    assert(meshDataIt != mRenderData.meshDataPool.end());
+    meshDataIt->free = false;
+    mRenderData.meshDataBinding[&mesh] = &(*meshDataIt);
     updateStaticBuffers();
-    updateDescriptorSet(mesh, descriptorIt->descriptorSet);
+    updateDescriptorSet(mesh, *meshDataIt);
 }
 
 void MeshManager::removeMesh(Mesh& mesh) {
@@ -56,7 +56,7 @@ void MeshManager::render(VkCommandBuffer commandBuffer, VkPipelineLayout layout)
     for (Mesh* mesh : mMeshes) {
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
             layout, 0, 1, &mRenderData.meshDataBinding[mesh]->descriptorSet,
-            1, &mRenderData.meshDataBinding[mesh]->uniformBufferDynamicOffset);
+            0, nullptr);
         vkCmdDrawIndexed(commandBuffer, mesh->getIndices().size(), 1, 0, offset, 0);
         offset += mesh->getIndices().size();
     }
@@ -90,7 +90,7 @@ void MeshManager::createDescriptorSetLayout() {
 
     /* Model matrix binding */
     bindings[1].binding = 1;
-    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     bindings[1].descriptorCount = 1;
     bindings[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
@@ -233,7 +233,7 @@ void MeshManager::updateStaticBuffers() {
     mRenderData.indexBufferSize = indexBufferSize;
 }
 
-void MeshManager::updateDescriptorSet(Mesh& mesh, VkDescriptorSet& descriptorSet) {
+void MeshManager::updateDescriptorSet(Mesh& mesh, MeshData& meshData) {
     /* Texture info */
     VkDescriptorImageInfo info{};
     info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -243,22 +243,22 @@ void MeshManager::updateDescriptorSet(Mesh& mesh, VkDescriptorSet& descriptorSet
     /* Uniform buffer info */
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = mRenderData.modelTransformBuffer;
-    bufferInfo.offset = 0;
-    bufferInfo.range = mRenderData.modelTransformBufferSize;
+    bufferInfo.offset = meshData.uniformBufferDynamicOffset;
+    bufferInfo.range = sizeof(glm::mat4);
 
     VkWriteDescriptorSet writes[2] = {};
     writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writes[0].descriptorCount = 1;
     writes[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     writes[0].dstBinding = 0;
-    writes[0].dstSet = descriptorSet;
+    writes[0].dstSet = meshData.descriptorSet;
     writes[0].pImageInfo = &info;
 
     writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writes[1].descriptorCount = 1;
-    writes[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    writes[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     writes[1].dstBinding = 1;
-    writes[1].dstSet = descriptorSet;
+    writes[1].dstSet = meshData.descriptorSet;
     writes[1].pBufferInfo = &bufferInfo;
 
     vkUpdateDescriptorSets(mContext->getDevice(), 2, writes, 0, nullptr);

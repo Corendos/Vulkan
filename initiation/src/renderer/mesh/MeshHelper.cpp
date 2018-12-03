@@ -1,63 +1,7 @@
-#include "renderer/Object.hpp"
+#include "renderer/mesh/MeshHelper.hpp"
 #include "colors/Color.hpp"
 
-unsigned long Object::nextId{0};
-
-Object::Object(Object& other)
-    : mVertices(other.mVertices), mIndices(other.mIndices), mUniqueId(nextId++),
-    mTransform(other.mTransform) {}
-
-Object::Object(std::vector<Vertex> vertices, std::vector<uint32_t> indices)
-    : mVertices(vertices), mIndices(indices), mUniqueId(nextId++) {}
-
-Object::Object(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices)
-    : mVertices(std::move(vertices)), mIndices(std::move(indices)), mUniqueId(nextId++) {}
-
-Object& Object::operator=(Object& other) {
-    mVertices = other.mVertices;
-    mIndices = other.mIndices;
-    mUniqueId = nextId++;
-    mTransform = other.mTransform;
-}
-
-uint32_t Object::getVertexCount() const {
-    return mVertices.size();
-}
-
-uint32_t Object::getIndexCount() const {
-    return mIndices.size();
-}
-
-std::vector<Vertex>& Object::getVertices() {
-    return mVertices;
-}
-
-std::vector<uint32_t>& Object::getIndices() {
-    return mIndices;
-}
-
-Texture& Object::getTexture() {
-    return *mTexture;
-}
-
-VkDescriptorSet Object::getDescriptorSet() const {
-    return mDescriptorSet;
-}
-
-void Object::setDescriptorSet(VkDescriptorSet descriptorSet) {
-    mDescriptorSet = descriptorSet;
-}
-
-void Object::setTexture(Texture& texture) {
-    mTexture = &texture;
-}
-
-Transform& Object::getTransform() {
-    return mTransform;
-}
-
-Object Object::temp(glm::vec3 position) {
-    double size = 0.5;
+Mesh MeshHelper::createCube(double size) {
     Color3f color = {0.3, 0.2, 0.1};
     std::vector<Vertex> vertices = {
         // Front face
@@ -105,7 +49,6 @@ Object Object::temp(glm::vec3 position) {
         16, 17, 18, 16, 18, 19,
         20, 21, 22, 20, 22, 23
     };
-    Object o(vertices, indices);
-    o.getTransform().setPosition(position);
-    return o;
+
+    return Mesh(vertices, indices);
 }
