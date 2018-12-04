@@ -17,11 +17,11 @@
 #include <GLFW/glfw3.h>
 
 #include "vulkan/VulkanContext.hpp"
-#include "vulkan/Image.hpp"
+#include "vulkan/image/Image.hpp"
 #include "resources/TextureManager.hpp"
-#include "camera/Camera.hpp"
+#include "renderer/camera/Camera.hpp"
 #include "renderer/Renderer.hpp"
-#include "renderer/Light.hpp"
+#include "renderer/light/Light.hpp"
 #include "renderer/mesh/MeshManager.hpp"
 #include "inputs/Input.hpp"
 #include "utils.hpp"

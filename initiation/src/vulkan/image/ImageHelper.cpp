@@ -1,4 +1,4 @@
-#include "vulkan/ImageHelper.hpp"
+#include "vulkan/image/ImageHelper.hpp"
 
 #include "vulkan/Commands.hpp"
 

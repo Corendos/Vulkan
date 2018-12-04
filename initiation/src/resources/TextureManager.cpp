@@ -1,7 +1,7 @@
 #include "resources/TextureManager.hpp"
-#include "vulkan/BufferHelper.hpp"
-#include "vulkan/ImageHelper.hpp"
-#include "vulkan/Image.hpp"
+#include "vulkan/buffer/BufferHelper.hpp"
+#include "vulkan/image/ImageHelper.hpp"
+#include "vulkan/image/Image.hpp"
 
 #include <cstring>
 

@@ -1,6 +1,6 @@
 #include "renderer/mesh/MeshManager.hpp"
 
-#include "vulkan/BufferHelper.hpp"
+#include "vulkan/buffer/BufferHelper.hpp"
 
 MeshManager::MeshManager() {
     mMeshes.reserve(MaximumMeshCount);

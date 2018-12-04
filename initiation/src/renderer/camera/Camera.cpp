@@ -2,7 +2,7 @@
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "camera/Camera.hpp"
+#include "renderer/camera/Camera.hpp"
 #include "utils.hpp"
 
 Camera::Camera() : mYaw(0.0), mPitch(0.0) {

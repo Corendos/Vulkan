@@ -1,4 +1,4 @@
-#include "vulkan/ImageView.hpp"
+#include "vulkan/image/ImageView.hpp"
 
 ImageView::ImageView() {
     mInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

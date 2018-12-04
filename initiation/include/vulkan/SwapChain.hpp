@@ -10,7 +10,7 @@
 
 #include "vulkan/QueueFamilyIndices.hpp"
 #include "vulkan/RenderPass.hpp"
-#include "vulkan/ImageView.hpp"
+#include "vulkan/image/ImageView.hpp"
 #include "vulkan/Framebuffer.hpp"
 
 struct SwapChainSupportDetails {

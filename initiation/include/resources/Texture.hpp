@@ -3,8 +3,8 @@
 
 #include <vulkan/vulkan.h>
 
-#include "vulkan/Image.hpp"
-#include "vulkan/ImageView.hpp"
+#include "vulkan/image/Image.hpp"
+#include "vulkan/image/ImageView.hpp"
 #include "vulkan/Sampler.hpp"
 
 class Texture {

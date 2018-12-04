@@ -1,5 +1,5 @@
-#include "vulkan/Image.hpp"
-#include "vulkan/ImageHelper.hpp"
+#include "vulkan/image/Image.hpp"
+#include "vulkan/image/ImageHelper.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
