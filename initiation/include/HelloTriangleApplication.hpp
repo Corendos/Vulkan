@@ -27,6 +27,8 @@
 #include "utils.hpp"
 #include "BasicLogger.hpp"
 
+#include "assimp/Importer.hpp"
+
 class HelloTriangleApplication {
     public:
         void run();
@@ -44,6 +46,9 @@ class HelloTriangleApplication {
 
         MeshManager mMeshManager;
         std::unique_ptr<Mesh> mTemp;
+
+        Assimp::Importer mImporter;
+        Mesh mDeer;
         
 
         BasicLogger mOutLogger{"../out.log"};

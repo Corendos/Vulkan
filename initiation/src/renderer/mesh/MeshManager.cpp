@@ -57,7 +57,7 @@ void MeshManager::render(VkCommandBuffer commandBuffer, VkPipelineLayout layout)
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
             layout, 0, 1, &mRenderData.meshDataBinding[mesh]->descriptorSet,
             0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, mesh->getIndices().size(), 1, 0, offset, 0);
+        vkCmdDrawIndexed(commandBuffer, mesh->getIndices().size(), 1, offset, 0, 0);
         offset += mesh->getIndices().size();
     }
 }

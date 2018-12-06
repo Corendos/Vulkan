@@ -29,6 +29,10 @@ target_link_libraries(${CURRENT_PROJECT} PUBLIC glfw)
 # Include GLM 
 target_include_directories(${CURRENT_PROJECT} PUBLIC /usr/include/glm)
 
+# Include Assimp
+target_include_directories(${CURRENT_PROJECT} PUBLIC /usr/local/include)
+target_link_libraries(${CURRENT_PROJECT} PUBLIC assimp)
+
 # Set Debug flags
 if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     message("Debug option")

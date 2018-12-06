@@ -1,8 +1,11 @@
 #include <thread>
+#include <iomanip>
 
 #include "HelloTriangleApplication.hpp"
 #include "utils.hpp"
 #include "renderer/mesh/MeshHelper.hpp"
+#include "assimp/scene.h"
+#include "assimp/postprocess.h"
 
 void HelloTriangleApplication::run() {
     init();
@@ -82,11 +85,43 @@ void HelloTriangleApplication::init() {
     mTextureManager.create(mContext);
     mTextureManager.load("diamond", std::string(ROOT_PATH) + std::string("textures/diamond.png"));
     mTextureManager.load("dirt", std::string(ROOT_PATH) + std::string("textures/dirt.png"));
+    mTextureManager.load("undefined", std::string(ROOT_PATH) + std::string("textures/undefined.png"));
 
     mMeshManager.create(mContext);
+
+    const aiScene* scene = mImporter.ReadFile(std::string(ROOT_PATH) + std::string("meshes/deer.fbx"),
+        aiProcess_Triangulate);
+    
+    if(scene) {
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
+        for (size_t i{0};i < scene->mMeshes[0]->mNumVertices;i++) {
+            Vertex v;
+            v.pos.x = scene->mMeshes[0]->mVertices[i].x / 500.0;
+            v.pos.y = scene->mMeshes[0]->mVertices[i].y / 500.0;
+            v.pos.z = scene->mMeshes[0]->mVertices[i].z / 500.0;
+
+            v.normals.x = scene->mMeshes[0]->mNormals[i].x;
+            v.normals.y = scene->mMeshes[0]->mNormals[i].y;
+            v.normals.z = scene->mMeshes[0]->mNormals[i].z;
+
+            //v.texCoord.x = scene->mMeshes[0]->mTextureCoords[i]->x;
+            //v.texCoord.y = scene->mMeshes[0]->mTextureCoords[i]->y;
+            vertices.push_back(v);
+        }
+        for (size_t i{0};i < scene->mMeshes[0]->mNumFaces;i++) {
+            indices.push_back(scene->mMeshes[0]->mFaces[i].mIndices[0]);
+            indices.push_back(scene->mMeshes[0]->mFaces[i].mIndices[1]);
+            indices.push_back(scene->mMeshes[0]->mFaces[i].mIndices[2]);
+        }
+        mDeer = Mesh(std::move(vertices), std::move(indices));
+        mDeer.setTexture(mTextureManager.getTexture("undefined"));
+        mMeshManager.addMesh(mDeer);
+    }
+
     mTemp = std::make_unique<Mesh>(std::move(MeshHelper::createCube(1.0)));
     mTemp->setTexture(mTextureManager.getTexture("diamond"));
-    mTemp->getTransform().setPosition({0.0, 0.0, 0.0});
+    mTemp->getTransform().setPosition({-2.0, -2.0, -2.0});
     mMeshManager.addMesh(*mTemp);
 
     mRenderer.create(mContext, mTextureManager, mMeshManager);
