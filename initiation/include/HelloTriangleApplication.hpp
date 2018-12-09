@@ -23,6 +23,7 @@
 #include "renderer/Renderer.hpp"
 #include "renderer/light/Light.hpp"
 #include "renderer/mesh/MeshManager.hpp"
+#include "renderer/mesh/Importer.hpp"
 #include "inputs/Input.hpp"
 #include "utils.hpp"
 #include "BasicLogger.hpp"
@@ -47,7 +48,7 @@ class HelloTriangleApplication {
         MeshManager mMeshManager;
         std::unique_ptr<Mesh> mTemp;
 
-        Assimp::Importer mImporter;
+        Importer mImporter;
         Mesh mDeer;
         
 
