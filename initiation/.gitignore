@@ -1,4 +1,6 @@
 bin/
 build/
+meshes/
+textures/
 *.log
 include/environment.hpp
