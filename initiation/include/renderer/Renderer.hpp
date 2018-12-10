@@ -50,6 +50,7 @@ class Renderer {
 
         MemoryManager& getMemoryManager();
         VkDescriptorPool getDescriptorPool() const;
+        SwapChain& getSwapChain();
 
     private:
         VkSemaphore mImageAvailableSemaphore;

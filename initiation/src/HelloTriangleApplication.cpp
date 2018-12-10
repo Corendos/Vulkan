@@ -90,6 +90,12 @@ void HelloTriangleApplication::init() {
 
     mMeshManager.create(mContext);
 
+    mRenderer.create(mContext, mTextureManager, mMeshManager);
+    mRenderer.setCamera(mCamera);
+    mRenderer.setLight(mLight);
+
+    mMeshManager.setImageCount(mRenderer.getSwapChain().getImageCount());
+    
     mDeer = mImporter.loadMesh("cottage.fbx");
     mDeer.setTexture(mTextureManager.getTexture("cottage_diffuse"));
     mDeer.getTransform().setScale({3.0, 1.0, 1.0});
@@ -99,10 +105,6 @@ void HelloTriangleApplication::init() {
     mTemp->setTexture(mTextureManager.getTexture("diamond"));
     mTemp->getTransform().setPosition({-2.0, -2.0, -2.0});
     mMeshManager.addMesh(*mTemp);
-
-    mRenderer.create(mContext, mTextureManager, mMeshManager);
-    mRenderer.setCamera(mCamera);
-    mRenderer.setLight(mLight);
 }
 
 void HelloTriangleApplication::sleepUntilNextFrame() {

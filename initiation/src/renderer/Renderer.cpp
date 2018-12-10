@@ -191,9 +191,8 @@ void Renderer::update(double dt) {
 
     updateUniformBuffer(mNextImageIndex);
     mMeshManager->updateUniformBuffer();
-    if (mCommandBufferNeedUpdate[mNextImageIndex]) {
+    if (mMeshManager->updateStaticBuffers(mNextImageIndex)) {
         updateCommandBuffer(mNextImageIndex);
-        mCommandBufferNeedUpdate[mNextImageIndex] = false;
     }
 }
 
@@ -207,6 +206,10 @@ void Renderer::setLight(Light& light) {
 
 VkDescriptorPool Renderer::getDescriptorPool() const {
     return mDescriptorPool;
+}
+
+SwapChain& Renderer::getSwapChain() {
+    return mSwapChain;
 }
 
 void Renderer::acquireNextImage() {
@@ -529,7 +532,7 @@ void Renderer::updateCommandBuffer(uint32_t index) {
                             1, 1, &mCameraDescriptorSets[index],
                             0, nullptr);
 
-    mMeshManager->render(mCommandBuffers[index], mPipeline.getLayout().getHandler());    
+    mMeshManager->render(mCommandBuffers[index], mPipeline.getLayout().getHandler(), index);    
 
     vkCmdEndRenderPass(mCommandBuffers[index]);
 

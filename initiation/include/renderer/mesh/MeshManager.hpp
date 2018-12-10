@@ -15,6 +15,16 @@ struct MeshData {
     bool free{true};
 };
 
+struct RenderBuffers {
+    VkBuffer vertexBuffer;
+    VkBuffer indexBuffer;
+    uint32_t vertexBufferSize{0};
+    uint32_t vertexBufferSizeInBytes{0};
+    uint32_t indexBufferSize{0};
+    uint32_t indexBufferSizeInBytes{0};
+    bool needUpdate{false};
+};
+
 class MeshManager {
     public:
         MeshManager();
@@ -30,17 +40,19 @@ class MeshManager {
         void addMesh(Mesh& mesh);
         void removeMesh(Mesh& mesh);
 
+        void setImageCount(uint32_t count);
+
         void updateUniformBuffer();
-        void render(VkCommandBuffer commandBuffer, VkPipelineLayout layout);
+        bool updateStaticBuffers(uint32_t imageIndex);
+        void render(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t imageIndex);
         VkDescriptorSetLayout getDescriptorSetLayout() const;
 
         static constexpr size_t MaximumMeshCount{1024};
     private:
         struct {
-            VkBuffer vertexBuffer;
-            uint32_t vertexBufferSize{0};
-            VkBuffer indexBuffer;
-            uint32_t indexBufferSize{0};
+            std::vector<RenderBuffers> renderBuffers;
+            RenderBuffers stagingBuffers;
+
             VkBuffer modelTransformBuffer;
             uint32_t modelTransformBufferSize{0};
             VkDescriptorSetLayout descriptorSetLayout;
@@ -55,7 +67,7 @@ class MeshManager {
         void createDescriptorSetLayout();
         void allocateUniformBuffer();
         void allocateDescriptorSets();
-        void updateStaticBuffers();
+        void updateStagingBuffers();
         void updateDescriptorSet(Mesh& mesh, MeshData& meshData);
 };
 

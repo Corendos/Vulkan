@@ -15,10 +15,18 @@ void MeshManager::create(VulkanContext& context) {
 
 void MeshManager::destroy() {
     vkDestroyDescriptorSetLayout(mContext->getDevice(), mRenderData.descriptorSetLayout, nullptr);
-    if (mRenderData.vertexBufferSize != 0)
-        mContext->getMemoryManager().freeBuffer(mRenderData.vertexBuffer);
-    if (mRenderData.indexBuffer != 0)
-        mContext->getMemoryManager().freeBuffer(mRenderData.indexBuffer);
+    for (auto& buffers : mRenderData.renderBuffers) {
+        if (buffers.vertexBufferSizeInBytes != 0)
+            mContext->getMemoryManager().freeBuffer(buffers.vertexBuffer);
+        if (buffers.indexBufferSizeInBytes != 0)
+            mContext->getMemoryManager().freeBuffer(buffers.indexBuffer);
+    }
+
+    if (mRenderData.stagingBuffers.vertexBufferSizeInBytes != 0)
+        mContext->getMemoryManager().freeBuffer(mRenderData.stagingBuffers.vertexBuffer);
+    if (mRenderData.stagingBuffers.indexBufferSizeInBytes != 0)
+        mContext->getMemoryManager().freeBuffer(mRenderData.stagingBuffers.indexBuffer);
+
     mContext->getMemoryManager().freeBuffer(mRenderData.modelTransformBuffer);
 }
 
@@ -31,7 +39,7 @@ void MeshManager::addMesh(Mesh& mesh) {
     assert(meshDataIt != mRenderData.meshDataPool.end());
     meshDataIt->free = false;
     mRenderData.meshDataBinding[&mesh] = &(*meshDataIt);
-    updateStaticBuffers();
+    updateStagingBuffers();
     updateDescriptorSet(mesh, *meshDataIt);
 }
 
@@ -45,13 +53,18 @@ void MeshManager::removeMesh(Mesh& mesh) {
                                      [&descriptorSet](const MeshData& data) { return data.descriptorSet == descriptorSet; });
     descriptorIt->free = true;
     mRenderData.meshDataBinding.erase(&mesh);
+    updateStagingBuffers();
 }
 
-void MeshManager::render(VkCommandBuffer commandBuffer, VkPipelineLayout layout) {
+void MeshManager::setImageCount(uint32_t count) {
+    mRenderData.renderBuffers.resize(count);
+}
+
+void MeshManager::render(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t imageIndex) {
     uint32_t offset{0};
     VkDeviceSize vertexOffset{0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mRenderData.vertexBuffer, &vertexOffset);
-    vkCmdBindIndexBuffer(commandBuffer, mRenderData.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mRenderData.renderBuffers[imageIndex].vertexBuffer, &vertexOffset);
+    vkCmdBindIndexBuffer(commandBuffer, mRenderData.renderBuffers[imageIndex].indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     for (Mesh* mesh : mMeshes) {
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -145,7 +158,48 @@ void MeshManager::allocateDescriptorSets() {
     }
 }
 
-void MeshManager::updateStaticBuffers() {
+bool MeshManager::updateStaticBuffers(uint32_t imageIndex) {
+    if (!mRenderData.renderBuffers[imageIndex].needUpdate) return false;
+
+    if (mRenderData.renderBuffers[imageIndex].vertexBufferSizeInBytes != 0)
+        mContext->getMemoryManager().freeBuffer(mRenderData.renderBuffers[imageIndex].vertexBuffer);
+    if (mRenderData.renderBuffers[imageIndex].indexBufferSizeInBytes != 0)
+        mContext->getMemoryManager().freeBuffer(mRenderData.renderBuffers[imageIndex].indexBuffer);
+    
+    BufferHelper::createBuffer(
+        *mContext, mRenderData.stagingBuffers.vertexBufferSizeInBytes,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        mRenderData.renderBuffers[imageIndex].vertexBuffer,
+        "MeshRenderer::vertexBuffer");
+    BufferHelper::createBuffer(
+        *mContext, mRenderData.stagingBuffers.indexBufferSizeInBytes,
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        mRenderData.renderBuffers[imageIndex].indexBuffer,
+        "MeshRenderer::indexBuffer");
+
+    BufferHelper::copyBuffer(
+        *mContext, mContext->getTransferCommandPool(),
+        mContext->getTransferQueue(), mRenderData.stagingBuffers.vertexBuffer,
+        mRenderData.renderBuffers[imageIndex].vertexBuffer,
+        mRenderData.stagingBuffers.vertexBufferSizeInBytes);
+    BufferHelper::copyBuffer(
+        *mContext, mContext->getTransferCommandPool(),
+        mContext->getTransferQueue(), mRenderData.stagingBuffers.indexBuffer,
+        mRenderData.renderBuffers[imageIndex].indexBuffer,
+        mRenderData.stagingBuffers.indexBufferSizeInBytes);
+
+    mRenderData.renderBuffers[imageIndex].vertexBufferSize = mRenderData.stagingBuffers.vertexBufferSize;
+    mRenderData.renderBuffers[imageIndex].vertexBufferSizeInBytes = mRenderData.stagingBuffers.vertexBufferSizeInBytes;
+    mRenderData.renderBuffers[imageIndex].indexBufferSize = mRenderData.stagingBuffers.indexBufferSize;
+    mRenderData.renderBuffers[imageIndex].indexBufferSizeInBytes = mRenderData.stagingBuffers.indexBufferSizeInBytes;
+
+    mRenderData.renderBuffers[imageIndex].needUpdate = false;
+    return true;
+}
+
+void MeshManager::updateStagingBuffers() {
     /* Compute buffer sizes */
     uint32_t vertexBufferSize{0}, vertexBufferSizeInBytes{0};
     uint32_t indexBufferSize{0}, indexBufferSizeInBytes{0};
@@ -157,36 +211,23 @@ void MeshManager::updateStaticBuffers() {
     indexBufferSizeInBytes = indexBufferSize * sizeof(uint32_t);
 
     /* If the buffer were already allocated, free them */
-    if (mRenderData.vertexBufferSize != 0)
-        mContext->getMemoryManager().freeBuffer(mRenderData.vertexBuffer);
-    if (mRenderData.indexBufferSize != 0)
-        mContext->getMemoryManager().freeBuffer(mRenderData.indexBuffer);
+    if (mRenderData.stagingBuffers.vertexBufferSizeInBytes != 0)
+        mContext->getMemoryManager().freeBuffer(mRenderData.stagingBuffers.vertexBuffer);
+    if (mRenderData.stagingBuffers.indexBufferSizeInBytes != 0)
+        mContext->getMemoryManager().freeBuffer(mRenderData.stagingBuffers.indexBuffer);
     
     /* Allocate the device local buffers */
     BufferHelper::createBuffer(
         *mContext, vertexBufferSizeInBytes,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mRenderData.vertexBuffer,
-        "MeshRenderer::vertexBuffer");
-    BufferHelper::createBuffer(
-        *mContext, indexBufferSizeInBytes,
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mRenderData.indexBuffer,
-        "MeshRenderer::indexBuffer");
-    
-    /* Allocate the staging buffers */
-    VkBuffer stagingVertexBuffer, stagingIndexBuffer;
-    BufferHelper::createBuffer(
-        *mContext, vertexBufferSizeInBytes,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingVertexBuffer,
+        mRenderData.stagingBuffers.vertexBuffer,
         "MeshRenderer::stagingVertexBuffer");
     BufferHelper::createBuffer(
         *mContext, indexBufferSizeInBytes,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingIndexBuffer,
+        mRenderData.stagingBuffers.indexBuffer,
         "MeshRenderer::stagingIndexBuffer");
     
     /* Compute the local buffers */
@@ -208,29 +249,22 @@ void MeshManager::updateStaticBuffers() {
 
     /* Copy the buffers */
     void* data;
-    mContext->getMemoryManager().mapMemory(stagingVertexBuffer, vertexBufferSizeInBytes, &data);
+    mContext->getMemoryManager().mapMemory(mRenderData.stagingBuffers.vertexBuffer, vertexBufferSizeInBytes, &data);
     memcpy(data, localVertexBuffer.data(), vertexBufferSizeInBytes);
-    mContext->getMemoryManager().unmapMemory(stagingVertexBuffer);
+    mContext->getMemoryManager().unmapMemory(mRenderData.stagingBuffers.vertexBuffer);
 
-    mContext->getMemoryManager().mapMemory(stagingIndexBuffer, indexBufferSizeInBytes, &data);
+    mContext->getMemoryManager().mapMemory(mRenderData.stagingBuffers.indexBuffer, indexBufferSizeInBytes, &data);
     memcpy(data, localIndexBuffer.data(), indexBufferSizeInBytes);
-    mContext->getMemoryManager().unmapMemory(stagingIndexBuffer);
+    mContext->getMemoryManager().unmapMemory(mRenderData.stagingBuffers.indexBuffer);
 
-    BufferHelper::copyBuffer(
-        *mContext, mContext->getTransferCommandPool(),
-        mContext->getTransferQueue(), stagingVertexBuffer,
-        mRenderData.vertexBuffer, vertexBufferSizeInBytes);
-    BufferHelper::copyBuffer(
-        *mContext, mContext->getTransferCommandPool(),
-        mContext->getTransferQueue(), stagingIndexBuffer,
-        mRenderData.indexBuffer, indexBufferSizeInBytes);
+    mRenderData.stagingBuffers.vertexBufferSize = vertexBufferSize;
+    mRenderData.stagingBuffers.vertexBufferSizeInBytes = vertexBufferSizeInBytes;
+    mRenderData.stagingBuffers.indexBufferSize = indexBufferSize;
+    mRenderData.stagingBuffers.indexBufferSizeInBytes = indexBufferSizeInBytes;
 
-    /* Free the staging buffers */
-    mContext->getMemoryManager().freeBuffer(stagingVertexBuffer);
-    mContext->getMemoryManager().freeBuffer(stagingIndexBuffer);
-
-    mRenderData.vertexBufferSize = vertexBufferSize;
-    mRenderData.indexBufferSize = indexBufferSize;
+    for (auto& buffers : mRenderData.renderBuffers) {
+        buffers.needUpdate = true;
+    }
 }
 
 void MeshManager::updateDescriptorSet(Mesh& mesh, MeshData& meshData) {
