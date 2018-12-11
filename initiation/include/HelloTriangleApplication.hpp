@@ -47,6 +47,7 @@ class HelloTriangleApplication {
 
         MeshManager mMeshManager;
         std::unique_ptr<Mesh> mTemp;
+        std::vector<std::unique_ptr<Mesh>> mMeshes;
 
         Importer mImporter;
         Mesh mDeer;

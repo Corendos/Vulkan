@@ -25,6 +25,14 @@ void HelloTriangleApplication::mainLoop() {
 
         processInputs();
 
+        if (mInput.getMouse().button[MouseButton::Left].down) {
+            Mesh m = std::move(MeshHelper::createCube(1.0));
+            m.setTexture(mTextureManager.getTexture("diamond"));
+            m.getTransform().setPosition({-2.0, -2.0, -2.0});
+            mMeshes.push_back(std::make_unique<Mesh>(std::move(m)));
+            mMeshManager.addMesh(*mMeshes.back());
+        }
+
         auto start = std::chrono::high_resolution_clock::now();
         double dt = std::chrono::duration<double>(start - updateEnd).count();
         mRenderer.update(dt);
@@ -95,7 +103,7 @@ void HelloTriangleApplication::init() {
     mRenderer.setLight(mLight);
 
     mMeshManager.setImageCount(mRenderer.getSwapChain().getImageCount());
-    
+
     mDeer = mImporter.loadMesh("cottage.fbx");
     mDeer.setTexture(mTextureManager.getTexture("cottage_diffuse"));
     mDeer.getTransform().setScale({3.0, 1.0, 1.0});
