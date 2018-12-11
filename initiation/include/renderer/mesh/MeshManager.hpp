@@ -42,8 +42,7 @@ class MeshManager {
 
         void setImageCount(uint32_t count);
 
-        void updateUniformBuffer();
-        bool updateStaticBuffers(uint32_t imageIndex);
+        bool update(uint32_t imageIndex);
         void render(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t imageIndex);
         VkDescriptorSetLayout getDescriptorSetLayout() const;
 
@@ -69,6 +68,8 @@ class MeshManager {
         void allocateDescriptorSets();
         void updateStagingBuffers();
         void updateDescriptorSet(Mesh& mesh, MeshData& meshData);
+        void updateUniformBuffer();
+        bool updateStaticBuffers(uint32_t imageIndex);
 };
 
 #endif

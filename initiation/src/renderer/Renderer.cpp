@@ -190,8 +190,7 @@ void Renderer::update(double dt) {
     waitForFence();
 
     updateUniformBuffer(mNextImageIndex);
-    mMeshManager->updateUniformBuffer();
-    if (mMeshManager->updateStaticBuffers(mNextImageIndex)) {
+    if (mMeshManager->update(mNextImageIndex)) {
         updateCommandBuffer(mNextImageIndex);
     }
 }

@@ -60,6 +60,11 @@ void MeshManager::setImageCount(uint32_t count) {
     mRenderData.renderBuffers.resize(count);
 }
 
+bool MeshManager::update(uint32_t imageIndex) {
+    updateUniformBuffer();
+    return updateStaticBuffers(imageIndex);
+}
+
 void MeshManager::render(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t imageIndex) {
     uint32_t offset{0};
     VkDeviceSize vertexOffset{0};
