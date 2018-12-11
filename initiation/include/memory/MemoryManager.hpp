@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <tuple>
+#include <mutex>
 
 #include <vulkan/vulkan.h>
 
@@ -42,6 +43,8 @@ class MemoryManager {
         VkPhysicalDevice& mPhysicalDevice;
         VkPhysicalDeviceMemoryProperties mMemoryProperties;
         std::vector<std::vector<VkDeviceMemory>> mDeviceMemoryAllocation;
+        // TODO: add a mutex for each different VkDeviceMemory
+        std::mutex mMemoryMutex;
 
         std::vector<std::vector<MemoryHeapOccupation>> mMemoryTypeOccupations;
         std::map<VkBuffer, BufferInfo> mBuffersInfo;
