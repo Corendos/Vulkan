@@ -33,8 +33,6 @@ void MeshManager::destroy() {
 }
 
 void MeshManager::addMesh(Mesh& mesh) {
-    Profiler<2> p;
-    p.init();
     assert(mMeshes.size() < MaximumMeshCount);
     mMeshes.push_back(&mesh);
 
@@ -44,11 +42,7 @@ void MeshManager::addMesh(Mesh& mesh) {
     meshDataIt->free = false;
     mRenderData.meshDataBinding[&mesh] = &(*meshDataIt);
     updateDescriptorSet(mesh, *meshDataIt);
-    p.addTimestamp("stagingUpdateStart");
-    mStagingUpdated = false;
-    mStagingUpdateResult = std::async(std::launch::async, &MeshManager::updateStagingBuffers, this);
-    p.addTimestamp("stagingUpdateEnd");
-    std::cout << p.toString() << std::endl;
+    updateStagingBuffers();
 }
 
 void MeshManager::removeMesh(Mesh& mesh) {
@@ -173,7 +167,6 @@ void MeshManager::allocateDescriptorSets() {
 
 bool MeshManager::updateStaticBuffers(uint32_t imageIndex) {
     if (!mRenderData.renderBuffers[imageIndex].needUpdate) return false;
-    if (!mStagingUpdated) return false;
 
     if (mRenderData.renderBuffers[imageIndex].vertexBufferSizeInBytes != 0)
         mContext->getMemoryManager().freeBuffer(mRenderData.renderBuffers[imageIndex].vertexBuffer);
@@ -279,7 +272,6 @@ void MeshManager::updateStagingBuffers() {
     for (auto& buffers : mRenderData.renderBuffers) {
         buffers.needUpdate = true;
     }
-    mStagingUpdated = true;
 }
 
 void MeshManager::updateDescriptorSet(Mesh& mesh, MeshData& meshData) {

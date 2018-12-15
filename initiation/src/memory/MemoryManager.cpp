@@ -103,7 +103,6 @@ void MemoryManager::allocateForBuffer(VkBuffer buffer,
                                       VkMemoryRequirements& memoryRequirements,
                                       VkMemoryPropertyFlags properties,
                                       std::string name) {
-    mMemoryMutex.lock();
     int32_t memoryTypeIndex = findMemoryType(memoryRequirements, properties);
 
     if (memoryTypeIndex == -1) {
@@ -138,14 +137,12 @@ void MemoryManager::allocateForBuffer(VkBuffer buffer,
     } else {
         throw std::runtime_error("Not implemented");
     }
-    mMemoryMutex.unlock();
 }
 
 void MemoryManager::allocateForImage(VkImage image,
                                      VkMemoryRequirements& memoryRequirements,
                                      VkMemoryPropertyFlags properties,
                                      std::string name) {
-    mMemoryMutex.lock();
     int32_t memoryTypeIndex = findMemoryType(memoryRequirements, properties);
 
     if (memoryTypeIndex == -1) {
@@ -180,7 +177,6 @@ void MemoryManager::allocateForImage(VkImage image,
     } else {
         throw std::runtime_error("Not implemented");
     }
-    mMemoryMutex.unlock();
 }
 
 void MemoryManager::freeBuffer(VkBuffer buffer) {
@@ -208,21 +204,17 @@ void MemoryManager::freeImage(VkImage image) {
 }
 
 void MemoryManager::mapMemory(VkBuffer buffer, VkDeviceSize size, void** data) {
-    mMemoryMutex.lock();
     BufferInfo bufferInfo = mBuffersInfo[buffer];
     vkMapMemory(
         mDevice,
         mDeviceMemoryAllocation[bufferInfo.memoryTypeIndex][bufferInfo.memoryTypeOffset],
         bufferInfo.pageOffset * pageSize + bufferInfo.alignment,
         size, 0, data);
-    mMemoryMutex.unlock();
 }
 
 void MemoryManager::unmapMemory(VkBuffer buffer) {
-    mMemoryMutex.lock();
     BufferInfo bufferInfo = mBuffersInfo[buffer];
     vkUnmapMemory(mDevice, mDeviceMemoryAllocation[bufferInfo.memoryTypeIndex][bufferInfo.memoryTypeOffset]);
-    mMemoryMutex.unlock();
 }
 
 int32_t MemoryManager::findMemoryType(VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags& properties) {

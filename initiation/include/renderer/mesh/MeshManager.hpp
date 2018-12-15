@@ -60,8 +60,6 @@ class MeshManager {
             std::array<MeshData, MaximumMeshCount> meshDataPool;
             std::map<Mesh*, MeshData*> meshDataBinding;
         } mRenderData;
-        std::atomic_bool mStagingUpdated{false};
-        std::future<void> mStagingUpdateResult;
 
         VulkanContext* mContext;
 
