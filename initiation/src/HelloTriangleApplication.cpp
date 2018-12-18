@@ -16,27 +16,28 @@ void HelloTriangleApplication::run() {
 void HelloTriangleApplication::mainLoop() {
     int i{0};
     uint32_t updateMean{0}, renderMean{0};
-
-    auto updateEnd = std::chrono::high_resolution_clock::now();
+    double frameMean{0.0};
     mFrameStartTime = std::chrono::high_resolution_clock::now();
 
     while(!glfwWindowShouldClose(mWindow)) {
+        mLastFrameStartTime = mFrameStartTime;
+        mFrameStartTime = std::chrono::high_resolution_clock::now();
         glfwPollEvents();
 
         processInputs();
 
-        if (mInput.getMouse().button[MouseButton::Left].down) {
-            Mesh m = std::move(MeshHelper::createCube(1.0));
-            m.setTexture(mTextureManager.getTexture("diamond"));
-            m.getTransform().setPosition({-2.0, -2.0, -2.0});
-            mMeshes.push_back(std::make_unique<Mesh>(std::move(m)));
-            mMeshManager.addMesh(*mMeshes.back());
+        double dt = std::chrono::duration<double>(mFrameStartTime - mLastFrameStartTime).count();
+        if (dt > TARGET_FRAME_TIME) {
+            epsilonPadding += std::chrono::duration<double>(dt - TARGET_FRAME_TIME) ;
+        } else if (dt < TARGET_FRAME_TIME) {
+            epsilonPadding += std::chrono::duration<double>(dt - TARGET_FRAME_TIME);
         }
 
+        mDeer.getTransform().rotate(glm::half_pi<double>() * dt, glm::vec3(0.0, 0.0, 1.0));
+
         auto start = std::chrono::high_resolution_clock::now();
-        double dt = std::chrono::duration<double>(start - updateEnd).count();
         mRenderer.update(dt);
-        updateEnd = std::chrono::high_resolution_clock::now();
+        auto updateEnd = std::chrono::high_resolution_clock::now();
         mRenderer.render();
         auto end = std::chrono::high_resolution_clock::now();
         uint32_t updateDuration = std::chrono::duration_cast<std::chrono::microseconds>(updateEnd - start).count();
@@ -44,14 +45,18 @@ void HelloTriangleApplication::mainLoop() {
         
         updateMean += updateDuration;
         renderMean += renderDuration;
+        frameMean += dt;
         i++;
 
         if (i % 10 == 0) {
             std::cout << "Update: " << (float)updateMean / 10.0f << "µs" << std::endl;
             std::cout << "Render: " << (float)renderMean / 10.0f << "µs" << std::endl;
+            std::cout << std::fixed << std::setprecision(5) << "Frame: " << 10.0 / frameMean << "fps"
+                << std::defaultfloat << std::endl;
             i = 0;
             updateMean = 0;
             renderMean = 0;
+            frameMean = 0.0;
         }
         
         sleepUntilNextFrame();
@@ -67,6 +72,7 @@ void HelloTriangleApplication::cleanup() {
     mContext.destroy();
     glfwDestroyWindow(mWindow);
     glfwTerminate();
+    mFileWatch.stop();
 }
 
 void HelloTriangleApplication::init() {
@@ -113,6 +119,8 @@ void HelloTriangleApplication::init() {
     mTemp->setTexture(mTextureManager.getTexture("diamond"));
     mTemp->getTransform().setPosition({-2.0, -2.0, -2.0});
     mMeshManager.addMesh(*mTemp);
+
+    mFileWatch.launch();
 }
 
 void HelloTriangleApplication::sleepUntilNextFrame() {
@@ -121,10 +129,8 @@ void HelloTriangleApplication::sleepUntilNextFrame() {
     auto target = std::chrono::duration<double>(1.0 / TARGET_FPS);
     
     if (elapsed < target) {
-        std::this_thread::sleep_for(target - elapsed);
+        std::this_thread::sleep_for(target - elapsed - epsilonPadding);
     }
-
-    mFrameStartTime = std::chrono::high_resolution_clock::now();
 }
 
 void HelloTriangleApplication::processInputs() {

@@ -24,6 +24,7 @@
 #include "renderer/light/Light.hpp"
 #include "renderer/mesh/MeshManager.hpp"
 #include "renderer/mesh/Importer.hpp"
+#include "files/FileWatch.hpp"
 #include "inputs/Input.hpp"
 #include "utils.hpp"
 #include "BasicLogger.hpp"
@@ -51,6 +52,7 @@ class HelloTriangleApplication {
 
         Importer mImporter;
         Mesh mDeer;
+        FileWatch mFileWatch;
         
 
         BasicLogger mOutLogger{"../out.log"};
@@ -59,8 +61,11 @@ class HelloTriangleApplication {
         const unsigned int WIDTH{1920};
         const unsigned int HEIGHT{1080};
         const double TARGET_FPS{60.0};
+        const double TARGET_FRAME_TIME{1.0 / TARGET_FPS};
 
         std::chrono::time_point<std::chrono::high_resolution_clock> mFrameStartTime;
+        std::chrono::time_point<std::chrono::high_resolution_clock> mLastFrameStartTime;
+        std::chrono::duration<double> epsilonPadding{0.0};
 
         void init();
         void mainLoop();
