@@ -49,10 +49,10 @@ void HelloTriangleApplication::mainLoop() {
         i++;
 
         if (i % 10 == 0) {
-            std::cout << "Update: " << (float)updateMean / 10.0f << "µs" << std::endl;
+            /* std::cout << "Update: " << (float)updateMean / 10.0f << "µs" << std::endl;
             std::cout << "Render: " << (float)renderMean / 10.0f << "µs" << std::endl;
             std::cout << std::fixed << std::setprecision(5) << "Frame: " << 10.0 / frameMean << "fps"
-                << std::defaultfloat << std::endl;
+                << std::defaultfloat << std::endl; */
             i = 0;
             updateMean = 0;
             renderMean = 0;
@@ -121,6 +121,7 @@ void HelloTriangleApplication::init() {
     mMeshManager.addMesh(*mTemp);
 
     mFileWatch.launch();
+    mFileWatch.watchFile("/home/corentin/", "test", [](){ std::cout << "callback" << std::endl; });
 }
 
 void HelloTriangleApplication::sleepUntilNextFrame() {
