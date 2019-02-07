@@ -97,10 +97,10 @@ void HelloTriangleApplication::init() {
     mLight = {{20.0, 20.0, 20.0}};
 
     mTextureManager.create(mContext);
-    mTextureManager.load("diamond", std::string(ROOT_PATH) + std::string("textures/diamond.png"));
-    mTextureManager.load("dirt", std::string(ROOT_PATH) + std::string("textures/dirt.png"));
-    mTextureManager.load("undefined", std::string(ROOT_PATH) + std::string("textures/undefined.png"));
-    mTextureManager.load("cottage_diffuse", std::string(ROOT_PATH) + std::string("textures/cottage_diffuse.png"));
+    mTextureManager.load("diamond", std::string(ROOT_PATH) + std::string("resources/textures/diamond.png"));
+    mTextureManager.load("dirt", std::string(ROOT_PATH) + std::string("resources/textures/dirt.png"));
+    mTextureManager.load("undefined", std::string(ROOT_PATH) + std::string("resources/textures/undefined.png"));
+    mTextureManager.load("cottage_diffuse", std::string(ROOT_PATH) + std::string("resources/textures/cottage_diffuse.png"));
 
     mMeshManager.create(mContext);
 

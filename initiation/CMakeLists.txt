@@ -9,4 +9,4 @@ find_package(glfw3 REQUIRED)
 # Set compile options
 add_compile_options(-std=c++17 -pthread)
 
-add_subdirectory(src)
+add_subdirectory(initiation)

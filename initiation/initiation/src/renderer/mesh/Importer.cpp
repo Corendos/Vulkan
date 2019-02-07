@@ -5,7 +5,7 @@
 #include "environment.hpp"
 
 Mesh Importer::loadMesh(std::string filename) {
-    const aiScene* scene = mImporter.ReadFile(std::string(ROOT_PATH) + std::string("meshes/") + filename,
+    const aiScene* scene = mImporter.ReadFile(std::string(ROOT_PATH) + std::string("resources/meshes/") + filename,
         aiProcess_Triangulate);
     
     assert(scene != nullptr);

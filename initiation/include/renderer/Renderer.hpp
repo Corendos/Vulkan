@@ -90,7 +90,7 @@ class Renderer {
         bool mCreated{false};
         bool mBypassRendering{false};
 
-        const std::string shaderPath = std::string(ROOT_PATH) + std::string("shaders/build/");
+        const std::string shaderPath = std::string(ROOT_PATH) + std::string("resources/shaders/build/");
 
         void acquireNextImage();
         void waitForFence();

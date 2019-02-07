@@ -1,22 +1,22 @@
 file(
     GLOB_RECURSE
     src
-    *.cpp
+    ../src/*.cpp
 )
 
 file(
-    GLOB
-    headers
-    *.hpp
+    GLOB_RECURSE
+    header
+    ../../include/*.hpp
 )
 
 set(CURRENT_PROJECT ${CMAKE_PROJECT_NAME}-${CMAKE_BUILD_TYPE})
 
 # Declare executable
-add_executable(${CURRENT_PROJECT} ${src})
+add_executable(${CURRENT_PROJECT} main.cpp ${src})
 
 # Include local include files
-target_include_directories(${CURRENT_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+target_include_directories(${CURRENT_PROJECT} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 # Include Vulkan
 target_include_directories(${CURRENT_PROJECT} PUBLIC ${Vulkan_INCLUDE_DIR})
@@ -42,7 +42,7 @@ endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 # Set output location
 set_target_properties(${CURRENT_PROJECT}
     PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../lib"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../lib"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../bin"
+    ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/lib"
+    RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin"
 )
