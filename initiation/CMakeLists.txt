@@ -6,6 +6,8 @@ project(initiation)
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
 
+link_directories(/usr/local/lib/)
+
 # Set compile options
 add_compile_options(-std=c++17 -pthread)
 
