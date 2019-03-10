@@ -7,7 +7,7 @@
 #include "PrintHelper.hpp"
 #include "utils.hpp"
 
-uint32_t MemoryManager::allocationSize = 64 * mega;
+uint32_t MemoryManager::allocationSize = 32 * mega;
 uint32_t MemoryManager::pageSize = 4 * kilo;
 
 MemoryManager::MemoryManager(VkPhysicalDevice& physicalDevice, VkDevice& device) :
@@ -22,23 +22,39 @@ void MemoryManager::init() {
         pageSize = properties.limits.bufferImageGranularity;
     }
 
-    initialAllocation();
+    vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &mMemoryProperties);
 }
 
 void MemoryManager::printInfo() {
-    for (size_t i{0};i < mMemoryTypeOccupations.size();++i) {
-        uint32_t freeBlock{0}, occupiedBlock{0}, allocatedBlock{0};
-        for (size_t j{0};j < mMemoryTypeOccupations[i].size();++j) {
-            for (size_t blockIndex{0}; blockIndex < mMemoryTypeOccupations[i][j].blocks.size();++blockIndex) {
-                allocatedBlock++;
-                mMemoryTypeOccupations[i][j].blocks[blockIndex] ? occupiedBlock++ : freeBlock++;
-            }
+    std::cout << "[Allocated MemoryTypeCount]" << std::endl;
+    std::cout << mChunksMap.size() << std::endl << std::endl;
+    
+    std::cout << "[Chunks Allocation Summary]" << std::endl;
+    for (auto& pair : mChunksMap) {
+        std::cout << "Memory Type: " << pair.first << std::endl;
+        for (uint32_t i{0};i < pair.second.size();++i) {
+            Chunk& chunk = pair.second[i];
+            std::cout << "\tChunk #" << i << " allocated " << chunk.getTree().getValue().size << " bytes" << std::endl;
         }
+        std::cout << std::endl;
+    }
 
-        std::cout << "Memory Type #" << i << std::endl
-            << "    " << allocatedBlock << " block(s) allocated" << std::endl
-            << "    " << freeBlock << " free blocks" << std::endl
-            << "    " << occupiedBlock << " occupied blocks" << std::endl;
+    std::cout << "[Buffer Block Summary]" << std::endl;
+    for (auto& pair : mBuffersInfo) {
+        std::cout << "Buffer " << pair.first
+                << "\tMemoryTypeIndex: " << pair.second.memoryTypeIndex << "\n"
+                << "\tChunkIndex: " << pair.second.chunkIndex << "\n"
+                << "\tBlock size: " << pair.second.block.size << "\n"
+                << "\tBlock offset: " << pair.second.block.offset << "\n" << std::endl;
+    }
+
+    std::cout << "[Image Block Summary]" << std::endl;
+    for (auto& pair : mImagesInfo) {
+        std::cout << "Image " << pair.first
+                << "\tMemoryTypeIndex: " << pair.second.memoryTypeIndex << "\n"
+                << "\tChunkIndex: " << pair.second.chunkIndex << "\n"
+                << "\tBlock size: " << pair.second.block.size << "\n"
+                << "\tBlock offset: " << pair.second.block.offset << "\n" << std::endl;
     }
 }
 
@@ -46,33 +62,11 @@ void MemoryManager::memoryCheckLog() {
     std::ofstream file;
     file.open("./memory.log", std::ios::out | std::ios::trunc);
 
-    for (size_t i{0};i < mMemoryProperties.memoryHeapCount;++i) {
-        file << "Memory Type #" << i << " : " << mDeviceMemoryAllocation[i].size() << " allocation(s)" << std::endl;
+    for (auto& pair : mChunksMap) {
+        file << "Memory Type #" << pair.first << " : " << pair.second.size() << " allocation(s)" << std::endl;
     }
 
-    for (size_t i{0};i < mMemoryProperties.memoryHeapCount;++i) {
-        for (size_t j{0};j < mMemoryTypeOccupations[i].size();++j) {
-            for (size_t blockIndex{0};blockIndex < mMemoryTypeOccupations[i][j].blocks.size();++blockIndex) {
-                if (mMemoryTypeOccupations[i][j].blocks[blockIndex]) {
-                    file << "Memory Block #" << blockIndex << std::hex << " (0x"
-                        << blockIndex * pageSize << " - 0x" << (blockIndex + 1) * pageSize
-                        << ") used by \"" << mMemoryTypeOccupations[i][j].blocks[blockIndex].name << "\" not freed" << std::endl;
-                }
-            }
-        }
-    }
     file.close();
-}
-
-void MemoryManager::initialAllocation() {
-    vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &mMemoryProperties);
-
-    mDeviceMemoryAllocation.resize(mMemoryProperties.memoryTypeCount);
-    mMemoryTypeOccupations.resize(mMemoryProperties.memoryTypeCount);
-
-    for (size_t i{0};i < mMemoryProperties.memoryTypeCount;++i) {
-        allocate(i);
-    }
 }
 
 void MemoryManager::allocate(uint32_t memoryTypeIndex) {
@@ -82,19 +76,25 @@ void MemoryManager::allocate(uint32_t memoryTypeIndex) {
     allocInfo.allocationSize = allocationSize;
 
     VkDeviceMemory memoryAllocation;
-
-    if (vkAllocateMemory(mDevice, &allocInfo, nullptr, &memoryAllocation) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate memory");
+    VkResult result = vkAllocateMemory(mDevice, &allocInfo, nullptr, &memoryAllocation); 
+    if (result != VK_SUCCESS) {
+        // This is temporary, if the allocation is not successful, it could be harmless
+        std::cout << "Failed to allocate memory" << std::endl;
     }
-    mDeviceMemoryAllocation[memoryTypeIndex].push_back(memoryAllocation);
-    mMemoryTypeOccupations[memoryTypeIndex].push_back(MemoryHeapOccupation(allocationSize / pageSize));
+    //mDeviceMemoryAllocation[memoryTypeIndex].push_back(memoryAllocation);
+    //mMemoryTypeOccupations[memoryTypeIndex].push_back(MemoryHeapOccupation(allocationSize / pageSize));
 
+    if (mChunksMap.find(memoryTypeIndex) == mChunksMap.end()) {
+        mChunksMap[memoryTypeIndex] = std::vector<Chunk>();
+    }
+
+    mChunksMap[memoryTypeIndex].push_back(Chunk(memoryAllocation, allocationSize, pageSize));
 }
 
 void MemoryManager::cleanup() {
-    for (size_t i{0};i < mDeviceMemoryAllocation.size();i++) {
-        for (size_t j{0};j < mDeviceMemoryAllocation[i].size();++j) {
-            vkFreeMemory(mDevice, mDeviceMemoryAllocation[i][j], nullptr);
+    for (auto& pair : mChunksMap) {
+        for (auto& chunk : pair.second) {
+            vkFreeMemory(mDevice, chunk.getMemory(), nullptr);
         }
     }
 }
@@ -109,34 +109,41 @@ void MemoryManager::allocateForBuffer(VkBuffer buffer,
         throw std::runtime_error("Unable to find a suitable memory type");
     }
 
-    uint32_t blockCount = getBlockCount(memoryRequirements);
-
-    if (memoryRequirements.alignment <= pageSize) {
-        int32_t memoryTypeOffset, pageOffset;
-        std::tie<int32_t, int32_t>(memoryTypeOffset, pageOffset) = findSuitableMemoryBlock(blockCount, memoryTypeIndex);
-
-        if (memoryTypeOffset == -1) {
-            allocate(memoryTypeIndex);
-            std::tie<int32_t, int32_t>(memoryTypeOffset, pageOffset) = findSuitableMemoryBlock(blockCount, memoryTypeIndex);
-        }
-
-        for (uint32_t i{static_cast<uint32_t>(pageOffset)};i < pageOffset + blockCount;++i) {
-            mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i] = true;
-            mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i].buffer = buffer;
-            mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i].name = name;
-        }
-
-        mBuffersInfo[buffer] = {
-            static_cast<uint32_t>(memoryTypeIndex),
-            static_cast<uint32_t>(memoryTypeOffset),
-            static_cast<uint32_t>(pageOffset),
-            0,
-            blockCount};
-
-        vkBindBufferMemory(mDevice, buffer, mDeviceMemoryAllocation[memoryTypeIndex][memoryTypeOffset], pageOffset * pageSize);
-    } else {
-        throw std::runtime_error("Not implemented");
+    if (mChunksMap.find(memoryTypeIndex) == mChunksMap.end()) {
+        allocate(memoryTypeIndex);
     }
+
+    for (uint32_t i{0};i < mChunksMap.size();++i) {
+        Chunk& chunk = mChunksMap[memoryTypeIndex][i];
+        AllocationResult result = chunk.reserve(memoryRequirements.size);
+        if (result.found) {
+            Block block = result.block;
+            //mBuffersInfo[buffer] = {}; // For testing purpose
+            mBuffersInfo[buffer].block = block;
+            mBuffersInfo[buffer].chunkIndex = i;
+            mBuffersInfo[buffer].memoryTypeIndex = memoryTypeIndex;
+
+            vkBindBufferMemory(mDevice, buffer, chunk.getMemory(), block.offset);
+            return;
+        }
+    }
+
+    // If we come to this point, this means we need to allocate a new Chunk of memory because the previous one are full
+    allocate(memoryTypeIndex);
+    Chunk& chunk = mChunksMap[memoryTypeIndex].back();
+    AllocationResult result = chunk.reserve(memoryRequirements.size);
+    if (result.found) {
+        Block block = result.block;
+        //mBuffersInfo[buffer] = {}; // For testing purpose
+        mBuffersInfo[buffer].block = block;
+        mBuffersInfo[buffer].chunkIndex = mChunksMap[memoryTypeIndex].size() - 1;
+        mBuffersInfo[buffer].memoryTypeIndex = memoryTypeIndex;
+
+        vkBindBufferMemory(mDevice, buffer, chunk.getMemory(), block.offset);
+        return;
+    }
+
+    throw std::runtime_error("Unable to find enough memory");
 }
 
 void MemoryManager::allocateForImage(VkImage image,
@@ -149,44 +156,51 @@ void MemoryManager::allocateForImage(VkImage image,
         throw std::runtime_error("Unable to find a suitable memory type");
     }
 
-    uint32_t blockCount = getBlockCount(memoryRequirements);
-
-    if (memoryRequirements.alignment <= pageSize) {
-        int32_t memoryTypeOffset, pageOffset;
-        std::tie<int32_t, int32_t>(memoryTypeOffset, pageOffset) = findSuitableMemoryBlock(blockCount, memoryTypeIndex);
-
-        if (memoryTypeOffset == -1) {
-            allocate(memoryTypeIndex);
-            std::tie<int32_t, int32_t>(memoryTypeOffset, pageOffset) = findSuitableMemoryBlock(blockCount, memoryTypeIndex);
-        }
-
-        for (uint32_t i{static_cast<uint32_t>(pageOffset)};i < pageOffset + blockCount;++i) {
-            mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i] = true;
-            mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i].image = image;
-            mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[i].name = name;
-        }
-
-        mImagesInfo[image] = {
-            static_cast<uint32_t>(memoryTypeIndex),
-            static_cast<uint32_t>(memoryTypeOffset),
-            static_cast<uint32_t>(pageOffset),
-            0,
-            blockCount
-        };
-        vkBindImageMemory(mDevice, image, mDeviceMemoryAllocation[memoryTypeIndex][memoryTypeOffset], pageOffset * pageSize);
-    } else {
-        throw std::runtime_error("Not implemented");
+    if (mChunksMap.find(memoryTypeIndex) == mChunksMap.end()) {
+        allocate(memoryTypeIndex);
     }
+
+    for (uint32_t i{0};i < mChunksMap[memoryTypeIndex].size();++i) {
+        Chunk& chunk = mChunksMap[memoryTypeIndex][i];
+        AllocationResult result = chunk.reserve(memoryRequirements.size);
+        if (result.found) {
+            Block block = result.block;
+            //mBuffersInfo[buffer] = {}; // For testing purpose
+            mImagesInfo[image].block = block;
+            mImagesInfo[image].chunkIndex = i;
+            mImagesInfo[image].memoryTypeIndex = memoryTypeIndex;
+
+            vkBindImageMemory(mDevice, image, chunk.getMemory(), block.offset);
+            return;
+        }
+    }
+
+    // If we come to this point, this means we need to allocate a new Chunk of memory because the previous one are full
+    allocate(memoryTypeIndex);
+    Chunk& chunk = mChunksMap[memoryTypeIndex].back();
+    AllocationResult result = chunk.reserve(memoryRequirements.size);
+    if (result.found) {
+        Block block = result.block;
+        //mBuffersInfo[buffer] = {}; // For testing purpose
+        mImagesInfo[image].block = block;
+        mImagesInfo[image].chunkIndex = mChunksMap[memoryTypeIndex].size() - 1;
+        mImagesInfo[image].memoryTypeIndex = memoryTypeIndex;
+
+        vkBindImageMemory(mDevice, image, chunk.getMemory(), block.offset);
+        return;
+    }
+
+    throw std::runtime_error("Unable to find enough memory");
 }
 
 void MemoryManager::freeBuffer(VkBuffer buffer) {
     BufferInfo bufferInfo = mBuffersInfo[buffer];
 
-    for (uint32_t i{0};i < bufferInfo.blockCount;i++) {
-        mMemoryTypeOccupations[bufferInfo.memoryTypeIndex][bufferInfo.memoryTypeOffset].blocks[bufferInfo.pageOffset + i].buffer = VK_NULL_HANDLE;
-        mMemoryTypeOccupations[bufferInfo.memoryTypeIndex][bufferInfo.memoryTypeOffset].blocks[bufferInfo.pageOffset + i].occupied = false;
-        mMemoryTypeOccupations[bufferInfo.memoryTypeIndex][bufferInfo.memoryTypeOffset].blocks[bufferInfo.pageOffset + i].name.clear();
+    if (!mChunksMap[bufferInfo.memoryTypeIndex][bufferInfo.chunkIndex].free(bufferInfo.block)) {
+        throw std::runtime_error("Unable to find the block to free");
     }
+
+    mBuffersInfo.erase(buffer);
 
     vkDestroyBuffer(mDevice, buffer, nullptr);
 }
@@ -194,11 +208,11 @@ void MemoryManager::freeBuffer(VkBuffer buffer) {
 void MemoryManager::freeImage(VkImage image) {
     BufferInfo imageInfo = mImagesInfo[image];
 
-    for (uint32_t i{0};i < imageInfo.blockCount;i++) {
-        mMemoryTypeOccupations[imageInfo.memoryTypeIndex][imageInfo.memoryTypeOffset].blocks[imageInfo.pageOffset + i].image = VK_NULL_HANDLE;
-        mMemoryTypeOccupations[imageInfo.memoryTypeIndex][imageInfo.memoryTypeOffset].blocks[imageInfo.pageOffset + i].occupied = false;
-        mMemoryTypeOccupations[imageInfo.memoryTypeIndex][imageInfo.memoryTypeOffset].blocks[imageInfo.pageOffset + i].name.clear();
+    if (!mChunksMap[imageInfo.memoryTypeIndex][imageInfo.chunkIndex].free(imageInfo.block)) {
+        throw std::runtime_error("Unable to find the block to free");
     }
+
+    mImagesInfo.erase(image);
     
     vkDestroyImage(mDevice, image, nullptr);
 }
@@ -207,14 +221,14 @@ void MemoryManager::mapMemory(VkBuffer buffer, VkDeviceSize size, void** data) {
     BufferInfo bufferInfo = mBuffersInfo[buffer];
     vkMapMemory(
         mDevice,
-        mDeviceMemoryAllocation[bufferInfo.memoryTypeIndex][bufferInfo.memoryTypeOffset],
-        bufferInfo.pageOffset * pageSize + bufferInfo.alignment,
+        mChunksMap[bufferInfo.memoryTypeIndex][bufferInfo.chunkIndex].getMemory(),
+        bufferInfo.block.offset,
         size, 0, data);
 }
 
 void MemoryManager::unmapMemory(VkBuffer buffer) {
     BufferInfo bufferInfo = mBuffersInfo[buffer];
-    vkUnmapMemory(mDevice, mDeviceMemoryAllocation[bufferInfo.memoryTypeIndex][bufferInfo.memoryTypeOffset]);
+    vkUnmapMemory(mDevice, mChunksMap[bufferInfo.memoryTypeIndex][bufferInfo.chunkIndex].getMemory());
 }
 
 int32_t MemoryManager::findMemoryType(VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags& properties) {
@@ -230,58 +244,4 @@ int32_t MemoryManager::findMemoryType(VkMemoryRequirements& memoryRequirements, 
     }
 
     return memoryTypeIndex;
-}
-
-std::tuple<int32_t, int32_t> MemoryManager::findSuitableMemoryBlock(uint32_t blockCount, uint32_t memoryTypeIndex) {
-    int32_t memoryTypeOffset = -1;
-    int32_t pageOffset = -1;
-
-    for (size_t i{0};i < mMemoryTypeOccupations[memoryTypeIndex].size();++i) {
-        pageOffset = findSuitableMemoryBlock(blockCount, memoryTypeIndex, i);
-
-        if (pageOffset != -1) {
-            memoryTypeOffset = i;
-            break;
-        }
-    }
-
-    return std::make_tuple(memoryTypeOffset, pageOffset);
-}
-
-int32_t MemoryManager::findSuitableMemoryBlock(uint32_t blockCount, uint32_t memoryTypeIndex, uint32_t memoryTypeOffset) {
-    size_t i = 0;
-
-    while(i < mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks.size()) {
-        uint32_t start = i;
-        uint32_t end = i + blockCount;
-
-        bool enough = true;
-        for (uint32_t j{start};j < end;++j) {
-            if (mMemoryTypeOccupations[memoryTypeIndex][memoryTypeOffset].blocks[j]) {
-                i = j + 1;
-                enough = false;
-                break;
-            }
-        }
-
-        if (enough) {
-            return static_cast<int32_t>(start);
-        }
-    }
-
-    return -1;
-}
-
-uint32_t MemoryManager::getBlockCount(VkMemoryRequirements& memoryRequirements) {
-    uint32_t blockCount = memoryRequirements.size / pageSize;
-    if (memoryRequirements.size & (pageSize - 1)) {
-        return blockCount + 1;
-    } else {
-        return blockCount;
-    }
-}
-
-uint32_t MemoryManager::getAlignment(VkMemoryRequirements& memoryRequirements) {
-    uint32_t requiredAlignment = memoryRequirements.alignment;
-    uint32_t multiple = requiredAlignment / pageSize;
 }

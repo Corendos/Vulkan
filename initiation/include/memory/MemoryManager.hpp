@@ -11,6 +11,8 @@
 #include "MemoryHeapOccupation.hpp"
 #include "BufferInfo.hpp"
 
+#include "memory/Chunk.hpp"
+
 class MemoryManager {
     public:
         MemoryManager() = delete;
@@ -41,21 +43,15 @@ class MemoryManager {
         VkDevice& mDevice;
         VkPhysicalDevice& mPhysicalDevice;
         VkPhysicalDeviceMemoryProperties mMemoryProperties;
-        std::vector<std::vector<VkDeviceMemory>> mDeviceMemoryAllocation;
-
-        std::vector<std::vector<MemoryHeapOccupation>> mMemoryTypeOccupations;
-        std::map<VkBuffer, BufferInfo> mBuffersInfo;
-        std::map<VkImage, BufferInfo> mImagesInfo;
         static uint32_t allocationSize;
         static uint32_t pageSize;
 
-        void initialAllocation();
+        std::map<uint32_t, std::vector<Chunk>> mChunksMap;
+        std::map<VkBuffer, BufferInfo> mBuffersInfo;
+        std::map<VkImage, BufferInfo> mImagesInfo;
+
         void allocate(uint32_t memoryTypeIndex);
         int32_t findMemoryType(VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags& properties);
-        std::tuple<int32_t, int32_t> findSuitableMemoryBlock(uint32_t blockCount, uint32_t memoryHeapIndex);
-        int32_t findSuitableMemoryBlock(uint32_t blockCount, uint32_t memoryHeapIndex, uint32_t memoryHeapOffset);
-        static uint32_t getBlockCount(VkMemoryRequirements& memoryRequirements);
-        static uint32_t getAlignment(VkMemoryRequirements& memoryRequirements);
 };
 
 #endif
