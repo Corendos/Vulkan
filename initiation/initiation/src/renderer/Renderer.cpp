@@ -190,7 +190,7 @@ void Renderer::update(double dt) {
     waitForFence();
 
     updateUniformBuffer(mNextImageIndex);
-    if (mMeshManager->update(mNextImageIndex)) {
+    if (mMeshManager->update(mNextImageIndex) || mCommandBufferNeedUpdate[mNextImageIndex]) {
         updateCommandBuffer(mNextImageIndex);
     }
 }
@@ -229,8 +229,7 @@ void Renderer::acquireNextImage() {
 void Renderer::waitForFence() {
     if (mFencesInfo[mNextImageIndex].submitted) {
         if (vkGetFenceStatus(mContext->getDevice(), mFencesInfo[mNextImageIndex].fence) == VK_NOT_READY) {
-            std::cout << "Fence #" << mNextImageIndex << " not ready" << std::endl;
-            vkWaitForFences(mContext->getDevice(), 1, &mFencesInfo[mNextImageIndex].fence, VK_TRUE, 0);
+            vkWaitForFences(mContext->getDevice(), 1, &mFencesInfo[mNextImageIndex].fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
         }
         vkResetFences(mContext->getDevice(), 1, &mFencesInfo[mNextImageIndex].fence);
     }
