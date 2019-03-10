@@ -10,7 +10,7 @@ file(
     ../../include/*.hpp
 )
 
-set(CURRENT_PROJECT_TEST test)
+set(CURRENT_PROJECT_TEST test-project)
 
 # Declare executable
 add_executable(${CURRENT_PROJECT_TEST} test.cpp ${src})
