@@ -41,6 +41,7 @@ void FileWatch::launch() {
 }
 
 void FileWatch::run() {
+    return; // TEMPORARY
     while(!mStop) {
         char* buffer[BufferSize];
         int length = read(mInotifyHandler, buffer, BufferSize);
