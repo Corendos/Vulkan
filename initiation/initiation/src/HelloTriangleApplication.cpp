@@ -141,6 +141,10 @@ void HelloTriangleApplication::processInputs() {
 
         mCamera.update(deltaPitch, deltaYaw);
     }
+
+    if (glfwGetKey(mWindow, GLFW_KEY_SPACE)) {
+        mContext.getMemoryManager().printInfo();
+    }
 }
 
 void HelloTriangleApplication::windowResizedCallback(GLFWwindow* window, int width, int height) {
