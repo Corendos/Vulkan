@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "HelloTriangleApplication.hpp"
-#include "BinaryTree.hpp"
 
 int main() {
     HelloTriangleApplication app;
