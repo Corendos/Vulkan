@@ -81,8 +81,6 @@ void MemoryManager::allocate(uint32_t memoryTypeIndex) {
         // This is temporary, if the allocation is not successful, it could be harmless
         std::cout << "Failed to allocate memory" << std::endl;
     }
-    //mDeviceMemoryAllocation[memoryTypeIndex].push_back(memoryAllocation);
-    //mMemoryTypeOccupations[memoryTypeIndex].push_back(MemoryHeapOccupation(allocationSize / pageSize));
 
     if (mChunksMap.find(memoryTypeIndex) == mChunksMap.end()) {
         mChunksMap[memoryTypeIndex] = std::vector<Chunk>();
