@@ -186,16 +186,20 @@ bool MeshManager::updateStaticBuffers(uint32_t imageIndex) {
         mRenderData.renderBuffers[imageIndex].indexBuffer,
         "MeshRenderer::indexBuffer");
 
+    CommandPool& transferCommandPool = mContext->getTransferCommandPool();
+
+    transferCommandPool.lock();
     BufferHelper::copyBuffer(
-        *mContext, mContext->getTransferCommandPool(),
+        *mContext, transferCommandPool,
         mContext->getTransferQueue(), mRenderData.stagingBuffers.vertexBuffer,
         mRenderData.renderBuffers[imageIndex].vertexBuffer,
         mRenderData.stagingBuffers.vertexBufferSizeInBytes);
     BufferHelper::copyBuffer(
-        *mContext, mContext->getTransferCommandPool(),
+        *mContext, transferCommandPool,
         mContext->getTransferQueue(), mRenderData.stagingBuffers.indexBuffer,
         mRenderData.renderBuffers[imageIndex].indexBuffer,
         mRenderData.stagingBuffers.indexBufferSizeInBytes);
+    transferCommandPool.unlock();
 
     mRenderData.renderBuffers[imageIndex].vertexBufferSize = mRenderData.stagingBuffers.vertexBufferSize;
     mRenderData.renderBuffers[imageIndex].vertexBufferSizeInBytes = mRenderData.stagingBuffers.vertexBufferSizeInBytes;

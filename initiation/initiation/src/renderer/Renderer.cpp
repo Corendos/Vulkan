@@ -78,9 +78,13 @@ void Renderer::recreate() {
         framebuffer.destroy(mContext->getDevice());
     }
 
-    vkFreeCommandBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool().getHandler(),
+    CommandPool& graphicsCommandPool = mContext->getGraphicsCommandPool();
+
+    graphicsCommandPool.lock();
+    vkFreeCommandBuffers(mContext->getDevice(), graphicsCommandPool.getHandler(),
                          static_cast<uint32_t>(mCommandBuffers.size()),
                          mCommandBuffers.data());
+    graphicsCommandPool.unlock();
     
     mSwapChain.destroy(mContext->getDevice());
     mRenderPass.destroy(mContext->getDevice());
@@ -124,9 +128,13 @@ void Renderer::destroy() {
 
         vkDestroyDescriptorPool(mContext->getDevice(), mDescriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(mContext->getDevice(), mCameraDescriptorSetLayout, nullptr);
-
-        vkFreeCommandBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool().getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
         
+        CommandPool& graphicsCommandPool = mContext->getGraphicsCommandPool();
+
+        graphicsCommandPool.lock();
+        vkFreeCommandBuffers(mContext->getDevice(), graphicsCommandPool.getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
+        graphicsCommandPool.unlock();
+
         mSwapChain.destroy(mContext->getDevice());
         mRenderPass.destroy(mContext->getDevice());
         mPipeline.destroy(mContext->getDevice());
@@ -398,7 +406,11 @@ void Renderer::createCommandBuffers() {
     mCommandBuffers.resize(mSwapChain.getImageCount());
     mCommandBufferNeedUpdate.resize(mSwapChain.getImageCount(), true);
 
-    Commands::allocateBuffers(mContext->getDevice(), mContext->getGraphicsCommandPool(), mCommandBuffers);
+    CommandPool& graphicsCommandPool = mContext->getGraphicsCommandPool();
+
+    graphicsCommandPool.lock();
+    Commands::allocateBuffers(mContext->getDevice(), graphicsCommandPool, mCommandBuffers);
+    graphicsCommandPool.unlock();
 }
 
 void Renderer::createCameraUniformBuffers() {

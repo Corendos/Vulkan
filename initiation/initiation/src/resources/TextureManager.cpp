@@ -90,9 +90,14 @@ Image TextureManager::_createImage(std::string& filename) {
 
     ImageHelper::transitionImageLayout(*mContext, image.getHandler(), VK_FORMAT_R8G8B8A8_UNORM,
                                  VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    BufferHelper::copyBufferToImage(*mContext, mContext->getTransferCommandPool(),
+    CommandPool& transferCommandPool = mContext->getTransferCommandPool();
+
+    transferCommandPool.lock();
+    BufferHelper::copyBufferToImage(*mContext, transferCommandPool,
                                     mContext->getTransferQueue(), stagingBuffer,
                                     image.getHandler(), width, height);
+    transferCommandPool.unlock();
+
     ImageHelper::transitionImageLayout(*mContext, image.getHandler(), VK_FORMAT_R8G8B8A8_UNORM,
                                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);

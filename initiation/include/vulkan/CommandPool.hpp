@@ -2,6 +2,7 @@
 #define COMMANDPOOL
 
 #include <stdexcept>
+#include <mutex>
 
 #include <vulkan/vulkan.h>
 
@@ -14,8 +15,12 @@ class CommandPool {
 
         VkCommandPool getHandler() const;
 
+        void lock();
+        void unlock();
+
     private:
         VkCommandPool mHandler;
+        std::mutex mMutex;
 
         bool mCreated{false};
 };

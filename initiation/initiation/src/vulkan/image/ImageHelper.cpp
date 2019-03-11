@@ -65,7 +65,11 @@ void ImageHelper::transitionImageLayout(VulkanContext& context,
                                   VkFormat format,
                                   VkImageLayout oldLayout,
                                   VkImageLayout newLayout) {
-    VkCommandBuffer commandBuffer = Commands::beginSingleTime(context.getDevice(), context.getTransferCommandPool());
+    CommandPool& transferCommandPool = context.getTransferCommandPool();
+
+    transferCommandPool.lock();
+    VkCommandBuffer commandBuffer = Commands::beginSingleTime(context.getDevice(), transferCommandPool);
+    transferCommandPool.unlock();
 
     VkImageMemoryBarrier memoryBarrier{};
     memoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -126,10 +130,12 @@ void ImageHelper::transitionImageLayout(VulkanContext& context,
         1, &memoryBarrier
     );
 
+    transferCommandPool.lock();
     Commands::endSingleTime(context.getDevice(),
-                            context.getTransferCommandPool(),
+                            transferCommandPool,
                             commandBuffer,
                             context.getGraphicsQueue());
+    transferCommandPool.unlock();
 }
 
 bool ImageHelper::hasStencilComponent(VkFormat format) {

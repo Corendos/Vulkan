@@ -27,3 +27,11 @@ void CommandPool::destroy(VkDevice device) {
 VkCommandPool CommandPool::getHandler() const {
     return mHandler;
 }
+
+void CommandPool::lock() {
+    mMutex.lock();
+}
+
+void CommandPool::unlock() {
+    mMutex.unlock();
+}
