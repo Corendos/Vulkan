@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <memory>
+#include <future>
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -87,6 +88,8 @@ class Renderer {
 
         std::vector<RendererAttachments> mFramebufferAttachments;
 
+        std::future<bool> mFutureResult;
+
         bool mCreated{false};
         bool mBypassRendering{false};
 
@@ -112,6 +115,8 @@ class Renderer {
 
         void updateCommandBuffer(uint32_t index);
         void updateUniformBuffer(uint32_t index);
+
+        bool createNewCommandBuffer();
 
         VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
         VkFormat findDepthFormat();

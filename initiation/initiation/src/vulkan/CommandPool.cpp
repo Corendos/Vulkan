@@ -1,3 +1,6 @@
+#include <thread>
+#include <iostream>
+
 #include "vulkan/CommandPool.hpp"
 
 void CommandPool::create(VkDevice device, uint32_t queueFamilyIndex) {
@@ -29,9 +32,11 @@ VkCommandPool CommandPool::getHandler() const {
 }
 
 void CommandPool::lock() {
+    std::cout << std::this_thread::get_id() << " locking command pool" << std::endl;
     mMutex.lock();
 }
 
 void CommandPool::unlock() {
+    std::cout << std::this_thread::get_id() << " unlocking command pool" << std::endl;
     mMutex.unlock();
 }

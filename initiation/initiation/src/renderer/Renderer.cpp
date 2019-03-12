@@ -197,8 +197,17 @@ void Renderer::update(double dt) {
     acquireNextImage();
     waitForFence();
 
+    if (mFutureResult.valid()) {
+        std::cout << "Finished" << std::endl;
+        mFutureResult = std::future<bool>();
+    }
+
     updateUniformBuffer(mNextImageIndex);
     if (mMeshManager->update(mNextImageIndex) || mCommandBufferNeedUpdate[mNextImageIndex]) {
+        // Temporary
+        if (mNextImageIndex == 0) {
+            mFutureResult = std::async(&Renderer::createNewCommandBuffer, this);
+        }
         updateCommandBuffer(mNextImageIndex);
     }
 }
@@ -562,6 +571,26 @@ void Renderer::updateUniformBuffer(uint32_t index) {
     mContext->getMemoryManager().mapMemory(mCameraUniformBuffers[index], sizeof(RenderInfo), &data);
     memcpy(data, &renderInfo, sizeof(RenderInfo));
     mContext->getMemoryManager().unmapMemory(mCameraUniformBuffers[index]);
+}
+
+bool Renderer::createNewCommandBuffer() {
+    std::cout << "Thread Id: " << std::hex << std::this_thread::get_id() << std::endl;
+    CommandPool& graphicsCommandPool = mContext->getGraphicsCommandPool();
+
+    graphicsCommandPool.lock();
+
+    VkCommandBufferAllocateInfo allocateInfo{};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocateInfo.commandPool = graphicsCommandPool.getHandler();
+    allocateInfo.commandBufferCount = mSwapChain.getImageCount();
+    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+    std::vector<VkCommandBuffer> newCommandBuffers(mSwapChain.getImageCount());
+    VkResult result = vkAllocateCommandBuffers(mContext->getDevice(), &allocateInfo, newCommandBuffers.data());
+    if (result != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate command buffer");
+    }
+    graphicsCommandPool.unlock();
 }
 
 VkFormat Renderer::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
