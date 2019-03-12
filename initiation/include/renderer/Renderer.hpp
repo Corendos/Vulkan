@@ -37,6 +37,10 @@ struct FenceInfo {
     VkFence fence;
 };
 
+using AsyncUpdateResult = std::vector<VkCommandBuffer>;
+
+enum CommandBufferState { NotReady, Ready, Size };
+
 class Renderer {
     public:
         Renderer();
@@ -61,6 +65,7 @@ class Renderer {
         VkDescriptorSet mDescriptorSet;
         VkExtent2D mExtent;
         std::vector<VkCommandBuffer> mCommandBuffers;
+        std::vector<CommandBufferState> mCommandBufferStates;
         std::vector<FenceInfo> mFencesInfo;
         std::vector<bool> mCommandBufferNeedUpdate;
 
@@ -89,6 +94,7 @@ class Renderer {
         std::vector<RendererAttachments> mFramebufferAttachments;
 
         std::future<bool> mFutureResult;
+        std::future<AsyncUpdateResult> mAsyncUpdateResultFuture;
 
         bool mCreated{false};
         bool mBypassRendering{false};
@@ -116,7 +122,7 @@ class Renderer {
         void updateCommandBuffer(uint32_t index);
         void updateUniformBuffer(uint32_t index);
 
-        bool createNewCommandBuffer();
+        std::vector<VkCommandBuffer> createNewCommandBuffer();
 
         VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
         VkFormat findDepthFormat();

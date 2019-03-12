@@ -77,14 +77,6 @@ void Renderer::recreate() {
     for (auto& framebuffer : mFrameBuffers) {
         framebuffer.destroy(mContext->getDevice());
     }
-
-    CommandPool& graphicsCommandPool = mContext->getGraphicsCommandPool();
-
-    graphicsCommandPool.lock();
-    vkFreeCommandBuffers(mContext->getDevice(), graphicsCommandPool.getHandler(),
-                         static_cast<uint32_t>(mCommandBuffers.size()),
-                         mCommandBuffers.data());
-    graphicsCommandPool.unlock();
     
     mSwapChain.destroy(mContext->getDevice());
     mRenderPass.destroy(mContext->getDevice());
@@ -128,12 +120,6 @@ void Renderer::destroy() {
 
         vkDestroyDescriptorPool(mContext->getDevice(), mDescriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(mContext->getDevice(), mCameraDescriptorSetLayout, nullptr);
-        
-        CommandPool& graphicsCommandPool = mContext->getGraphicsCommandPool();
-
-        graphicsCommandPool.lock();
-        vkFreeCommandBuffers(mContext->getDevice(), graphicsCommandPool.getHandler(), static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
-        graphicsCommandPool.unlock();
 
         mSwapChain.destroy(mContext->getDevice());
         mRenderPass.destroy(mContext->getDevice());
@@ -150,7 +136,9 @@ void Renderer::destroy() {
 }
 
 void Renderer::render() {
-    if (mBypassRendering) return;
+    if (mBypassRendering) {
+        return;
+    }
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -160,8 +148,13 @@ void Renderer::render() {
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &mCommandBuffers[mNextImageIndex];
+    if (mCommandBufferStates[mNextImageIndex] == CommandBufferState::NotReady) {
+        submitInfo.commandBufferCount = 0;
+        submitInfo.pCommandBuffers = nullptr;
+    } else {
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &mCommandBuffers[mNextImageIndex];
+    }
 
     VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphore};
     submitInfo.signalSemaphoreCount = 1;
@@ -197,19 +190,30 @@ void Renderer::update(double dt) {
     acquireNextImage();
     waitForFence();
 
-    if (mFutureResult.valid()) {
-        std::cout << "Finished" << std::endl;
-        mFutureResult = std::future<bool>();
+    if (mAsyncUpdateResultFuture.valid()) {
+        mCommandBuffers = mAsyncUpdateResultFuture.get();
+        mAsyncUpdateResultFuture = std::future<AsyncUpdateResult>();
+        for (size_t i{0};i < mSwapChain.getImageCount();++i) {
+            mCommandBufferStates[i] = CommandBufferState::Ready;
+        }
     }
 
     updateUniformBuffer(mNextImageIndex);
+    mMeshManager->update();
+
+    if (mMeshManager->needStaticUpdate()) {
+        mAsyncUpdateResultFuture = std::async(&Renderer::createNewCommandBuffer, this);
+    }
+    /*
     if (mMeshManager->update(mNextImageIndex) || mCommandBufferNeedUpdate[mNextImageIndex]) {
         // Temporary
         if (mNextImageIndex == 0) {
             mFutureResult = std::async(&Renderer::createNewCommandBuffer, this);
         }
-        updateCommandBuffer(mNextImageIndex);
+        //updateCommandBuffer(mNextImageIndex);
+        mCommandBufferNeedUpdate[mNextImageIndex] = false;
     }
+    */
 }
 
 void Renderer::setCamera(Camera& camera) {
@@ -231,7 +235,7 @@ SwapChain& Renderer::getSwapChain() {
 void Renderer::acquireNextImage() {
     mBypassRendering = false;
     VkResult result = vkAcquireNextImageKHR(
-        mContext->getDevice(), mSwapChain.getHandler(), std::numeric_limits<uint64_t>::max(),
+        mContext->getDevice(), mSwapChain.getHandler(), std::numeric_limits<uint64_t>::max() - 1,
         mImageAvailableSemaphore, VK_NULL_HANDLE, &mNextImageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -413,13 +417,8 @@ void Renderer::createDescriptorSetLayout() {
 
 void Renderer::createCommandBuffers() {
     mCommandBuffers.resize(mSwapChain.getImageCount());
+    mCommandBufferStates.resize(mSwapChain.getImageCount(), CommandBufferState::NotReady);
     mCommandBufferNeedUpdate.resize(mSwapChain.getImageCount(), true);
-
-    CommandPool& graphicsCommandPool = mContext->getGraphicsCommandPool();
-
-    graphicsCommandPool.lock();
-    Commands::allocateBuffers(mContext->getDevice(), graphicsCommandPool, mCommandBuffers);
-    graphicsCommandPool.unlock();
 }
 
 void Renderer::createCameraUniformBuffers() {
@@ -573,8 +572,8 @@ void Renderer::updateUniformBuffer(uint32_t index) {
     mContext->getMemoryManager().unmapMemory(mCameraUniformBuffers[index]);
 }
 
-bool Renderer::createNewCommandBuffer() {
-    std::cout << "Thread Id: " << std::hex << std::this_thread::get_id() << std::endl;
+std::vector<VkCommandBuffer> Renderer::createNewCommandBuffer() {
+    mMeshManager->updateStaticBuffers();
     CommandPool& graphicsCommandPool = mContext->getGraphicsCommandPool();
 
     graphicsCommandPool.lock();
@@ -590,7 +589,41 @@ bool Renderer::createNewCommandBuffer() {
     if (result != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate command buffer");
     }
+
+    for (size_t i{0};i < mSwapChain.getImageCount();++i) {
+        Commands::begin(newCommandBuffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = mRenderPass.getHandler();
+        renderPassInfo.framebuffer = mFrameBuffers[i].getHandler();
+
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = mSwapChain.getExtent();
+
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(mClearValues.size());
+        renderPassInfo.pClearValues = mClearValues.data();
+
+        vkCmdBeginRenderPass(newCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(newCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.getHandler());
+        
+        vkCmdBindDescriptorSets(newCommandBuffers[i],
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                mPipeline.getLayout().getHandler(),
+                                1, 1, &mCameraDescriptorSets[i],
+                                0, nullptr);
+
+        mMeshManager->render(newCommandBuffers[i], mPipeline.getLayout().getHandler(), i);    
+
+        vkCmdEndRenderPass(newCommandBuffers[i]);
+
+        if (vkEndCommandBuffer(newCommandBuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to record command buffers");
+        } 
+    }
+
     graphicsCommandPool.unlock();
+    return newCommandBuffers;
 }
 
 VkFormat Renderer::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {

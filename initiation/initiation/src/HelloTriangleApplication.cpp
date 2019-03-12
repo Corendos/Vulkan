@@ -142,8 +142,15 @@ void HelloTriangleApplication::processInputs() {
         mCamera.update(deltaPitch, deltaYaw);
     }
 
-    if (glfwGetKey(mWindow, GLFW_KEY_SPACE)) {
-        mContext.getMemoryManager().printInfo();
+    if (glfwGetKey(mWindow, GLFW_KEY_SPACE) && !mTempKeyState) {
+        mTemp = std::make_unique<Mesh>(std::move(MeshHelper::createCube(1.0)));
+        mTemp->setTexture(mTextureManager.getTexture("diamond"));
+        mTemp->getTransform().setPosition({mTempCounter, mTempCounter, mTempCounter});
+        mMeshManager.addMesh(*mTemp);
+        mTempCounter += 1.0f;
+        mTempKeyState = true;
+    } else if (!glfwGetKey(mWindow, GLFW_KEY_SPACE)){
+        mTempKeyState = false;
     }
 }
 

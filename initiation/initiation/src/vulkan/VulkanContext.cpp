@@ -16,8 +16,6 @@ void VulkanContext::create(GLFWwindow* window) {
     pickPhysicalDevice();
     createLogicalDevice();
     createDescriptorPool();
-    mGraphicsCommandPool.create(mDevice, mIndices.graphicsFamily.value());
-    mTransferCommandPool.create(mDevice, mIndices.transferFamily.value());
     mMemoryManager.init();
 }
 
@@ -30,8 +28,12 @@ void VulkanContext::destroy() {
 
     mMemoryManager.cleanup();
     mMemoryManager.memoryCheckLog();
-    mGraphicsCommandPool.destroy(mDevice);
-    mTransferCommandPool.destroy(mDevice);
+    for (auto& pair : mGraphicsCommandPoolMap) {
+        pair.second.destroy(mDevice);
+    }
+    for (auto& pair : mTransferCommandPoolMap) {
+        pair.second.destroy(mDevice);
+    }
     mDescriptorPool.destroy(mDevice);
     vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
     vkDestroyDevice(mDevice, nullptr);
@@ -71,11 +73,21 @@ QueueFamilyIndices VulkanContext::getQueueFamilyIndices() const {
 }
 
 CommandPool& VulkanContext::getGraphicsCommandPool() {
-    return mGraphicsCommandPool;
+    if (mGraphicsCommandPoolMap.find(std::this_thread::get_id()) == mGraphicsCommandPoolMap.end()) {
+        CommandPool graphicsCommandPool;
+        graphicsCommandPool.create(mDevice, mIndices.graphicsFamily.value());
+        mGraphicsCommandPoolMap[std::this_thread::get_id()] = std::move(graphicsCommandPool);
+    }
+    return mGraphicsCommandPoolMap[std::this_thread::get_id()];
 }
 
 CommandPool& VulkanContext::getTransferCommandPool() {
-    return mTransferCommandPool;
+    if (mTransferCommandPoolMap.find(std::this_thread::get_id()) == mTransferCommandPoolMap.end()) {
+        CommandPool transferCommandPool;
+        transferCommandPool.create(mDevice, mIndices.graphicsFamily.value());
+        mTransferCommandPoolMap[std::this_thread::get_id()] = std::move(transferCommandPool);
+    }
+    return mTransferCommandPoolMap[std::this_thread::get_id()];
 }
 
 VkSurfaceKHR VulkanContext::getSurface() const {

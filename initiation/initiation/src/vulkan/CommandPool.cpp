@@ -3,6 +3,18 @@
 
 #include "vulkan/CommandPool.hpp"
 
+CommandPool::CommandPool(CommandPool&& other) : mCreated(other.mCreated), mHandler(other.mHandler) {
+    other.mCreated = false;
+    other.mHandler = VK_NULL_HANDLE;
+}
+
+CommandPool& CommandPool::operator=(CommandPool&& other) {
+    mCreated = other.mCreated;
+    mHandler = other.mHandler;
+    other.mCreated = false;
+    other.mHandler = VK_NULL_HANDLE;
+}
+
 void CommandPool::create(VkDevice device, uint32_t queueFamilyIndex) {
     if (mCreated) {
         return;
@@ -32,11 +44,9 @@ VkCommandPool CommandPool::getHandler() const {
 }
 
 void CommandPool::lock() {
-    std::cout << std::this_thread::get_id() << " locking command pool" << std::endl;
     mMutex.lock();
 }
 
 void CommandPool::unlock() {
-    std::cout << std::this_thread::get_id() << " unlocking command pool" << std::endl;
     mMutex.unlock();
 }

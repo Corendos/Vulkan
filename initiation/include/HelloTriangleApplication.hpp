@@ -54,6 +54,8 @@ class HelloTriangleApplication {
         Mesh mDeer;
         FileWatch mFileWatch;
         
+        bool mTempKeyState{false};
+        float mTempCounter{0.0f};
 
         BasicLogger mOutLogger{"../out.log"};
         BasicLogger mErrLogger{"../err.log"};

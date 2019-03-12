@@ -42,7 +42,7 @@ void MeshManager::addMesh(Mesh& mesh) {
     meshDataIt->free = false;
     mRenderData.meshDataBinding[&mesh] = &(*meshDataIt);
     updateDescriptorSet(mesh, *meshDataIt);
-    updateStagingBuffers();
+    mNeedBufferUpdate = true;
 }
 
 void MeshManager::removeMesh(Mesh& mesh) {
@@ -55,16 +55,32 @@ void MeshManager::removeMesh(Mesh& mesh) {
                                      [&descriptorSet](const MeshData& data) { return data.descriptorSet == descriptorSet; });
     descriptorIt->free = true;
     mRenderData.meshDataBinding.erase(&mesh);
-    updateStagingBuffers();
+    mNeedBufferUpdate = true;
 }
 
 void MeshManager::setImageCount(uint32_t count) {
     mRenderData.renderBuffers.resize(count);
 }
 
+void MeshManager::update() {
+    updateUniformBuffer();
+}
+
 bool MeshManager::update(uint32_t imageIndex) {
     updateUniformBuffer();
     return updateStaticBuffers(imageIndex);
+}
+
+void MeshManager::updateStaticBuffers() {
+    updateStagingBuffers();
+    for (size_t i{0};i < mRenderData.renderBuffers.size();++i) {
+        updateStaticBuffers(i);
+    }
+    mNeedBufferUpdate = false;
+}
+
+bool MeshManager::needStaticUpdate() const {
+    return mNeedBufferUpdate;
 }
 
 void MeshManager::render(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t imageIndex) {

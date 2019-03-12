@@ -10,6 +10,10 @@
 
 class CommandPool {
     public:
+        CommandPool() = default;
+        CommandPool(CommandPool&& other);
+        CommandPool& operator=(CommandPool&& other);
+
         void create(VkDevice device, uint32_t queueFamilyIndex);
         void destroy(VkDevice device);
 

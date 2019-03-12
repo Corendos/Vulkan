@@ -2,6 +2,8 @@
 #define VULKANCONTEXT
 
 #include <vector>
+#include <thread>
+#include <unordered_map>
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -42,8 +44,8 @@ class VulkanContext {
         VkQueue mTransferQueue;                             // Device transfer queue
         VkSurfaceKHR mSurface;                              // Vulkan surface handler
         QueueFamilyIndices mIndices;
-        CommandPool mGraphicsCommandPool;
-        CommandPool mTransferCommandPool;
+        std::unordered_map<std::thread::id, CommandPool> mGraphicsCommandPoolMap;
+        std::unordered_map<std::thread::id, CommandPool> mTransferCommandPoolMap;
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
         MemoryManager mMemoryManager;
         VkPhysicalDeviceLimits mPhysicalDeviceLimits;

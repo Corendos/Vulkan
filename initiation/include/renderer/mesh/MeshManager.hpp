@@ -45,6 +45,11 @@ class MeshManager {
         void setImageCount(uint32_t count);
 
         bool update(uint32_t imageIndex);
+        void update();
+
+        void updateStaticBuffers();
+        bool needStaticUpdate() const;
+
         void render(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t imageIndex);
         VkDescriptorSetLayout getDescriptorSetLayout() const;
 
@@ -64,6 +69,8 @@ class MeshManager {
         VulkanContext* mContext;
 
         std::vector<Mesh*> mMeshes;
+
+        bool mNeedBufferUpdate{false};
 
         void createDescriptorSetLayout();
         void allocateUniformBuffer();
