@@ -68,6 +68,7 @@ class Renderer {
         std::vector<CommandBufferState> mCommandBufferStates;
         std::vector<FenceInfo> mFencesInfo;
         std::vector<bool> mCommandBufferNeedUpdate;
+        std::vector<VkCommandPool> mCommandPools;
 
         std::vector<Framebuffer> mFrameBuffers;
 
@@ -114,6 +115,7 @@ class Renderer {
         void createCameraDescriptorSets();
         void createSemaphores();
         void createFences();
+        void createCommandPools();
 
         FrameBufferAttachment createAttachment(VkFormat format,
                                                VkImageUsageFlags usage,

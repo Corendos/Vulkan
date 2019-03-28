@@ -49,6 +49,7 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager, Me
     createDescriptorPool();
     createCameraUniformBuffers();
     createCameraDescriptorSets();
+    createCommandPools();
     createCommandBuffers();
     createSemaphores();
     createFences();
@@ -117,6 +118,10 @@ void Renderer::destroy() {
         }
         mVertexShader.destroy(mContext->getDevice());
         mFragmentShader.destroy(mContext->getDevice());
+
+        for (auto& commandPool : mCommandPools) {
+            vkDestroyCommandPool(mContext->getDevice(), commandPool, nullptr);
+        }
 
         vkDestroyDescriptorPool(mContext->getDevice(), mDescriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(mContext->getDevice(), mCameraDescriptorSetLayout, nullptr);
@@ -188,32 +193,82 @@ void Renderer::render() {
 
 void Renderer::update(double dt) {
     acquireNextImage();
-    waitForFence();
-
-    if (mAsyncUpdateResultFuture.valid()) {
-        mCommandBuffers = mAsyncUpdateResultFuture.get();
-        mAsyncUpdateResultFuture = std::future<AsyncUpdateResult>();
-        for (size_t i{0};i < mSwapChain.getImageCount();++i) {
-            mCommandBufferStates[i] = CommandBufferState::Ready;
-        }
-    }
-
-    updateUniformBuffer(mNextImageIndex);
-    mMeshManager->update();
 
     if (mMeshManager->needStaticUpdate()) {
-        mAsyncUpdateResultFuture = std::async(&Renderer::createNewCommandBuffer, this);
+        mMeshManager->updateStagingBuffers();
+        mMeshManager->updateStaticBuffers(mNextImageIndex);
     }
-    /*
-    if (mMeshManager->update(mNextImageIndex) || mCommandBufferNeedUpdate[mNextImageIndex]) {
-        // Temporary
-        if (mNextImageIndex == 0) {
-            mFutureResult = std::async(&Renderer::createNewCommandBuffer, this);
-        }
-        //updateCommandBuffer(mNextImageIndex);
-        mCommandBufferNeedUpdate[mNextImageIndex] = false;
-    }
-    */
+
+    VkCommandBufferAllocateInfo allocateInfo{};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocateInfo.commandPool = mCommandPools[mNextImageIndex];
+    allocateInfo.commandBufferCount = 1;
+    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+
+    VkCommandBuffer staticCommandBuffer;
+
+    vkAllocateCommandBuffers(mContext->getDevice(), &allocateInfo, &staticCommandBuffer);
+
+    VkCommandBufferInheritanceInfo inheritanceInfo{};
+    inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+    inheritanceInfo.renderPass = mRenderPass.getHandler();
+    inheritanceInfo.subpass = 0;
+    inheritanceInfo.framebuffer = mFrameBuffers[mNextImageIndex].getHandler();
+    
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+    beginInfo.pInheritanceInfo = &inheritanceInfo;
+
+    vkBeginCommandBuffer(staticCommandBuffer, &beginInfo);
+
+    vkCmdBindPipeline(staticCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.getHandler());
+    
+    vkCmdBindDescriptorSets(staticCommandBuffer,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            mPipeline.getLayout().getHandler(),
+                            1, 1, &mCameraDescriptorSets[mNextImageIndex],
+                            0, nullptr);
+
+    mMeshManager->render(staticCommandBuffer, mPipeline.getLayout().getHandler(), mNextImageIndex);    
+
+    vkEndCommandBuffer(staticCommandBuffer);
+
+    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocateInfo.commandPool = mCommandPools[mNextImageIndex];
+    allocateInfo.commandBufferCount = 1;
+    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+    vkAllocateCommandBuffers(mContext->getDevice(), &allocateInfo, &mCommandBuffers[mNextImageIndex]);
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(mCommandBuffers[mNextImageIndex], &beginInfo);
+
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = mRenderPass.getHandler();
+    renderPassInfo.framebuffer = mFrameBuffers[mNextImageIndex].getHandler();
+
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = mSwapChain.getExtent();
+
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(mClearValues.size());
+    renderPassInfo.pClearValues = mClearValues.data();
+
+    vkCmdBeginRenderPass(mCommandBuffers[mNextImageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+
+    vkCmdExecuteCommands(mCommandBuffers[mNextImageIndex], 1, &staticCommandBuffer);
+
+    vkCmdEndRenderPass(mCommandBuffers[mNextImageIndex]);
+
+    vkEndCommandBuffer(mCommandBuffers[mNextImageIndex]);
+
+    mCommandBufferStates[mNextImageIndex] = CommandBufferState::Ready;
+
+    updateUniformBuffer(mNextImageIndex);
+
+    mMeshManager->update();
+    waitForFence();
 }
 
 void Renderer::setCamera(Camera& camera) {
@@ -488,6 +543,19 @@ void Renderer::createFences() {
     }
 }
 
+void Renderer::createCommandPools() {
+    mCommandPools.resize(mSwapChain.getImageCount());
+    VkCommandPoolCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    createInfo.queueFamilyIndex = mContext->getQueueFamilyIndices().graphicsFamily.value();
+    for (size_t i{0};i < mSwapChain.getImageCount();++i) {
+        VkResult result = vkCreateCommandPool(mContext->getDevice(), &createInfo, nullptr, &mCommandPools.at(i));
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create command pools");
+        }
+    }
+}
+
 FrameBufferAttachment Renderer::createAttachment(VkFormat format,
                                                  VkImageUsageFlags usage,
                                                  VkImageAspectFlags aspect) {
@@ -619,7 +687,7 @@ std::vector<VkCommandBuffer> Renderer::createNewCommandBuffer() {
 
         if (vkEndCommandBuffer(newCommandBuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("Failed to record command buffers");
-        } 
+        }
     }
 
     graphicsCommandPool.unlock();
