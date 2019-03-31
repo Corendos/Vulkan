@@ -23,11 +23,10 @@ class VulkanContext {
         VkPhysicalDevice getPhysicalDevice() const;
         VkDevice getDevice() const;
         VkPhysicalDeviceLimits getLimits() const;
-        VkQueue getGraphicsQueue() const;
         VkQueue getPresentQueue() const;
         VkQueue getTransferQueue() const;
+        VkQueue getGraphicsQueue() const;
         QueueFamilyIndices getQueueFamilyIndices() const;
-        CommandPool& getGraphicsCommandPool();
         CommandPool& getTransferCommandPool();
         VkSurfaceKHR getSurface() const;
         GLFWwindow* getWindow() const;
@@ -39,12 +38,11 @@ class VulkanContext {
         VkInstance mInstance;                               // Vulkan instance
         VkPhysicalDevice mPhysicalDevice{VK_NULL_HANDLE};   // Vulkan physical device handler
         VkDevice mDevice;                                   // Vulkan logical device handler
-        VkQueue mGraphicsQueue;                             // Device graphic queue
         VkQueue mPresentQueue;                              // Device present queue
         VkQueue mTransferQueue;                             // Device transfer queue
+        VkQueue mGraphicsQueue;                             // Device graphics queue
         VkSurfaceKHR mSurface;                              // Vulkan surface handler
         QueueFamilyIndices mIndices;
-        std::unordered_map<std::thread::id, CommandPool> mGraphicsCommandPoolMap;
         std::unordered_map<std::thread::id, CommandPool> mTransferCommandPoolMap;
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
         MemoryManager mMemoryManager;

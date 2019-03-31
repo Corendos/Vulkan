@@ -59,16 +59,14 @@ class Renderer {
 
     private:
         VkSemaphore mImageAvailableSemaphore;
-        VkSemaphore mRenderFinishedSemaphore;
+        std::vector<VkSemaphore> mRenderFinishedSemaphores;
         VkDescriptorPool mDescriptorPool;
         VkDescriptorSetLayout mCameraDescriptorSetLayout;
         VkDescriptorSet mDescriptorSet;
         VkExtent2D mExtent;
-        std::vector<VkCommandBuffer> mCommandBuffers;
-        std::vector<CommandBufferState> mCommandBufferStates;
         std::vector<FenceInfo> mFencesInfo;
-        std::vector<bool> mCommandBufferNeedUpdate;
         std::vector<VkCommandPool> mCommandPools;
+        std::vector<VkCommandBuffer> mCommandBuffers;
 
         std::vector<Framebuffer> mFrameBuffers;
 
@@ -94,8 +92,7 @@ class Renderer {
 
         std::vector<RendererAttachments> mFramebufferAttachments;
 
-        std::future<bool> mFutureResult;
-        std::future<AsyncUpdateResult> mAsyncUpdateResultFuture;
+        std::vector<VkSemaphore> mToWaitSemaphores;
 
         bool mCreated{false};
         bool mBypassRendering{false};
@@ -120,11 +117,7 @@ class Renderer {
         FrameBufferAttachment createAttachment(VkFormat format,
                                                VkImageUsageFlags usage,
                                                VkImageAspectFlags aspect);
-
-        void updateCommandBuffer(uint32_t index);
         void updateUniformBuffer(uint32_t index);
-
-        std::vector<VkCommandBuffer> createNewCommandBuffer();
 
         VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
         VkFormat findDepthFormat();

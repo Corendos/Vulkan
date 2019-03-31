@@ -6,6 +6,7 @@
 #include <array>
 #include <map>
 #include <atomic>
+#include <queue>
 
 #include <vulkan/vulkan.h>
 
@@ -43,16 +44,13 @@ class MeshManager {
         void removeMesh(Mesh& mesh);
 
         void setImageCount(uint32_t count);
+        void setRenderSemaphores(const std::vector<VkSemaphore>& semaphores);
 
-        bool update(uint32_t imageIndex);
-        void update();
+        void update(uint32_t imageIndex, std::vector<VkSemaphore>& toWaitSemaphores);
 
-        void updateStaticBuffers();
-        bool needStaticUpdate() const;
-        bool updateStaticBuffers(uint32_t imageIndex);
-        void updateStagingBuffers();
-
-        void render(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t imageIndex);
+        VkCommandBuffer render(VkRenderPass renderPass, VkFramebuffer frameBuffer, VkCommandPool commandPool,
+                               VkDescriptorSet cameraDescriptorSet, VkPipelineLayout pipelineLayout, VkPipeline pipeline,
+                               uint32_t imageIndex);
         VkDescriptorSetLayout getDescriptorSetLayout() const;
 
         static constexpr size_t MaximumMeshCount{1024};
@@ -68,17 +66,24 @@ class MeshManager {
             std::map<Mesh*, MeshData*> meshDataBinding;
         } mRenderData;
 
+        bool mNeedStagingUpdate{false};
+
+        std::queue<VkBuffer> mToFreeQueue;
+
         VulkanContext* mContext;
 
-        std::vector<Mesh*> mMeshes;
+        std::vector<VkSemaphore> mTransferCompleteSemaphores;
+        std::vector<VkSemaphore> mRenderCompleteSemaphores;
 
-        bool mNeedBufferUpdate{false};
+        std::vector<Mesh*> mMeshes;
 
         void createDescriptorSetLayout();
         void allocateUniformBuffer();
         void allocateDescriptorSets();
         void updateDescriptorSet(Mesh& mesh, MeshData& meshData);
         void updateUniformBuffer();
+        void updateStagingBuffers();
+        void updateStaticBuffers(uint32_t imageIndex);
 };
 
 #endif

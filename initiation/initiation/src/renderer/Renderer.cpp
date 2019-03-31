@@ -20,6 +20,8 @@ Renderer::Renderer() {
     mClearValues[0].color = {0.325f, 0.694f, 0.937f, 1.0f};
     mClearValues[1].color = {0.0f, 0.0f, 0.0f, 0.0f};
     mClearValues[2].depthStencil = {1.0f, 0};
+
+    mNextImageIndex = 0;
 }
 
 void Renderer::create(VulkanContext& context, TextureManager& textureManager, MeshManager& meshManager) {
@@ -53,6 +55,8 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager, Me
     createCommandBuffers();
     createSemaphores();
     createFences();
+
+    mMeshManager->setRenderSemaphores(mRenderFinishedSemaphores);
 
     mCreated = true;
 }
@@ -95,9 +99,6 @@ void Renderer::recreate() {
     createGraphicsPipeline();
     createCommandBuffers();
     mCamera->setExtent(mSwapChain.getExtent());
-    for (size_t i{0};i < mCommandBufferNeedUpdate.size();++i) {
-        mCommandBufferNeedUpdate[i] = true;
-    }
 }
 
 void Renderer::destroy() {
@@ -131,7 +132,10 @@ void Renderer::destroy() {
         mPipeline.destroy(mContext->getDevice());
         
         vkDestroySemaphore(mContext->getDevice(), mImageAvailableSemaphore, nullptr);
-        vkDestroySemaphore(mContext->getDevice(), mRenderFinishedSemaphore, nullptr);
+        for (size_t i{0};i < mRenderFinishedSemaphores.size();++i) {
+            vkDestroySemaphore(mContext->getDevice(), mRenderFinishedSemaphores[i], nullptr);
+        }
+
         for (size_t i{0};i < mFencesInfo.size();++i) {
             vkDestroyFence(mContext->getDevice(), mFencesInfo[i].fence, nullptr);
         }
@@ -148,20 +152,15 @@ void Renderer::render() {
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = {mImageAvailableSemaphore};
+    mToWaitSemaphores.push_back(mImageAvailableSemaphore);
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.waitSemaphoreCount = mToWaitSemaphores.size();
+    submitInfo.pWaitSemaphores = mToWaitSemaphores.data();
     submitInfo.pWaitDstStageMask = waitStages;
-    if (mCommandBufferStates[mNextImageIndex] == CommandBufferState::NotReady) {
-        submitInfo.commandBufferCount = 0;
-        submitInfo.pCommandBuffers = nullptr;
-    } else {
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &mCommandBuffers[mNextImageIndex];
-    }
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &mCommandBuffers[mNextImageIndex];
 
-    VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphore};
+    VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphores[mNextImageIndex]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -194,52 +193,24 @@ void Renderer::render() {
 void Renderer::update(double dt) {
     acquireNextImage();
 
-    if (mMeshManager->needStaticUpdate()) {
-        mMeshManager->updateStagingBuffers();
-        mMeshManager->updateStaticBuffers(mNextImageIndex);
-    }
+    mToWaitSemaphores.clear();
+
+    mMeshManager->update(mNextImageIndex, mToWaitSemaphores);
+
+    VkCommandBuffer staticBuffer = mMeshManager->render(
+        mRenderPass.getHandler(), mFrameBuffers[mNextImageIndex].getHandler(),
+        mCommandPools[mNextImageIndex], mCameraDescriptorSets[mNextImageIndex],
+        mPipeline.getLayout().getHandler(), mPipeline.getHandler(), mNextImageIndex);
 
     VkCommandBufferAllocateInfo allocateInfo{};
-    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocateInfo.commandPool = mCommandPools[mNextImageIndex];
-    allocateInfo.commandBufferCount = 1;
-    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-
-    VkCommandBuffer staticCommandBuffer;
-
-    vkAllocateCommandBuffers(mContext->getDevice(), &allocateInfo, &staticCommandBuffer);
-
-    VkCommandBufferInheritanceInfo inheritanceInfo{};
-    inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
-    inheritanceInfo.renderPass = mRenderPass.getHandler();
-    inheritanceInfo.subpass = 0;
-    inheritanceInfo.framebuffer = mFrameBuffers[mNextImageIndex].getHandler();
-    
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
-    beginInfo.pInheritanceInfo = &inheritanceInfo;
-
-    vkBeginCommandBuffer(staticCommandBuffer, &beginInfo);
-
-    vkCmdBindPipeline(staticCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.getHandler());
-    
-    vkCmdBindDescriptorSets(staticCommandBuffer,
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            mPipeline.getLayout().getHandler(),
-                            1, 1, &mCameraDescriptorSets[mNextImageIndex],
-                            0, nullptr);
-
-    mMeshManager->render(staticCommandBuffer, mPipeline.getLayout().getHandler(), mNextImageIndex);    
-
-    vkEndCommandBuffer(staticCommandBuffer);
-
     allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocateInfo.commandPool = mCommandPools[mNextImageIndex];
     allocateInfo.commandBufferCount = 1;
     allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
     vkAllocateCommandBuffers(mContext->getDevice(), &allocateInfo, &mCommandBuffers[mNextImageIndex]);
+
+    VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(mCommandBuffers[mNextImageIndex], &beginInfo);
@@ -257,17 +228,13 @@ void Renderer::update(double dt) {
 
     vkCmdBeginRenderPass(mCommandBuffers[mNextImageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
-    vkCmdExecuteCommands(mCommandBuffers[mNextImageIndex], 1, &staticCommandBuffer);
+    vkCmdExecuteCommands(mCommandBuffers[mNextImageIndex], 1, &staticBuffer);
 
     vkCmdEndRenderPass(mCommandBuffers[mNextImageIndex]);
 
     vkEndCommandBuffer(mCommandBuffers[mNextImageIndex]);
 
-    mCommandBufferStates[mNextImageIndex] = CommandBufferState::Ready;
-
     updateUniformBuffer(mNextImageIndex);
-
-    mMeshManager->update();
     waitForFence();
 }
 
@@ -472,8 +439,6 @@ void Renderer::createDescriptorSetLayout() {
 
 void Renderer::createCommandBuffers() {
     mCommandBuffers.resize(mSwapChain.getImageCount());
-    mCommandBufferStates.resize(mSwapChain.getImageCount(), CommandBufferState::NotReady);
-    mCommandBufferNeedUpdate.resize(mSwapChain.getImageCount(), true);
 }
 
 void Renderer::createCameraUniformBuffers() {
@@ -525,9 +490,16 @@ void Renderer::createCameraDescriptorSets() {
 void Renderer::createSemaphores() {
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    
-    if ((vkCreateSemaphore(mContext->getDevice(), &semaphoreInfo, nullptr, &mImageAvailableSemaphore) != VK_SUCCESS) ||
-        (vkCreateSemaphore(mContext->getDevice(), &semaphoreInfo, nullptr, &mRenderFinishedSemaphore) != VK_SUCCESS)) {
+
+    mRenderFinishedSemaphores.resize(mSwapChain.getImageCount());
+
+    for (size_t i{0};i < mSwapChain.getImageCount();++i) {
+        if (vkCreateSemaphore(mContext->getDevice(), &semaphoreInfo, nullptr, &mRenderFinishedSemaphores[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create semaphores");
+        }
+    }
+
+    if (vkCreateSemaphore(mContext->getDevice(), &semaphoreInfo, nullptr, &mImageAvailableSemaphore) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create semaphores");
     }
 }
@@ -595,38 +567,6 @@ FrameBufferAttachment Renderer::createAttachment(VkFormat format,
     return attachment;
 }
 
-void Renderer::updateCommandBuffer(uint32_t index) {
-    Commands::begin(mCommandBuffers[index], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = mRenderPass.getHandler();
-    renderPassInfo.framebuffer = mFrameBuffers[index].getHandler();
-
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = mSwapChain.getExtent();
-
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(mClearValues.size());
-    renderPassInfo.pClearValues = mClearValues.data();
-
-    vkCmdBeginRenderPass(mCommandBuffers[index], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(mCommandBuffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.getHandler());
-    
-    vkCmdBindDescriptorSets(mCommandBuffers[index],
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            mPipeline.getLayout().getHandler(),
-                            1, 1, &mCameraDescriptorSets[index],
-                            0, nullptr);
-
-    mMeshManager->render(mCommandBuffers[index], mPipeline.getLayout().getHandler(), index);    
-
-    vkCmdEndRenderPass(mCommandBuffers[index]);
-
-    if (vkEndCommandBuffer(mCommandBuffers[index]) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to record command buffers");
-    }
-}
-
 void Renderer::updateUniformBuffer(uint32_t index) {
     RenderInfo renderInfo;
     renderInfo.proj = mCamera->getProj();
@@ -638,60 +578,6 @@ void Renderer::updateUniformBuffer(uint32_t index) {
     mContext->getMemoryManager().mapMemory(mCameraUniformBuffers[index], sizeof(RenderInfo), &data);
     memcpy(data, &renderInfo, sizeof(RenderInfo));
     mContext->getMemoryManager().unmapMemory(mCameraUniformBuffers[index]);
-}
-
-std::vector<VkCommandBuffer> Renderer::createNewCommandBuffer() {
-    mMeshManager->updateStaticBuffers();
-    CommandPool& graphicsCommandPool = mContext->getGraphicsCommandPool();
-
-    graphicsCommandPool.lock();
-
-    VkCommandBufferAllocateInfo allocateInfo{};
-    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocateInfo.commandPool = graphicsCommandPool.getHandler();
-    allocateInfo.commandBufferCount = mSwapChain.getImageCount();
-    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
-    std::vector<VkCommandBuffer> newCommandBuffers(mSwapChain.getImageCount());
-    VkResult result = vkAllocateCommandBuffers(mContext->getDevice(), &allocateInfo, newCommandBuffers.data());
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate command buffer");
-    }
-
-    for (size_t i{0};i < mSwapChain.getImageCount();++i) {
-        Commands::begin(newCommandBuffers[i], VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = mRenderPass.getHandler();
-        renderPassInfo.framebuffer = mFrameBuffers[i].getHandler();
-
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = mSwapChain.getExtent();
-
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(mClearValues.size());
-        renderPassInfo.pClearValues = mClearValues.data();
-
-        vkCmdBeginRenderPass(newCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(newCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.getHandler());
-        
-        vkCmdBindDescriptorSets(newCommandBuffers[i],
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                mPipeline.getLayout().getHandler(),
-                                1, 1, &mCameraDescriptorSets[i],
-                                0, nullptr);
-
-        mMeshManager->render(newCommandBuffers[i], mPipeline.getLayout().getHandler(), i);    
-
-        vkCmdEndRenderPass(newCommandBuffers[i]);
-
-        if (vkEndCommandBuffer(newCommandBuffers[i]) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to record command buffers");
-        }
-    }
-
-    graphicsCommandPool.unlock();
-    return newCommandBuffers;
 }
 
 VkFormat Renderer::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {

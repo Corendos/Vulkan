@@ -30,6 +30,10 @@ void MeshManager::destroy() {
         mContext->getMemoryManager().freeBuffer(mRenderData.stagingBuffers.indexBuffer);
 
     mContext->getMemoryManager().freeBuffer(mRenderData.modelTransformBuffer);
+
+    for (size_t i{0};i < mTransferCompleteSemaphores.size();++i) {
+        vkDestroySemaphore(mContext->getDevice(), mTransferCompleteSemaphores[i], nullptr);
+    }
 }
 
 void MeshManager::addMesh(Mesh& mesh) {
@@ -42,7 +46,7 @@ void MeshManager::addMesh(Mesh& mesh) {
     meshDataIt->free = false;
     mRenderData.meshDataBinding[&mesh] = &(*meshDataIt);
     updateDescriptorSet(mesh, *meshDataIt);
-    mNeedBufferUpdate = true;
+    mNeedStagingUpdate = true;
 }
 
 void MeshManager::removeMesh(Mesh& mesh) {
@@ -55,47 +59,91 @@ void MeshManager::removeMesh(Mesh& mesh) {
                                      [&descriptorSet](const MeshData& data) { return data.descriptorSet == descriptorSet; });
     descriptorIt->free = true;
     mRenderData.meshDataBinding.erase(&mesh);
-    mNeedBufferUpdate = true;
+    mNeedStagingUpdate = true;
 }
 
 void MeshManager::setImageCount(uint32_t count) {
     mRenderData.renderBuffers.resize(count);
-}
+    mTransferCompleteSemaphores.resize(count);
 
-void MeshManager::update() {
-    updateUniformBuffer();
-}
+    VkSemaphoreCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-bool MeshManager::update(uint32_t imageIndex) {
-    updateUniformBuffer();
-    return updateStaticBuffers(imageIndex);
-}
-
-void MeshManager::updateStaticBuffers() {
-    updateStagingBuffers();
-    for (size_t i{0};i < mRenderData.renderBuffers.size();++i) {
-        updateStaticBuffers(i);
+    for (size_t i{0};i < count;++i) {
+        if (vkCreateSemaphore(mContext->getDevice(), &createInfo, nullptr, &mTransferCompleteSemaphores[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Error, failed to create semaphore");
+        }
     }
-    mNeedBufferUpdate = false;
 }
 
-bool MeshManager::needStaticUpdate() const {
-    return mNeedBufferUpdate;
+void MeshManager::setRenderSemaphores(const std::vector<VkSemaphore>& semaphores) {
+    mRenderCompleteSemaphores = semaphores;
 }
 
-void MeshManager::render(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t imageIndex) {
+void MeshManager::update(uint32_t imageIndex, std::vector<VkSemaphore>& toWaitSemaphores) {
+    if (mNeedStagingUpdate) {
+        updateStagingBuffers();
+    }
+
+    if (mRenderData.renderBuffers[imageIndex].needUpdate) {
+        updateStaticBuffers(imageIndex);
+        toWaitSemaphores.push_back(mTransferCompleteSemaphores[imageIndex]);
+    }
+
+    updateUniformBuffer();
+}
+
+VkCommandBuffer MeshManager::render(const VkRenderPass renderPass, const VkFramebuffer frameBuffer, const VkCommandPool commandPool,
+                         const VkDescriptorSet cameraDescriptorSet, const VkPipelineLayout pipelineLayout, const VkPipeline pipeline,
+                         uint32_t imageIndex) {
+    VkCommandBufferAllocateInfo allocateInfo{};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocateInfo.commandPool = commandPool;
+    allocateInfo.commandBufferCount = 1;
+    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+
+    VkCommandBuffer staticCommandBuffer;
+
+    vkAllocateCommandBuffers(mContext->getDevice(), &allocateInfo, &staticCommandBuffer);
+
+    VkCommandBufferInheritanceInfo inheritanceInfo{};
+    inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+    inheritanceInfo.renderPass = renderPass;
+    inheritanceInfo.subpass = 0;
+    inheritanceInfo.framebuffer = frameBuffer;
+    
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+    beginInfo.pInheritanceInfo = &inheritanceInfo;
+
+    vkBeginCommandBuffer(staticCommandBuffer, &beginInfo);
+
+    vkCmdBindPipeline(staticCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    
+    vkCmdBindDescriptorSets(staticCommandBuffer,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipelineLayout,
+                            1, 1, &cameraDescriptorSet,
+                            0, nullptr);
+
+
     uint32_t offset{0};
     VkDeviceSize vertexOffset{0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mRenderData.renderBuffers[imageIndex].vertexBuffer, &vertexOffset);
-    vkCmdBindIndexBuffer(commandBuffer, mRenderData.renderBuffers[imageIndex].indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindVertexBuffers(staticCommandBuffer, 0, 1, &mRenderData.renderBuffers[imageIndex].vertexBuffer, &vertexOffset);
+    vkCmdBindIndexBuffer(staticCommandBuffer, mRenderData.renderBuffers[imageIndex].indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     for (Mesh* mesh : mMeshes) {
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-            layout, 0, 1, &mRenderData.meshDataBinding[mesh]->descriptorSet,
+        vkCmdBindDescriptorSets(staticCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipelineLayout, 0, 1, &mRenderData.meshDataBinding[mesh]->descriptorSet,
             0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, mesh->getIndices().size(), 1, offset, 0, 0);
+        vkCmdDrawIndexed(staticCommandBuffer, mesh->getIndices().size(), 1, offset, 0, 0);
         offset += mesh->getIndices().size();
     }
+
+    vkEndCommandBuffer(staticCommandBuffer);
+
+    return staticCommandBuffer;
 }
 
 VkDescriptorSetLayout MeshManager::getDescriptorSetLayout() const {
@@ -179,51 +227,6 @@ void MeshManager::allocateDescriptorSets() {
         mRenderData.meshDataPool[i].descriptorSet = descriptors[i];
         mRenderData.meshDataPool[i].uniformBufferDynamicOffset = i * size;
     }
-}
-
-bool MeshManager::updateStaticBuffers(uint32_t imageIndex) {
-    if (!mRenderData.renderBuffers[imageIndex].needUpdate) return false;
-
-    if (mRenderData.renderBuffers[imageIndex].vertexBufferSizeInBytes != 0)
-        mContext->getMemoryManager().freeBuffer(mRenderData.renderBuffers[imageIndex].vertexBuffer);
-    if (mRenderData.renderBuffers[imageIndex].indexBufferSizeInBytes != 0)
-        mContext->getMemoryManager().freeBuffer(mRenderData.renderBuffers[imageIndex].indexBuffer);
-    
-    BufferHelper::createBuffer(
-        *mContext, mRenderData.stagingBuffers.vertexBufferSizeInBytes,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        mRenderData.renderBuffers[imageIndex].vertexBuffer,
-        "MeshRenderer::vertexBuffer");
-    BufferHelper::createBuffer(
-        *mContext, mRenderData.stagingBuffers.indexBufferSizeInBytes,
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        mRenderData.renderBuffers[imageIndex].indexBuffer,
-        "MeshRenderer::indexBuffer");
-
-    CommandPool& transferCommandPool = mContext->getTransferCommandPool();
-
-    transferCommandPool.lock();
-    BufferHelper::copyBuffer(
-        *mContext, transferCommandPool,
-        mContext->getTransferQueue(), mRenderData.stagingBuffers.vertexBuffer,
-        mRenderData.renderBuffers[imageIndex].vertexBuffer,
-        mRenderData.stagingBuffers.vertexBufferSizeInBytes);
-    BufferHelper::copyBuffer(
-        *mContext, transferCommandPool,
-        mContext->getTransferQueue(), mRenderData.stagingBuffers.indexBuffer,
-        mRenderData.renderBuffers[imageIndex].indexBuffer,
-        mRenderData.stagingBuffers.indexBufferSizeInBytes);
-    transferCommandPool.unlock();
-
-    mRenderData.renderBuffers[imageIndex].vertexBufferSize = mRenderData.stagingBuffers.vertexBufferSize;
-    mRenderData.renderBuffers[imageIndex].vertexBufferSizeInBytes = mRenderData.stagingBuffers.vertexBufferSizeInBytes;
-    mRenderData.renderBuffers[imageIndex].indexBufferSize = mRenderData.stagingBuffers.indexBufferSize;
-    mRenderData.renderBuffers[imageIndex].indexBufferSizeInBytes = mRenderData.stagingBuffers.indexBufferSizeInBytes;
-
-    mRenderData.renderBuffers[imageIndex].needUpdate = false;
-    return true;
 }
 
 void MeshManager::updateStagingBuffers() {
@@ -323,4 +326,73 @@ void MeshManager::updateDescriptorSet(Mesh& mesh, MeshData& meshData) {
     writes[1].pBufferInfo = &bufferInfo;
 
     vkUpdateDescriptorSets(mContext->getDevice(), 2, writes, 0, nullptr);
+}
+
+void MeshManager::updateStaticBuffers(uint32_t imageIndex) {
+    RenderBuffers renderBuffer;
+    renderBuffer.vertexBufferSize = mRenderData.stagingBuffers.vertexBufferSize;
+    renderBuffer.vertexBufferSizeInBytes = mRenderData.stagingBuffers.vertexBufferSizeInBytes;
+    renderBuffer.indexBufferSize = mRenderData.stagingBuffers.indexBufferSize;
+    renderBuffer.indexBufferSizeInBytes = mRenderData.stagingBuffers.indexBufferSizeInBytes;
+    renderBuffer.needUpdate = false;
+    BufferHelper::createBuffer(
+        *mContext, mRenderData.stagingBuffers.vertexBufferSizeInBytes,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        renderBuffer.vertexBuffer,
+        "MeshRenderer::vertexBuffer");
+    BufferHelper::createBuffer(
+        *mContext, mRenderData.stagingBuffers.indexBufferSizeInBytes,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        renderBuffer.indexBuffer,
+        "MeshRenderer::indexBuffer");
+
+    VkCommandBuffer transferCommandBuffer;
+
+    VkCommandBufferAllocateInfo allocateInfo{};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocateInfo.commandBufferCount = 1;
+    allocateInfo.commandPool = mContext->getTransferCommandPool().getHandler();
+
+    if (vkAllocateCommandBuffers(mContext->getDevice(), &allocateInfo, &transferCommandBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate command buffer");
+    }
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    VkBufferCopy region{};
+    region.dstOffset = 0;
+    region.srcOffset = 0;
+    region.size = mRenderData.stagingBuffers.vertexBufferSizeInBytes;
+
+    vkBeginCommandBuffer(transferCommandBuffer, &beginInfo);
+    vkCmdCopyBuffer(transferCommandBuffer, mRenderData.stagingBuffers.vertexBuffer, renderBuffer.vertexBuffer,
+                    1, &region);
+    region.size = mRenderData.stagingBuffers.indexBufferSizeInBytes;
+    vkCmdCopyBuffer(transferCommandBuffer, mRenderData.stagingBuffers.indexBuffer, renderBuffer.indexBuffer,
+                    1, &region);
+    vkEndCommandBuffer(transferCommandBuffer);
+
+    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = &mRenderCompleteSemaphores[imageIndex];
+    submitInfo.pWaitDstStageMask = &waitStage;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &mTransferCompleteSemaphores[imageIndex];
+
+    if (vkQueueSubmit(mContext->getTransferQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+        throw std::runtime_error("Error, failed to submit transfer command");
+    }
+
+    mToFreeQueue.push(mRenderData.renderBuffers[imageIndex].vertexBuffer);
+    mToFreeQueue.push(mRenderData.renderBuffers[imageIndex].indexBuffer);
+
+    mRenderData.renderBuffers[imageIndex] = renderBuffer;
 }

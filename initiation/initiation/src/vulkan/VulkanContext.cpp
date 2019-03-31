@@ -28,9 +28,6 @@ void VulkanContext::destroy() {
 
     mMemoryManager.cleanup();
     mMemoryManager.memoryCheckLog();
-    for (auto& pair : mGraphicsCommandPoolMap) {
-        pair.second.destroy(mDevice);
-    }
     for (auto& pair : mTransferCommandPoolMap) {
         pair.second.destroy(mDevice);
     }
@@ -56,10 +53,6 @@ VkPhysicalDeviceLimits VulkanContext::getLimits() const {
     return mPhysicalDeviceLimits;
 }
 
-VkQueue VulkanContext::getGraphicsQueue() const {
-    return mGraphicsQueue;
-}
-
 VkQueue VulkanContext::getPresentQueue() const {
     return mPresentQueue;
 }
@@ -68,17 +61,12 @@ VkQueue VulkanContext::getTransferQueue() const {
     return mTransferQueue;
 }
 
-QueueFamilyIndices VulkanContext::getQueueFamilyIndices() const {
-    return mIndices;
+VkQueue VulkanContext::getGraphicsQueue() const {
+    return mGraphicsQueue;
 }
 
-CommandPool& VulkanContext::getGraphicsCommandPool() {
-    if (mGraphicsCommandPoolMap.find(std::this_thread::get_id()) == mGraphicsCommandPoolMap.end()) {
-        CommandPool graphicsCommandPool;
-        graphicsCommandPool.create(mDevice, mIndices.graphicsFamily.value());
-        mGraphicsCommandPoolMap[std::this_thread::get_id()] = std::move(graphicsCommandPool);
-    }
-    return mGraphicsCommandPoolMap[std::this_thread::get_id()];
+QueueFamilyIndices VulkanContext::getQueueFamilyIndices() const {
+    return mIndices;
 }
 
 CommandPool& VulkanContext::getTransferCommandPool() {
@@ -220,9 +208,9 @@ void VulkanContext::createLogicalDevice() {
         throw std::runtime_error("Failed to create logical device");
     }
 
-    vkGetDeviceQueue(mDevice, mIndices.graphicsFamily.value(), 0, &mGraphicsQueue);
     vkGetDeviceQueue(mDevice, mIndices.presentFamily.value(), 0, &mPresentQueue);
     vkGetDeviceQueue(mDevice, mIndices.transferFamily.value(), 0, &mTransferQueue);
+    vkGetDeviceQueue(mDevice, mIndices.graphicsFamily.value(), 0, &mGraphicsQueue);
 }
 
 bool VulkanContext::checkValidationLayerSupport() {
