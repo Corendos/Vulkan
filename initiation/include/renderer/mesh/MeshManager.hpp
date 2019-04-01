@@ -75,6 +75,7 @@ class MeshManager {
         VulkanContext* mContext;
 
         std::vector<VkFence> mTransferCompleteFences;
+        std::vector<VkEvent> mEvents;
 
         std::vector<Mesh*> mMeshes;
 

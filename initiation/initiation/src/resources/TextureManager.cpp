@@ -54,6 +54,7 @@ VkBuffer TextureManager::_loadToStaging(std::string& filename,
     VkBuffer stagingBuffer;
     BufferHelper::createBuffer(*mContext, size,
                                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                               VK_SHARING_MODE_EXCLUSIVE,
                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                stagingBuffer, filename);
 

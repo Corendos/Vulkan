@@ -5,6 +5,7 @@
 void BufferHelper::createBuffer(VulkanContext& context,
                                 VkDeviceSize size,
                                 VkBufferUsageFlags usage,
+                                VkSharingMode sharingMode,
                                 VkMemoryPropertyFlags properties,
                                 VkBuffer& buffer,
                                 std::string name) {
@@ -12,7 +13,7 @@ void BufferHelper::createBuffer(VulkanContext& context,
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
     bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    bufferInfo.sharingMode = sharingMode;
     if (vkCreateBuffer(context.getDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create vertex buffer");
     }

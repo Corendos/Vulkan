@@ -33,6 +33,7 @@ void MeshManager::destroy() {
 
     for (size_t i{0};i < mTransferCompleteFences.size();++i) {
         vkDestroyFence(mContext->getDevice(), mTransferCompleteFences[i], nullptr);
+        vkDestroyEvent(mContext->getDevice(), mEvents[i], nullptr);
     }
 }
 
@@ -68,13 +69,21 @@ void MeshManager::setImageCount(uint32_t count) {
     mTemporaryStaticBuffers.resize(count);
     mShouldSwapBuffers.resize(count, true);
     mFirstTransfer.resize(count, true);
+    mEvents.resize(count);
 
     VkFenceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
+    VkEventCreateInfo createInfo2{};
+    createInfo2.sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
+
     for (size_t i{0};i < count;++i) {
         if (vkCreateFence(mContext->getDevice(), &createInfo, nullptr, &mTransferCompleteFences[i]) != VK_SUCCESS) {
             throw std::runtime_error("Error, failed to create fence");
+        }
+
+        if (vkCreateEvent(mContext->getDevice(), &createInfo2, nullptr, &mEvents[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Error, failed to create event");
         }
     }
 }
@@ -214,6 +223,7 @@ void MeshManager::allocateUniformBuffer() {
         size = mContext->getLimits().minUniformBufferOffsetAlignment * MaximumMeshCount;
 
     BufferHelper::createBuffer(*mContext, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                               VK_SHARING_MODE_EXCLUSIVE,
                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                mRenderData.modelTransformBuffer, "MeshManager::modelTransformBuffer");
     mRenderData.modelTransformBufferSize = size;
@@ -266,12 +276,14 @@ void MeshManager::updateStagingBuffers() {
     BufferHelper::createBuffer(
         *mContext, vertexBufferSizeInBytes,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         mRenderData.stagingBuffers.vertexBuffer,
         "MeshRenderer::stagingVertexBuffer");
     BufferHelper::createBuffer(
         *mContext, indexBufferSizeInBytes,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         mRenderData.stagingBuffers.indexBuffer,
         "MeshRenderer::stagingIndexBuffer");
@@ -302,6 +314,10 @@ void MeshManager::updateStagingBuffers() {
     mContext->getMemoryManager().mapMemory(mRenderData.stagingBuffers.indexBuffer, indexBufferSizeInBytes, &data);
     memcpy(data, localIndexBuffer.data(), indexBufferSizeInBytes);
     mContext->getMemoryManager().unmapMemory(mRenderData.stagingBuffers.indexBuffer);
+
+    for (size_t i{0};i < mEvents.size();++i) {
+        vkSetEvent(mContext->getDevice(), mEvents[i]);
+    }
 
     mRenderData.stagingBuffers.vertexBufferSize = vertexBufferSize;
     mRenderData.stagingBuffers.vertexBufferSizeInBytes = vertexBufferSizeInBytes;
@@ -356,12 +372,14 @@ void MeshManager::updateStaticBuffers(uint32_t imageIndex) {
     BufferHelper::createBuffer(
         *mContext, mRenderData.stagingBuffers.vertexBufferSizeInBytes,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         renderBuffer.vertexBuffer,
         "MeshRenderer::vertexBuffer");
     BufferHelper::createBuffer(
         *mContext, mRenderData.stagingBuffers.indexBufferSizeInBytes,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_SHARING_MODE_EXCLUSIVE,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         renderBuffer.indexBuffer,
         "MeshRenderer::indexBuffer");
@@ -387,7 +405,32 @@ void MeshManager::updateStaticBuffers(uint32_t imageIndex) {
     region.srcOffset = 0;
     region.size = mRenderData.stagingBuffers.vertexBufferSizeInBytes;
 
+    VkBufferMemoryBarrier memoryBarriers[2] = {};
+    memoryBarriers[0].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    memoryBarriers[0].srcAccessMask = VK_PIPELINE_STAGE_HOST_BIT;
+    memoryBarriers[0].dstAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    memoryBarriers[0].buffer = renderBuffer.vertexBuffer;
+    memoryBarriers[0].offset = 0;
+    memoryBarriers[0].size = renderBuffer.vertexBufferSizeInBytes;
+    memoryBarriers[0].srcQueueFamilyIndex = mContext->getQueueFamilyIndices().graphicsFamily.value();
+    memoryBarriers[0].dstQueueFamilyIndex = mContext->getQueueFamilyIndices().graphicsFamily.value();
+
+    memoryBarriers[1].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    memoryBarriers[1].srcAccessMask = VK_PIPELINE_STAGE_HOST_BIT;
+    memoryBarriers[1].dstAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    memoryBarriers[1].buffer = renderBuffer.indexBuffer;
+    memoryBarriers[1].offset = 0;
+    memoryBarriers[1].size = renderBuffer.indexBufferSizeInBytes;
+    memoryBarriers[1].srcQueueFamilyIndex = mContext->getQueueFamilyIndices().graphicsFamily.value();
+    memoryBarriers[1].dstQueueFamilyIndex = mContext->getQueueFamilyIndices().graphicsFamily.value();
+    
+
     vkBeginCommandBuffer(transferCommandBuffer, &beginInfo);
+    vkCmdWaitEvents(transferCommandBuffer, 1, &mEvents[imageIndex],
+                    VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    0, nullptr,
+                    2, memoryBarriers,
+                    0, nullptr);
     vkCmdCopyBuffer(transferCommandBuffer, mRenderData.stagingBuffers.vertexBuffer, renderBuffer.vertexBuffer,
                     1, &region);
     region.size = mRenderData.stagingBuffers.indexBufferSizeInBytes;
@@ -399,7 +442,6 @@ void MeshManager::updateStaticBuffers(uint32_t imageIndex) {
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.pWaitDstStageMask = &waitStage;
 
     if (vkQueueSubmit(mContext->getTransferQueue(), 1, &submitInfo, mTransferCompleteFences[imageIndex]) != VK_SUCCESS) {
         throw std::runtime_error("Error, failed to submit transfer command");

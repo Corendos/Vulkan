@@ -12,6 +12,7 @@ class BufferHelper {
         static void createBuffer(VulkanContext& context,
                                  VkDeviceSize size,
                                  VkBufferUsageFlags usage,
+                                VkSharingMode sharingMode,
                                  VkMemoryPropertyFlags properties,
                                  VkBuffer& buffer,
                                  std::string name);

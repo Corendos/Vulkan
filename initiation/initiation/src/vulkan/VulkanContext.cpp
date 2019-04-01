@@ -72,7 +72,7 @@ QueueFamilyIndices VulkanContext::getQueueFamilyIndices() const {
 CommandPool& VulkanContext::getTransferCommandPool() {
     if (mTransferCommandPoolMap.find(std::this_thread::get_id()) == mTransferCommandPoolMap.end()) {
         CommandPool transferCommandPool;
-        transferCommandPool.create(mDevice, mIndices.graphicsFamily.value());
+        transferCommandPool.create(mDevice, mIndices.transferFamily.value());
         mTransferCommandPoolMap[std::this_thread::get_id()] = std::move(transferCommandPool);
     }
     return mTransferCommandPoolMap[std::this_thread::get_id()];
