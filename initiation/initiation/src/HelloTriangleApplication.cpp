@@ -59,7 +59,7 @@ void HelloTriangleApplication::mainLoop() {
             frameMean = 0.0;
         }
         
-        //sleepUntilNextFrame();
+        sleepUntilNextFrame();
     }
 }
 

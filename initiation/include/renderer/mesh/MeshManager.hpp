@@ -44,9 +44,8 @@ class MeshManager {
         void removeMesh(Mesh& mesh);
 
         void setImageCount(uint32_t count);
-        void setRenderSemaphores(const std::vector<VkSemaphore>& semaphores);
 
-        void update(uint32_t imageIndex, std::vector<VkSemaphore>& toWaitSemaphores);
+        void update(uint32_t imageIndex);
 
         VkCommandBuffer render(VkRenderPass renderPass, VkFramebuffer frameBuffer, VkCommandPool commandPool,
                                VkDescriptorSet cameraDescriptorSet, VkPipelineLayout pipelineLayout, VkPipeline pipeline,
@@ -69,11 +68,13 @@ class MeshManager {
         bool mNeedStagingUpdate{false};
 
         std::queue<VkBuffer> mToFreeQueue;
+        std::vector<RenderBuffers> mTemporaryStaticBuffers;
+        std::vector<bool> mShouldSwapBuffers;
+        std::vector<bool> mFirstTransfer;
 
         VulkanContext* mContext;
 
-        std::vector<VkSemaphore> mTransferCompleteSemaphores;
-        std::vector<VkSemaphore> mRenderCompleteSemaphores;
+        std::vector<VkFence> mTransferCompleteFences;
 
         std::vector<Mesh*> mMeshes;
 

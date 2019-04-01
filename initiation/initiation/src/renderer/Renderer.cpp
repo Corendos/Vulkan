@@ -56,8 +56,6 @@ void Renderer::create(VulkanContext& context, TextureManager& textureManager, Me
     createSemaphores();
     createFences();
 
-    mMeshManager->setRenderSemaphores(mRenderFinishedSemaphores);
-
     mCreated = true;
 }
 
@@ -195,7 +193,7 @@ void Renderer::update(double dt) {
 
     mToWaitSemaphores.clear();
 
-    mMeshManager->update(mNextImageIndex, mToWaitSemaphores);
+    mMeshManager->update(mNextImageIndex);
 
     VkCommandBuffer staticBuffer = mMeshManager->render(
         mRenderPass.getHandler(), mFrameBuffers[mNextImageIndex].getHandler(),

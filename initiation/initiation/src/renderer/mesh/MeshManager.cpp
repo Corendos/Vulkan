@@ -31,8 +31,8 @@ void MeshManager::destroy() {
 
     mContext->getMemoryManager().freeBuffer(mRenderData.modelTransformBuffer);
 
-    for (size_t i{0};i < mTransferCompleteSemaphores.size();++i) {
-        vkDestroySemaphore(mContext->getDevice(), mTransferCompleteSemaphores[i], nullptr);
+    for (size_t i{0};i < mTransferCompleteFences.size();++i) {
+        vkDestroyFence(mContext->getDevice(), mTransferCompleteFences[i], nullptr);
     }
 }
 
@@ -64,30 +64,28 @@ void MeshManager::removeMesh(Mesh& mesh) {
 
 void MeshManager::setImageCount(uint32_t count) {
     mRenderData.renderBuffers.resize(count);
-    mTransferCompleteSemaphores.resize(count);
+    mTransferCompleteFences.resize(count);
+    mTemporaryStaticBuffers.resize(count);
+    mShouldSwapBuffers.resize(count, true);
+    mFirstTransfer.resize(count, true);
 
-    VkSemaphoreCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    VkFenceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
     for (size_t i{0};i < count;++i) {
-        if (vkCreateSemaphore(mContext->getDevice(), &createInfo, nullptr, &mTransferCompleteSemaphores[i]) != VK_SUCCESS) {
-            throw std::runtime_error("Error, failed to create semaphore");
+        if (vkCreateFence(mContext->getDevice(), &createInfo, nullptr, &mTransferCompleteFences[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Error, failed to create fence");
         }
     }
 }
 
-void MeshManager::setRenderSemaphores(const std::vector<VkSemaphore>& semaphores) {
-    mRenderCompleteSemaphores = semaphores;
-}
-
-void MeshManager::update(uint32_t imageIndex, std::vector<VkSemaphore>& toWaitSemaphores) {
+void MeshManager::update(uint32_t imageIndex) {
     if (mNeedStagingUpdate) {
         updateStagingBuffers();
     }
 
     if (mRenderData.renderBuffers[imageIndex].needUpdate) {
         updateStaticBuffers(imageIndex);
-        toWaitSemaphores.push_back(mTransferCompleteSemaphores[imageIndex]);
     }
 
     updateUniformBuffer();
@@ -96,6 +94,24 @@ void MeshManager::update(uint32_t imageIndex, std::vector<VkSemaphore>& toWaitSe
 VkCommandBuffer MeshManager::render(const VkRenderPass renderPass, const VkFramebuffer frameBuffer, const VkCommandPool commandPool,
                          const VkDescriptorSet cameraDescriptorSet, const VkPipelineLayout pipelineLayout, const VkPipeline pipeline,
                          uint32_t imageIndex) {
+    if (mShouldSwapBuffers[imageIndex]) {
+        if (mFirstTransfer[imageIndex]) {
+            vkWaitForFences(mContext->getDevice(), 1, &mTransferCompleteFences[imageIndex], VK_TRUE, 1000000000);
+            mFirstTransfer[imageIndex] = false;
+
+            mRenderData.renderBuffers[imageIndex] = mTemporaryStaticBuffers[imageIndex];
+            mShouldSwapBuffers[imageIndex] = false;
+
+            vkResetFences(mContext->getDevice(), 1, &mTransferCompleteFences[imageIndex]);
+        } else {
+            if (vkGetFenceStatus(mContext->getDevice(), mTransferCompleteFences[imageIndex]) == VK_SUCCESS) {
+                mRenderData.renderBuffers[imageIndex] = mTemporaryStaticBuffers[imageIndex];
+                mShouldSwapBuffers[imageIndex] = false;
+
+                vkResetFences(mContext->getDevice(), 1, &mTransferCompleteFences[imageIndex]);
+            }
+        }
+    }
     VkCommandBufferAllocateInfo allocateInfo{};
     allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocateInfo.commandPool = commandPool;
@@ -295,6 +311,8 @@ void MeshManager::updateStagingBuffers() {
     for (auto& buffers : mRenderData.renderBuffers) {
         buffers.needUpdate = true;
     }
+
+    mNeedStagingUpdate = false;
 }
 
 void MeshManager::updateDescriptorSet(Mesh& mesh, MeshData& meshData) {
@@ -381,18 +399,11 @@ void MeshManager::updateStaticBuffers(uint32_t imageIndex) {
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = &mRenderCompleteSemaphores[imageIndex];
     submitInfo.pWaitDstStageMask = &waitStage;
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &mTransferCompleteSemaphores[imageIndex];
 
-    if (vkQueueSubmit(mContext->getTransferQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+    if (vkQueueSubmit(mContext->getTransferQueue(), 1, &submitInfo, mTransferCompleteFences[imageIndex]) != VK_SUCCESS) {
         throw std::runtime_error("Error, failed to submit transfer command");
     }
 
-    mToFreeQueue.push(mRenderData.renderBuffers[imageIndex].vertexBuffer);
-    mToFreeQueue.push(mRenderData.renderBuffers[imageIndex].indexBuffer);
-
-    mRenderData.renderBuffers[imageIndex] = renderBuffer;
+    mTemporaryStaticBuffers[imageIndex] = renderBuffer;
 }
