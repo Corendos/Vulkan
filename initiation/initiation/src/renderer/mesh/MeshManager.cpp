@@ -38,8 +38,8 @@ void MeshManager::destroy() {
 }
 
 void MeshManager::addMesh(Mesh& mesh) {
-    assert(mMeshes.size() < MaximumMeshCount);
-    mMeshes.push_back(&mesh);
+    assert(mMeshes.size() + mTemporaryMeshes.size() < MaximumMeshCount);
+    mTemporaryMeshes.push_back(&mesh);
 
     auto meshDataIt = std::find_if(mRenderData.meshDataPool.begin(), mRenderData.meshDataPool.end(),
                                      [](const MeshData& data) { return data.free; });
@@ -111,11 +111,22 @@ VkCommandBuffer MeshManager::render(const VkRenderPass renderPass, const VkFrame
             mRenderData.renderBuffers[imageIndex] = mTemporaryStaticBuffers[imageIndex];
             mShouldSwapBuffers[imageIndex] = false;
 
+            while (!mTemporaryMeshes.empty()) {
+                mMeshes.push_back(mTemporaryMeshes.back());
+                mTemporaryMeshes.pop_back();
+            }
+
             vkResetFences(mContext->getDevice(), 1, &mTransferCompleteFences[imageIndex]);
         } else {
             if (vkGetFenceStatus(mContext->getDevice(), mTransferCompleteFences[imageIndex]) == VK_SUCCESS) {
                 mRenderData.renderBuffers[imageIndex] = mTemporaryStaticBuffers[imageIndex];
                 mShouldSwapBuffers[imageIndex] = false;
+
+
+                while (!mTemporaryMeshes.empty()) {
+                    mMeshes.push_back(mTemporaryMeshes.back());
+                    mTemporaryMeshes.pop_back();
+                }
 
                 vkResetFences(mContext->getDevice(), 1, &mTransferCompleteFences[imageIndex]);
             }
@@ -263,6 +274,11 @@ void MeshManager::updateStagingBuffers() {
         vertexBufferSize += mesh->getVertices().size();
         indexBufferSize += mesh->getIndices().size();
     }
+
+    for (Mesh* mesh : mTemporaryMeshes) {
+        vertexBufferSize += mesh->getVertices().size();
+        indexBufferSize += mesh->getIndices().size();
+    }
     vertexBufferSizeInBytes = vertexBufferSize * sizeof(Vertex);
     indexBufferSizeInBytes = indexBufferSize * sizeof(uint32_t);
 
@@ -296,6 +312,16 @@ void MeshManager::updateStagingBuffers() {
     auto indexIterator = localIndexBuffer.begin();
     uint32_t indexOffset{0};
     for (Mesh* mesh : mMeshes) {
+        vertexIterator = std::copy(mesh->getVertices().begin(), mesh->getVertices().end(),
+                                   vertexIterator);
+
+        indexIterator = std::transform(
+            mesh->getIndices().begin(), mesh->getIndices().end(),
+            indexIterator, [indexOffset](const uint32_t& i) { return i + indexOffset; });
+        indexOffset += mesh->getVertices().size();
+    }
+
+    for (Mesh* mesh : mTemporaryMeshes) {
         vertexIterator = std::copy(mesh->getVertices().begin(), mesh->getVertices().end(),
                                    vertexIterator);
 
@@ -417,4 +443,5 @@ void MeshManager::updateStaticBuffers(uint32_t imageIndex) {
     }
 
     mTemporaryStaticBuffers[imageIndex] = renderBuffer;
+    mShouldSwapBuffers[imageIndex] = true;
 }

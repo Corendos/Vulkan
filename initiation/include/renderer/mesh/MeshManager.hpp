@@ -72,6 +72,8 @@ class MeshManager {
         std::vector<bool> mShouldSwapBuffers;
         std::vector<bool> mFirstTransfer;
 
+        std::vector<Mesh*> mTemporaryMeshes;
+
         VulkanContext* mContext;
 
         std::vector<VkFence> mTransferCompleteFences;

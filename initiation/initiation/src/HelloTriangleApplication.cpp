@@ -143,10 +143,12 @@ void HelloTriangleApplication::processInputs() {
     }
 
     if (glfwGetKey(mWindow, GLFW_KEY_SPACE) && !mTempKeyState) {
-        mTemp = std::make_unique<Mesh>(std::move(MeshHelper::createCube(1.0)));
-        mTemp->setTexture(mTextureManager.getTexture("diamond"));
-        mTemp->getTransform().setPosition({mTempCounter, mTempCounter, mTempCounter});
-        mMeshManager.addMesh(*mTemp);
+        mMeshes.push_back(std::make_unique<Mesh>(std::move(MeshHelper::createCube(1.0))));
+
+        Mesh* temp = mMeshes.back().get();
+        temp->setTexture(mTextureManager.getTexture("diamond"));
+        temp->getTransform().setPosition({mTempCounter, mTempCounter, mTempCounter});
+        mMeshManager.addMesh(*temp);
         mTempCounter += 1.0f;
         mTempKeyState = true;
     } else if (!glfwGetKey(mWindow, GLFW_KEY_SPACE)){
