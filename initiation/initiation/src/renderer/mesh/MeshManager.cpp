@@ -315,10 +315,6 @@ void MeshManager::updateStagingBuffers() {
     memcpy(data, localIndexBuffer.data(), indexBufferSizeInBytes);
     mContext->getMemoryManager().unmapMemory(mRenderData.stagingBuffers.indexBuffer);
 
-    for (size_t i{0};i < mEvents.size();++i) {
-        vkSetEvent(mContext->getDevice(), mEvents[i]);
-    }
-
     mRenderData.stagingBuffers.vertexBufferSize = vertexBufferSize;
     mRenderData.stagingBuffers.vertexBufferSizeInBytes = vertexBufferSizeInBytes;
     mRenderData.stagingBuffers.indexBufferSize = indexBufferSize;
@@ -401,36 +397,9 @@ void MeshManager::updateStaticBuffers(uint32_t imageIndex) {
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     VkBufferCopy region{};
-    region.dstOffset = 0;
-    region.srcOffset = 0;
-    region.size = mRenderData.stagingBuffers.vertexBufferSizeInBytes;
-
-    VkBufferMemoryBarrier memoryBarriers[2] = {};
-    memoryBarriers[0].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    memoryBarriers[0].srcAccessMask = VK_PIPELINE_STAGE_HOST_BIT;
-    memoryBarriers[0].dstAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    memoryBarriers[0].buffer = renderBuffer.vertexBuffer;
-    memoryBarriers[0].offset = 0;
-    memoryBarriers[0].size = renderBuffer.vertexBufferSizeInBytes;
-    memoryBarriers[0].srcQueueFamilyIndex = mContext->getQueueFamilyIndices().graphicsFamily.value();
-    memoryBarriers[0].dstQueueFamilyIndex = mContext->getQueueFamilyIndices().graphicsFamily.value();
-
-    memoryBarriers[1].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    memoryBarriers[1].srcAccessMask = VK_PIPELINE_STAGE_HOST_BIT;
-    memoryBarriers[1].dstAccessMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    memoryBarriers[1].buffer = renderBuffer.indexBuffer;
-    memoryBarriers[1].offset = 0;
-    memoryBarriers[1].size = renderBuffer.indexBufferSizeInBytes;
-    memoryBarriers[1].srcQueueFamilyIndex = mContext->getQueueFamilyIndices().graphicsFamily.value();
-    memoryBarriers[1].dstQueueFamilyIndex = mContext->getQueueFamilyIndices().graphicsFamily.value();
-    
+    region.size = mRenderData.stagingBuffers.vertexBufferSizeInBytes;    
 
     vkBeginCommandBuffer(transferCommandBuffer, &beginInfo);
-    vkCmdWaitEvents(transferCommandBuffer, 1, &mEvents[imageIndex],
-                    VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    0, nullptr,
-                    2, memoryBarriers,
-                    0, nullptr);
     vkCmdCopyBuffer(transferCommandBuffer, mRenderData.stagingBuffers.vertexBuffer, renderBuffer.vertexBuffer,
                     1, &region);
     region.size = mRenderData.stagingBuffers.indexBufferSizeInBytes;
@@ -438,10 +407,10 @@ void MeshManager::updateStaticBuffers(uint32_t imageIndex) {
                     1, &region);
     vkEndCommandBuffer(transferCommandBuffer);
 
-    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &transferCommandBuffer;
 
     if (vkQueueSubmit(mContext->getTransferQueue(), 1, &submitInfo, mTransferCompleteFences[imageIndex]) != VK_SUCCESS) {
         throw std::runtime_error("Error, failed to submit transfer command");
