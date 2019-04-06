@@ -34,7 +34,7 @@ void VulkanContext::destroy() {
     mDescriptorPool.destroy(mDevice);
     vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
     vkDestroyDevice(mDevice, nullptr);
-    vkDestroyInstance(mInstance, nullptr);
+    mInstance.destroy();
 }
 
 VkInstance VulkanContext::getInstance() const {
@@ -99,32 +99,26 @@ void VulkanContext::createInstance() {
         throw std::runtime_error("Validation layers requested, but not available");
     }
 
-    VkApplicationInfo appInfo{};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Vulkan Api";
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "No Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    vk::ApplicationInfo appInfo;
+    appInfo.setPApplicationName("Vulkan Api");
+    appInfo.setApplicationVersion(VK_MAKE_VERSION(1, 0, 0));
+    appInfo.setPEngineName("No Engine");
+    appInfo.setEngineVersion(VK_MAKE_VERSION(1, 0, 0));
+    appInfo.setApiVersion(VK_API_VERSION_1_0);
 
-    VkInstanceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.pApplicationInfo = &appInfo;
+    vk::InstanceCreateInfo createInfo;
+    createInfo.setPApplicationInfo(&appInfo);
 
     if (enableValidationLayers) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
-    } else {
-        createInfo.enabledLayerCount = 0;
+        createInfo.setEnabledLayerCount(static_cast<uint32_t>(validationLayers.size()));
+        createInfo.setPpEnabledLayerNames(validationLayers.data());
     }
 
     auto extensions = getRequiredExtensions();
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-    createInfo.ppEnabledExtensionNames = extensions.data();
+    createInfo.setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()));
+    createInfo.setPpEnabledExtensionNames(extensions.data());
 
-    if(vkCreateInstance(&createInfo, nullptr, &mInstance) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create Vulkan instance");
-    }
+    mInstance = vk::createInstance(createInfo);
 }
 
 void VulkanContext::setupDebugCallback() {

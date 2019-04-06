@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
 #include "vulkan/QueueFamilyIndices.hpp"
@@ -35,7 +36,7 @@ class VulkanContext {
 
     private:
         GLFWwindow* mWindow;
-        VkInstance mInstance;                               // Vulkan instance
+        vk::Instance mInstance;                               // Vulkan instance
         VkPhysicalDevice mPhysicalDevice{VK_NULL_HANDLE};   // Vulkan physical device handler
         VkDevice mDevice;                                   // Vulkan logical device handler
         VkQueue mPresentQueue;                              // Device present queue
