@@ -4,19 +4,18 @@
 #include <vector>
 #include <limits>
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include "vulkan/QueueFamilyIndices.hpp"
 #include "vulkan/RenderPass.hpp"
-#include "vulkan/image/ImageView.hpp"
 #include "vulkan/Framebuffer.hpp"
 
 struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentMode;
+    vk::SurfaceCapabilitiesKHR capabilities;
+    std::vector<vk::SurfaceFormatKHR> formats;
+    std::vector<vk::PresentModeKHR> presentMode;
 };
 
 class SwapChain {
@@ -24,49 +23,48 @@ class SwapChain {
         SwapChain();
 
         void query(GLFWwindow* window,
-                   VkPhysicalDevice physicalDevice,
-                   VkDevice device,
-                   VkSurfaceKHR surface);
+                   vk::PhysicalDevice physicalDevice,
+                   vk::Device device,
+                   vk::SurfaceKHR surface);
         void create(GLFWwindow* window,
-                    VkPhysicalDevice physicalDevice,
-                    VkDevice device,
-                    VkSurfaceKHR surface,
+                    vk::PhysicalDevice physicalDevice,
+                    vk::Device device,
+                    vk::SurfaceKHR surface,
                     QueueFamilyIndices indices,
                     RenderPass& renderPass);
-        void destroy(VkDevice device);
+        void destroy(vk::Device device);
 
-        VkExtent2D getExtent() const;
-        VkFormat getFormat() const;
-        VkSwapchainKHR getHandler() const;
+        vk::Extent2D getExtent() const;
+        vk::Format getFormat() const;
+        vk::SwapchainKHR getHandler() const;
         uint32_t getImageCount() const;
-        VkImageView getImageView(uint32_t index);
+        vk::ImageView getImageView(uint32_t index);
 
     private:
-        VkSwapchainKHR mSwapChain;
+        vk::SwapchainKHR mSwapChain;
 
-        std::vector<VkImage> mImages;
-        std::vector<ImageView> mImagesView;
-        VkExtent2D mExtent;
-        VkSurfaceFormatKHR mSurfaceFormat;
+        std::vector<vk::Image> mImages;
+        std::vector<vk::ImageView> mImagesView;
+        vk::Extent2D mExtent;
+        vk::SurfaceFormatKHR mSurfaceFormat;
         SwapChainSupportDetails mSwapChainSupport;
-        VkPresentModeKHR mPresentMode;
+        vk::PresentModeKHR mPresentMode;
         uint32_t mImageCount;
 
         bool mCreated{false};
 
         void createSwapChain(GLFWwindow* window,
-                             VkPhysicalDevice physicalDevice,
-                             VkDevice device,
-                             VkSurfaceKHR surface,
+                             vk::PhysicalDevice physicalDevice,
+                             vk::Device device,
+                             vk::SurfaceKHR surface,
                              QueueFamilyIndices indices);
-        void createImages(VkDevice device);
-        void createImageViews(VkDevice device);
+        void createImages(vk::Device device);
+        void createImageViews(vk::Device device);
 
-        SwapChainSupportDetails querySupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-        VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-        VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-        VkExtent2D chooseSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& capabilities);
-        VkImageView createImageView(VkDevice device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+        SwapChainSupportDetails querySupport(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface);
+        vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
+        vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
+        vk::Extent2D chooseSwapExtent(GLFWwindow* window, const vk::SurfaceCapabilitiesKHR& capabilities);
 };
 
 #endif

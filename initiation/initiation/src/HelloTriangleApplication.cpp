@@ -13,6 +13,55 @@ void HelloTriangleApplication::run() {
     cleanup();
 }
 
+void HelloTriangleApplication::init() {
+    glfwInit();
+
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+    mWindow = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan API", nullptr, nullptr);
+    glfwSetFramebufferSizeCallback(mWindow, windowResizedCallback);
+    glfwSetCursorPosCallback(mWindow, mousePosCallback);
+    glfwSetMouseButtonCallback(mWindow, mouseButtonCallback);
+    glfwSetWindowUserPointer(mWindow, this);
+
+    mInput.attachWindow(mWindow);
+    mInput.start();
+    
+    mCamera.setExtent({WIDTH, HEIGHT});
+    mCamera.setFov(70);
+    
+    mContext.create(mWindow);
+
+    mLight = {{20.0, 20.0, 20.0}};
+
+    mTextureManager.create(mContext);
+    mTextureManager.load("diamond", std::string(ROOT_PATH) + std::string("resources/textures/diamond.png"));
+    mTextureManager.load("dirt", std::string(ROOT_PATH) + std::string("resources/textures/dirt.png"));
+    mTextureManager.load("undefined", std::string(ROOT_PATH) + std::string("resources/textures/undefined.png"));
+    mTextureManager.load("cottage_diffuse", std::string(ROOT_PATH) + std::string("resources/textures/cottage_diffuse.png"));
+
+    mMeshManager.create(mContext);
+
+    mRenderer.create(mContext, mTextureManager, mMeshManager);
+    mRenderer.setCamera(mCamera);
+    mRenderer.setLight(mLight);
+
+    mMeshManager.setImageCount(mRenderer.getSwapChain().getImageCount());
+
+    mDeer = mImporter.loadMesh("cottage.fbx");
+    mDeer.setTexture(mTextureManager.getTexture("cottage_diffuse"));
+    mDeer.getTransform().setScale({3.0, 1.0, 1.0});
+    mMeshManager.addMesh(mDeer);
+
+    mTemp = std::make_unique<Mesh>(std::move(MeshHelper::createCube(1.0)));
+    mTemp->setTexture(mTextureManager.getTexture("diamond"));
+    mTemp->getTransform().setPosition({-2.0, -2.0, -2.0});
+    mMeshManager.addMesh(*mTemp);
+
+    mFileWatch.launch();
+    mFileWatch.watchFile("/home/corentin/", "test", [](){ std::cout << "callback" << std::endl; });
+}
+
 void HelloTriangleApplication::mainLoop() {
     int i{0};
     uint32_t updateMean{0}, renderMean{0};
@@ -73,55 +122,6 @@ void HelloTriangleApplication::cleanup() {
     glfwDestroyWindow(mWindow);
     glfwTerminate();
     mFileWatch.stop();
-}
-
-void HelloTriangleApplication::init() {
-    glfwInit();
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-    mWindow = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan API", nullptr, nullptr);
-    glfwSetFramebufferSizeCallback(mWindow, windowResizedCallback);
-    glfwSetCursorPosCallback(mWindow, mousePosCallback);
-    glfwSetMouseButtonCallback(mWindow, mouseButtonCallback);
-    glfwSetWindowUserPointer(mWindow, this);
-
-    mInput.attachWindow(mWindow);
-    mInput.start();
-    
-    mCamera.setExtent({WIDTH, HEIGHT});
-    mCamera.setFov(70);
-    
-    mContext.create(mWindow);
-
-    mLight = {{20.0, 20.0, 20.0}};
-
-    mTextureManager.create(mContext);
-    mTextureManager.load("diamond", std::string(ROOT_PATH) + std::string("resources/textures/diamond.png"));
-    mTextureManager.load("dirt", std::string(ROOT_PATH) + std::string("resources/textures/dirt.png"));
-    mTextureManager.load("undefined", std::string(ROOT_PATH) + std::string("resources/textures/undefined.png"));
-    mTextureManager.load("cottage_diffuse", std::string(ROOT_PATH) + std::string("resources/textures/cottage_diffuse.png"));
-
-    mMeshManager.create(mContext);
-
-    mRenderer.create(mContext, mTextureManager, mMeshManager);
-    mRenderer.setCamera(mCamera);
-    mRenderer.setLight(mLight);
-
-    mMeshManager.setImageCount(mRenderer.getSwapChain().getImageCount());
-
-    mDeer = mImporter.loadMesh("cottage.fbx");
-    mDeer.setTexture(mTextureManager.getTexture("cottage_diffuse"));
-    mDeer.getTransform().setScale({3.0, 1.0, 1.0});
-    mMeshManager.addMesh(mDeer);
-
-    mTemp = std::make_unique<Mesh>(std::move(MeshHelper::createCube(1.0)));
-    mTemp->setTexture(mTextureManager.getTexture("diamond"));
-    mTemp->getTransform().setPosition({-2.0, -2.0, -2.0});
-    mMeshManager.addMesh(*mTemp);
-
-    mFileWatch.launch();
-    mFileWatch.watchFile("/home/corentin/", "test", [](){ std::cout << "callback" << std::endl; });
 }
 
 void HelloTriangleApplication::sleepUntilNextFrame() {

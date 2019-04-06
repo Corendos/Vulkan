@@ -1,7 +1,7 @@
 #ifndef PHYSICALDEVICECHOICE
 #define PHYSICALDEVICECHOICE
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 #include "vulkan/QueueFamilyIndices.hpp"
 

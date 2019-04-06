@@ -37,15 +37,15 @@ void VulkanContext::destroy() {
     mInstance.destroy();
 }
 
-VkInstance VulkanContext::getInstance() const {
+vk::Instance VulkanContext::getInstance() const {
     return mInstance;
 }
 
-VkPhysicalDevice VulkanContext::getPhysicalDevice() const {
+vk::PhysicalDevice VulkanContext::getPhysicalDevice() const {
     return mPhysicalDevice;
 }
 
-VkDevice VulkanContext::getDevice() const {
+vk::Device VulkanContext::getDevice() const {
     return mDevice;
 }
 
@@ -162,7 +162,7 @@ void VulkanContext::pickPhysicalDevice() {
 }
 
 void VulkanContext::createLogicalDevice() {
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {
         mIndices.graphicsFamily.value(),
         mIndices.presentFamily.value(),
@@ -170,41 +170,33 @@ void VulkanContext::createLogicalDevice() {
 
     float queuePriority{1.0f};
     for (uint32_t queueFamily : uniqueQueueFamilies) {
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = queueFamily;
-        queueCreateInfo.queueCount = 1;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
+        vk::DeviceQueueCreateInfo queueCreateInfo;
+        queueCreateInfo.setQueueFamilyIndex(queueFamily);
+        queueCreateInfo.setQueueCount(1);
+        queueCreateInfo.setPQueuePriorities(&queuePriority);
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    VkPhysicalDeviceFeatures deviceFeatures{};
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
+    vk::PhysicalDeviceFeatures deviceFeatures;
+    deviceFeatures.setSamplerAnisotropy(VK_TRUE);
 
-    VkDeviceCreateInfo deviceCreateInfo{};
-    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-    deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-
-    deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-
-    deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtension.size());
-    deviceCreateInfo.ppEnabledExtensionNames = deviceExtension.data();
+    vk::DeviceCreateInfo deviceCreateInfo;
+    deviceCreateInfo.setPQueueCreateInfos(queueCreateInfos.data());
+    deviceCreateInfo.setQueueCreateInfoCount(queueCreateInfos.size());
+    deviceCreateInfo.setPEnabledFeatures(&deviceFeatures);
+    deviceCreateInfo.setPpEnabledExtensionNames(deviceExtension.data());
+    deviceCreateInfo.setEnabledExtensionCount(deviceExtension.size());
 
     if (enableValidationLayers) {
-        deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
-    } else {
-        deviceCreateInfo.enabledLayerCount = 0;
+        deviceCreateInfo.setEnabledLayerCount(validationLayers.size());
+        deviceCreateInfo.setPpEnabledLayerNames(validationLayers.data());
     }
 
-    if(vkCreateDevice(mPhysicalDevice, &deviceCreateInfo, nullptr, &mDevice) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create logical device");
-    }
+    mDevice = mPhysicalDevice.createDevice(deviceCreateInfo);
 
-    vkGetDeviceQueue(mDevice, mIndices.presentFamily.value(), 0, &mPresentQueue);
-    vkGetDeviceQueue(mDevice, mIndices.transferFamily.value(), 0, &mTransferQueue);
-    vkGetDeviceQueue(mDevice, mIndices.graphicsFamily.value(), 0, &mGraphicsQueue);
+    mPresentQueue = mDevice.getQueue(mIndices.presentFamily.value(), 0);
+    mTransferQueue = mDevice.getQueue(mIndices.transferFamily.value(), 0);
+    mGraphicsQueue = mDevice.getQueue(mIndices.graphicsFamily.value(), 0);
 }
 
 bool VulkanContext::checkValidationLayerSupport() {

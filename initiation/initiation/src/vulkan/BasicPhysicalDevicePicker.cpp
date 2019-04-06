@@ -1,7 +1,7 @@
 #include "vulkan/BasicPhysicalDevicePicker.hpp"
 #include "vulkan/PhysicalDeviceComparator.hpp"
 
-BasicPhysicalDevicePicker::BasicPhysicalDevicePicker(VkInstance instance, VkSurfaceKHR surface, std::vector<const char*> requiredExtensions)
+BasicPhysicalDevicePicker::BasicPhysicalDevicePicker(vk::Instance instance, vk::SurfaceKHR surface, std::vector<const char*> requiredExtensions)
     : mInstance(instance), mSurface(surface) {
     mRequiredExtensions = std::vector<std::string>(requiredExtensions.size());
     std::transform(
@@ -34,11 +34,7 @@ PhysicalDeviceChoice BasicPhysicalDevicePicker::pick() {
 }
 
 std::vector<PhysicalDeviceInfo> BasicPhysicalDevicePicker::getDeviceInfoList() {
-    uint32_t deviceCount{0};
-    vkEnumeratePhysicalDevices(mInstance, &deviceCount, nullptr);
-
-    std::vector<VkPhysicalDevice> foundPhysicalDevices(deviceCount);
-    vkEnumeratePhysicalDevices(mInstance, &deviceCount, foundPhysicalDevices.data());
+    std::vector<vk::PhysicalDevice> foundPhysicalDevices = mInstance.enumeratePhysicalDevices();
 
     std::vector<PhysicalDeviceInfo> devicesInfo(foundPhysicalDevices.size());
 
@@ -53,28 +49,18 @@ std::vector<PhysicalDeviceInfo> BasicPhysicalDevicePicker::getDeviceInfoList() {
     return devicesInfo;
 }
 
-VkPhysicalDeviceProperties BasicPhysicalDevicePicker::getDeviceProperties(VkPhysicalDevice physicalDevice) {
-    VkPhysicalDeviceProperties properties{};
-
-    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-
+vk::PhysicalDeviceProperties BasicPhysicalDevicePicker::getDeviceProperties(vk::PhysicalDevice physicalDevice) {
+    vk::PhysicalDeviceProperties properties = physicalDevice.getProperties();
     return properties;
 }
 
-VkPhysicalDeviceFeatures BasicPhysicalDevicePicker::getDeviceFeatures(VkPhysicalDevice physicalDevice) {
-    VkPhysicalDeviceFeatures features{};
-
-    vkGetPhysicalDeviceFeatures(physicalDevice, &features);
-
+vk::PhysicalDeviceFeatures BasicPhysicalDevicePicker::getDeviceFeatures(vk::PhysicalDevice physicalDevice) {
+    vk::PhysicalDeviceFeatures features = physicalDevice.getFeatures();
     return features;
 }
 
-QueueFamilyIndices BasicPhysicalDevicePicker::getFamiliesIndices(VkPhysicalDevice physicalDevice) {
-    uint32_t queueFamilyCount{0};
-
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-    std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
+QueueFamilyIndices BasicPhysicalDevicePicker::getFamiliesIndices(vk::PhysicalDevice physicalDevice) {
+    std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
 
     QueueFamilyIndices queueFamilyIndices;
 
@@ -98,35 +84,29 @@ QueueFamilyIndices BasicPhysicalDevicePicker::getFamiliesIndices(VkPhysicalDevic
     return queueFamilyIndices;
 }
 
-std::vector<std::string> BasicPhysicalDevicePicker::getSupportedExtensions(VkPhysicalDevice physicalDevice) {
-    uint32_t extensionCount;
-    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
-    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
+std::vector<std::string> BasicPhysicalDevicePicker::getSupportedExtensions(vk::PhysicalDevice physicalDevice) {
+    std::vector<vk::ExtensionProperties> availableExtensions = physicalDevice.enumerateDeviceExtensionProperties();
 
-    std::vector<std::string> availableExtensionsName(extensionCount);
+    std::vector<std::string> availableExtensionsName(availableExtensions.size());
     std::transform(
         availableExtensions.begin(), availableExtensions.end(),
-        availableExtensionsName.begin(), [](VkExtensionProperties& prop) { return prop.extensionName; });
+        availableExtensionsName.begin(), [](vk::ExtensionProperties& prop) { return prop.extensionName; });
 
     std::sort(availableExtensionsName.begin(), availableExtensionsName.end());
 
     return availableExtensionsName;
 }
 
-bool BasicPhysicalDevicePicker::hasGraphicsSupport(VkQueueFamilyProperties properties) {
-    return properties.queueCount > 0 && properties.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+bool BasicPhysicalDevicePicker::hasGraphicsSupport(vk::QueueFamilyProperties properties) {
+    return properties.queueCount > 0 && properties.queueFlags & vk::QueueFlagBits::eGraphics;
 }
 
-bool BasicPhysicalDevicePicker::hasPresentSupport(VkQueueFamilyProperties properties, VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex) {
-    VkBool32 supported;
-    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamilyIndex, mSurface, &supported);
-    
-    return properties.queueCount > 0 && supported;
+bool BasicPhysicalDevicePicker::hasPresentSupport(vk::QueueFamilyProperties properties, vk::PhysicalDevice physicalDevice, uint32_t queueFamilyIndex) {
+    return properties.queueCount > 0 && physicalDevice.getSurfaceSupportKHR(queueFamilyIndex, mSurface);
 }
 
-bool BasicPhysicalDevicePicker::hasTransferSupport(VkQueueFamilyProperties properties) {
-    return properties.queueCount > 0 && properties.queueFlags & VK_QUEUE_TRANSFER_BIT;
+bool BasicPhysicalDevicePicker::hasTransferSupport(vk::QueueFamilyProperties properties) {
+    return properties.queueCount > 0 && properties.queueFlags & vk::QueueFlagBits::eTransfer;
 }
 
 bool BasicPhysicalDevicePicker::isPhysicalDeviceNotSuitable(PhysicalDeviceInfo info, BasicPhysicalDevicePicker& picker) {

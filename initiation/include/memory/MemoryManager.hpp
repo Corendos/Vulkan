@@ -6,6 +6,7 @@
 #include <tuple>
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 #include "MemoryBlock.hpp"
 #include "MemoryHeapOccupation.hpp"
@@ -18,40 +19,40 @@ class MemoryManager {
         MemoryManager() = delete;
         MemoryManager(MemoryManager& other) = delete;
         MemoryManager(MemoryManager&& other) = delete;
-        MemoryManager(VkPhysicalDevice& physicalDevice, VkDevice& device);
+        MemoryManager(vk::PhysicalDevice& physicalDevice, vk::Device& device);
 
         void init();
         void printInfo();
         void cleanup();
 
-        void allocateForBuffer(VkBuffer buffer,
-                               VkMemoryRequirements& memoryRequirements,
-                               VkMemoryPropertyFlags properties,
+        void allocateForBuffer(vk::Buffer buffer,
+                               vk::MemoryRequirements& memoryRequirements,
+                               vk::MemoryPropertyFlags properties,
                                std::string name);
-        void allocateForImage(VkImage image,
-                              VkMemoryRequirements& memoryRequirements,
-                              VkMemoryPropertyFlags properties,
+        void allocateForImage(vk::Image image,
+                              vk::MemoryRequirements& memoryRequirements,
+                              vk::MemoryPropertyFlags properties,
                               std::string name);
-        void freeBuffer(VkBuffer buffer);
-        void freeImage(VkImage image);
-        void mapMemory(VkBuffer buffer, VkDeviceSize size, void** data);
-        void unmapMemory(VkBuffer buffer);
+        void freeBuffer(vk::Buffer buffer);
+        void freeImage(vk::Image image);
+        void mapMemory(vk::Buffer buffer, vk::DeviceSize size, void** data);
+        void unmapMemory(vk::Buffer buffer);
 
         void memoryCheckLog();
 
     private:
-        VkDevice& mDevice;
-        VkPhysicalDevice& mPhysicalDevice;
-        VkPhysicalDeviceMemoryProperties mMemoryProperties;
+        vk::Device& mDevice;
+        vk::PhysicalDevice& mPhysicalDevice;
+        vk::PhysicalDeviceMemoryProperties mMemoryProperties;
         static uint32_t allocationSize;
         static uint32_t pageSize;
 
         std::map<uint32_t, std::vector<Chunk>> mChunksMap;
-        std::map<VkBuffer, BufferInfo> mBuffersInfo;
-        std::map<VkImage, BufferInfo> mImagesInfo;
+        std::map<vk::Buffer, BufferInfo> mBuffersInfo;
+        std::map<vk::Image, BufferInfo> mImagesInfo;
 
         void allocate(uint32_t memoryTypeIndex);
-        int32_t findMemoryType(VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags& properties);
+        int32_t findMemoryType(vk::MemoryRequirements& memoryRequirements, vk::MemoryPropertyFlags& properties);
 };
 
 #endif

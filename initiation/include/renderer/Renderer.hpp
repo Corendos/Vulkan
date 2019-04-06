@@ -6,6 +6,7 @@
 #include <future>
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
 #include "vulkan/SwapChain.hpp"
@@ -13,7 +14,6 @@
 #include "vulkan/RenderPass.hpp"
 #include "vulkan/GraphicsPipeline.hpp"
 #include "vulkan/Shader.hpp"
-#include "vulkan/image/Image.hpp"
 #include "vulkan/VulkanContext.hpp"
 #include "renderer/camera/Camera.hpp"
 #include "renderer/mesh/MeshManager.hpp"
@@ -23,8 +23,8 @@
 #include "environment.hpp"
 
 struct FrameBufferAttachment {
-    Image image;
-    ImageView imageView;
+    vk::Image image;
+    vk::ImageView imageView;
 };
 
 struct RendererAttachments {
@@ -87,7 +87,7 @@ class Renderer {
         uint32_t mNextImageIndex;
         std::array<VkClearValue, 3> mClearValues;
 
-        std::vector<VkBuffer> mCameraUniformBuffers;
+        std::vector<vk::Buffer> mCameraUniformBuffers;
         std::vector<VkDescriptorSet> mCameraDescriptorSets;
 
         std::vector<RendererAttachments> mFramebufferAttachments;

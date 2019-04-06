@@ -4,7 +4,7 @@
 
 size_t Chunk::MinBlockSize = 4 * 1024;
 
-Chunk::Chunk(VkDeviceMemory memory, const size_t chunkSize, const size_t minBlockSize) : mTree(Block(chunkSize)), mMinBlockSize(minBlockSize), mMemory(memory) {
+Chunk::Chunk(vk::DeviceMemory memory, const size_t chunkSize, const size_t minBlockSize) : mTree(Block(chunkSize)), mMinBlockSize(minBlockSize), mMemory(memory) {
 }
 
 AllocationResult Chunk::reserve(const size_t blockSize) {
@@ -80,7 +80,7 @@ bool Chunk::free(Block block) {
     return result;
 }
 
-const VkDeviceMemory Chunk::getMemory() const {
+const vk::DeviceMemory Chunk::getMemory() const {
     return mMemory;
 }
 

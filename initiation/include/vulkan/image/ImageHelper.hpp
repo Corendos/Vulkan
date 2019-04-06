@@ -7,21 +7,17 @@
 
 class ImageHelper {
     public:
-        static VkImage create(VulkanContext& context,
+        static vk::Image create(VulkanContext& context,
                            uint32_t width, uint32_t height,
-                           VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
-                           VkMemoryPropertyFlags properties);
-        static VkImageView createImageView(VulkanContext& context,
-                                    VkImage image,
-                                    VkFormat format,
-                                    VkImageAspectFlags aspectFlags);
+                           vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage,
+                           vk::MemoryPropertyFlags properties);
         static void transitionImageLayout(VulkanContext& context,
-                                          VkImage image,
-                                          VkFormat format,
-                                          VkImageLayout oldLayout,
-                                          VkImageLayout newLayout);
+                                          vk::Image image,
+                                          vk::Format format,
+                                          vk::ImageLayout oldLayout,
+                                          vk::ImageLayout newLayout);
     private:
-        static bool hasStencilComponent(VkFormat format);
+        static bool hasStencilComponent(vk::Format format);
 };
 
 #endif

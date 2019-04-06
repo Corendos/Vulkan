@@ -10,19 +10,18 @@
 uint32_t MemoryManager::allocationSize = 32 * mega;
 uint32_t MemoryManager::pageSize = 4 * kilo;
 
-MemoryManager::MemoryManager(VkPhysicalDevice& physicalDevice, VkDevice& device) :
+MemoryManager::MemoryManager(vk::PhysicalDevice& physicalDevice, vk::Device& device) :
     mDevice(device), mPhysicalDevice(physicalDevice) {
 }
 
 void MemoryManager::init() {
-    VkPhysicalDeviceProperties properties;
-    vkGetPhysicalDeviceProperties(mPhysicalDevice, &properties);
+    vk::PhysicalDeviceProperties properties = mPhysicalDevice.getProperties();
 
     if (pageSize < properties.limits.bufferImageGranularity) {
         pageSize = properties.limits.bufferImageGranularity;
     }
 
-    vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &mMemoryProperties);
+    mMemoryProperties = mPhysicalDevice.getMemoryProperties();
 }
 
 void MemoryManager::printInfo() {
@@ -70,17 +69,11 @@ void MemoryManager::memoryCheckLog() {
 }
 
 void MemoryManager::allocate(uint32_t memoryTypeIndex) {
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.memoryTypeIndex = memoryTypeIndex;
-    allocInfo.allocationSize = allocationSize;
+    vk::MemoryAllocateInfo allocateInfo;
+    allocateInfo.setMemoryTypeIndex(memoryTypeIndex);
+    allocateInfo.setAllocationSize(allocationSize);
 
-    VkDeviceMemory memoryAllocation;
-    VkResult result = vkAllocateMemory(mDevice, &allocInfo, nullptr, &memoryAllocation); 
-    if (result != VK_SUCCESS) {
-        // This is temporary, if the allocation is not successful, it could be harmless
-        std::cout << "Failed to allocate memory" << std::endl;
-    }
+    vk::DeviceMemory memoryAllocation = mDevice.allocateMemory(allocateInfo);
 
     if (mChunksMap.find(memoryTypeIndex) == mChunksMap.end()) {
         mChunksMap[memoryTypeIndex] = std::vector<Chunk>();
@@ -92,14 +85,14 @@ void MemoryManager::allocate(uint32_t memoryTypeIndex) {
 void MemoryManager::cleanup() {
     for (auto& pair : mChunksMap) {
         for (auto& chunk : pair.second) {
-            vkFreeMemory(mDevice, chunk.getMemory(), nullptr);
+            mDevice.freeMemory(chunk.getMemory());
         }
     }
 }
 
-void MemoryManager::allocateForBuffer(VkBuffer buffer,
-                                      VkMemoryRequirements& memoryRequirements,
-                                      VkMemoryPropertyFlags properties,
+void MemoryManager::allocateForBuffer(vk::Buffer buffer,
+                                      vk::MemoryRequirements& memoryRequirements,
+                                      vk::MemoryPropertyFlags properties,
                                       std::string name) {
     int32_t memoryTypeIndex = findMemoryType(memoryRequirements, properties);
 
@@ -116,12 +109,11 @@ void MemoryManager::allocateForBuffer(VkBuffer buffer,
         AllocationResult result = chunk.reserve(memoryRequirements.size);
         if (result.found) {
             Block block = result.block;
-            //mBuffersInfo[buffer] = {}; // For testing purpose
             mBuffersInfo[buffer].block = block;
             mBuffersInfo[buffer].chunkIndex = i;
             mBuffersInfo[buffer].memoryTypeIndex = memoryTypeIndex;
 
-            vkBindBufferMemory(mDevice, buffer, chunk.getMemory(), block.offset);
+            mDevice.bindBufferMemory(buffer, chunk.getMemory(), block.offset);
             return;
         }
     }
@@ -132,21 +124,20 @@ void MemoryManager::allocateForBuffer(VkBuffer buffer,
     AllocationResult result = chunk.reserve(memoryRequirements.size);
     if (result.found) {
         Block block = result.block;
-        //mBuffersInfo[buffer] = {}; // For testing purpose
         mBuffersInfo[buffer].block = block;
         mBuffersInfo[buffer].chunkIndex = mChunksMap[memoryTypeIndex].size() - 1;
         mBuffersInfo[buffer].memoryTypeIndex = memoryTypeIndex;
 
-        vkBindBufferMemory(mDevice, buffer, chunk.getMemory(), block.offset);
+        mDevice.bindBufferMemory(buffer, chunk.getMemory(), block.offset);
         return;
     }
 
     throw std::runtime_error("Unable to find enough memory");
 }
 
-void MemoryManager::allocateForImage(VkImage image,
-                                     VkMemoryRequirements& memoryRequirements,
-                                     VkMemoryPropertyFlags properties,
+void MemoryManager::allocateForImage(vk::Image image,
+                                     vk::MemoryRequirements& memoryRequirements,
+                                     vk::MemoryPropertyFlags properties,
                                      std::string name) {
     int32_t memoryTypeIndex = findMemoryType(memoryRequirements, properties);
 
@@ -163,12 +154,11 @@ void MemoryManager::allocateForImage(VkImage image,
         AllocationResult result = chunk.reserve(memoryRequirements.size);
         if (result.found) {
             Block block = result.block;
-            //mBuffersInfo[buffer] = {}; // For testing purpose
             mImagesInfo[image].block = block;
             mImagesInfo[image].chunkIndex = i;
             mImagesInfo[image].memoryTypeIndex = memoryTypeIndex;
 
-            vkBindImageMemory(mDevice, image, chunk.getMemory(), block.offset);
+            mDevice.bindImageMemory(image, chunk.getMemory(), block.offset);
             return;
         }
     }
@@ -179,19 +169,18 @@ void MemoryManager::allocateForImage(VkImage image,
     AllocationResult result = chunk.reserve(memoryRequirements.size);
     if (result.found) {
         Block block = result.block;
-        //mBuffersInfo[buffer] = {}; // For testing purpose
         mImagesInfo[image].block = block;
         mImagesInfo[image].chunkIndex = mChunksMap[memoryTypeIndex].size() - 1;
         mImagesInfo[image].memoryTypeIndex = memoryTypeIndex;
 
-        vkBindImageMemory(mDevice, image, chunk.getMemory(), block.offset);
+        mDevice.bindImageMemory(image, chunk.getMemory(), block.offset);
         return;
     }
 
     throw std::runtime_error("Unable to find enough memory");
 }
 
-void MemoryManager::freeBuffer(VkBuffer buffer) {
+void MemoryManager::freeBuffer(vk::Buffer buffer) {
     BufferInfo bufferInfo = mBuffersInfo[buffer];
 
     if (!mChunksMap[bufferInfo.memoryTypeIndex][bufferInfo.chunkIndex].free(bufferInfo.block)) {
@@ -200,10 +189,10 @@ void MemoryManager::freeBuffer(VkBuffer buffer) {
 
     mBuffersInfo.erase(buffer);
 
-    vkDestroyBuffer(mDevice, buffer, nullptr);
+    mDevice.destroyBuffer(buffer);
 }
 
-void MemoryManager::freeImage(VkImage image) {
+void MemoryManager::freeImage(vk::Image image) {
     BufferInfo imageInfo = mImagesInfo[image];
 
     if (!mChunksMap[imageInfo.memoryTypeIndex][imageInfo.chunkIndex].free(imageInfo.block)) {
@@ -212,24 +201,23 @@ void MemoryManager::freeImage(VkImage image) {
 
     mImagesInfo.erase(image);
     
-    vkDestroyImage(mDevice, image, nullptr);
+    mDevice.destroyImage(image);
 }
 
-void MemoryManager::mapMemory(VkBuffer buffer, VkDeviceSize size, void** data) {
+void MemoryManager::mapMemory(vk::Buffer buffer, vk::DeviceSize size, void** data) {
     BufferInfo bufferInfo = mBuffersInfo[buffer];
-    vkMapMemory(
-        mDevice,
+    *data = mDevice.mapMemory(
         mChunksMap[bufferInfo.memoryTypeIndex][bufferInfo.chunkIndex].getMemory(),
         bufferInfo.block.offset,
-        size, 0, data);
+        size);
 }
 
-void MemoryManager::unmapMemory(VkBuffer buffer) {
+void MemoryManager::unmapMemory(vk::Buffer buffer) {
     BufferInfo bufferInfo = mBuffersInfo[buffer];
-    vkUnmapMemory(mDevice, mChunksMap[bufferInfo.memoryTypeIndex][bufferInfo.chunkIndex].getMemory());
+    mDevice.unmapMemory(mChunksMap[bufferInfo.memoryTypeIndex][bufferInfo.chunkIndex].getMemory());
 }
 
-int32_t MemoryManager::findMemoryType(VkMemoryRequirements& memoryRequirements, VkMemoryPropertyFlags& properties) {
+int32_t MemoryManager::findMemoryType(vk::MemoryRequirements& memoryRequirements, vk::MemoryPropertyFlags& properties) {
     int32_t memoryTypeIndex = -1;
 
     for (size_t i{0};i < mMemoryProperties.memoryTypeCount;++i) {

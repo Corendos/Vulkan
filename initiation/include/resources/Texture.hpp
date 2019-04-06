@@ -1,28 +1,24 @@
 #ifndef TEXTURE
 #define TEXTURE
 
-#include <vulkan/vulkan.h>
-
-#include "vulkan/image/Image.hpp"
-#include "vulkan/image/ImageView.hpp"
-#include "vulkan/Sampler.hpp"
+#include <vulkan/vulkan.hpp>
 
 class Texture {
     public:
         Texture() = default;
-        Texture(VkImage image, ImageView imageView, Sampler sampler);
-        Image& getImage();
-        ImageView& getImageView();
-        Sampler& getSampler();
+        Texture(vk::Image image, vk::ImageView imageView, vk::Sampler sampler);
+        vk::Image& getImage();
+        vk::ImageView& getImageView();
+        vk::Sampler& getSampler();
 
-        void setImageView(ImageView imageView);
-        void setSampler(Sampler sampler);
-        void setImage(Image image);
+        void setImageView(vk::ImageView imageView);
+        void setSampler(vk::Sampler sampler);
+        void setImage(vk::Image image);
         
     private:
-        Image mImage;
-        ImageView mImageView;
-        Sampler mSampler;
+        vk::Image mImage;
+        vk::ImageView mImageView;
+        vk::Sampler mSampler;
 };
 
 #endif

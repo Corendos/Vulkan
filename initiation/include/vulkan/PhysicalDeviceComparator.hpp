@@ -11,14 +11,13 @@ class PhysicalDeviceComparator {
 
         static uint32_t scoreDevice(const PhysicalDeviceInfo& info) {
             uint32_t score{0};
-
-            if (info.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU)
+            if (info.properties.deviceType == vk::PhysicalDeviceType::eCpu)
                 score += 100;
 
-            if (info.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+            if (info.properties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu)
                 score += 500;
 
-            if (info.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+            if (info.properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
                 score += 1000;
 
             if (info.features.geometryShader)

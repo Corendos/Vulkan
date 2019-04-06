@@ -3,90 +3,89 @@
 #include "vulkan/Commands.hpp"
 
 void BufferHelper::createBuffer(VulkanContext& context,
-                                VkDeviceSize size,
-                                VkBufferUsageFlags usage,
-                                VkSharingMode sharingMode,
-                                VkMemoryPropertyFlags properties,
-                                VkBuffer& buffer,
+                                vk::DeviceSize size,
+                                vk::BufferUsageFlags usage,
+                                vk::SharingMode sharingMode,
+                                vk::MemoryPropertyFlags properties,
+                                vk::Buffer& buffer,
                                 std::string name) {
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = sharingMode;
-    if (vkCreateBuffer(context.getDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create vertex buffer");
-    }
+    vk::BufferCreateInfo bufferInfo;
+    bufferInfo.setSize(size);
+    bufferInfo.setUsage(usage);
+    bufferInfo.setSharingMode(sharingMode);
+    buffer = context.getDevice().createBuffer(bufferInfo);
 
-    VkMemoryRequirements memoryRequirements{};
-    vkGetBufferMemoryRequirements(context.getDevice(), buffer, &memoryRequirements);
+    vk::MemoryRequirements memoryRequirements = context.getDevice().getBufferMemoryRequirements(buffer);
 
     context.getMemoryManager().allocateForBuffer(buffer, memoryRequirements, properties, name);
 }
 
 void BufferHelper::copyBuffer(VulkanContext& context,
                               CommandPool& commandPool,
-                              VkQueue queue,
-                              VkBuffer srcBuffer,
-                              VkBuffer dstBuffer,
-                              VkDeviceSize size) {
-    VkCommandBufferAllocateInfo allocateInfo{};
-    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocateInfo.commandPool = commandPool.getHandler();
-    allocateInfo.commandBufferCount = 1;
+                              vk::Queue queue,
+                              vk::Buffer srcBuffer,
+                              vk::Buffer dstBuffer,
+                              vk::DeviceSize size) {
+    vk::CommandBufferAllocateInfo allocateInfo;
+    allocateInfo.setLevel(vk::CommandBufferLevel::ePrimary);
+    allocateInfo.setCommandPool(commandPool.getHandler());
+    allocateInfo.setCommandBufferCount(1);
 
-    VkCommandBuffer commandBuffer{};
-    vkAllocateCommandBuffers(context.getDevice(), &allocateInfo, &commandBuffer);
+    vk::CommandBuffer commandBuffer = context.getDevice().allocateCommandBuffers(allocateInfo)[0];
 
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vk::CommandBufferBeginInfo beginInfo;
+    beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    commandBuffer.begin(beginInfo);
 
-    VkBufferCopy copyRegion{};
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+    vk::BufferCopy copyRegion;
+    copyRegion.setSize(size);
+    commandBuffer.copyBuffer(srcBuffer, dstBuffer, copyRegion);
+    commandBuffer.end();
 
-    vkEndCommandBuffer(commandBuffer);
+    vk::SubmitInfo submitInfo;
+    submitInfo.setCommandBufferCount(1);
+    submitInfo.setPCommandBuffers(&commandBuffer);
 
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
+    queue.submit(submitInfo, vk::Fence());
+    queue.waitIdle();
 
-    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);
-
-    vkFreeCommandBuffers(context.getDevice(), commandPool.getHandler(), 1, &commandBuffer);
+    context.getDevice().freeCommandBuffers(commandPool.getHandler(), commandBuffer);
 }
 
 void BufferHelper::copyBufferToImage(VulkanContext& context,
                                      CommandPool& commandPool,
-                                     VkQueue queue,
-                                     VkBuffer buffer,
-                                     VkImage image,
+                                     vk::Queue queue,
+                                     vk::Buffer buffer,
+                                     vk::Image image,
                                      uint32_t width,
                                      uint32_t height) {
-    VkCommandBuffer commandBuffer = Commands::beginSingleTime(context.getDevice(), commandPool);
+    vk::CommandBufferAllocateInfo allocateInfo;
+    allocateInfo.setLevel(vk::CommandBufferLevel::ePrimary);
+    allocateInfo.setCommandPool(commandPool.getHandler());
+    allocateInfo.setCommandBufferCount(1);
 
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
+    vk::CommandBuffer commandBuffer = context.getDevice().allocateCommandBuffers(allocateInfo)[0];
 
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
+    vk::CommandBufferBeginInfo beginInfo;
+    beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {width, height, 1};
+    commandBuffer.begin(beginInfo);
 
-    vkCmdCopyBufferToImage(
-        commandBuffer, buffer, image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1, &region);
-    Commands::endSingleTime(context.getDevice(), commandPool, commandBuffer, queue);
+    vk::BufferImageCopy region; 
+    region.setImageSubresource(vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1));
+    region.setImageOffset({0, 0, 0});
+    region.setImageExtent({width, height, 1});
+
+    commandBuffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, region);
+    commandBuffer.end();
+
+    vk::SubmitInfo submitInfo;
+    submitInfo.setCommandBufferCount(1);
+    submitInfo.setPCommandBuffers(&commandBuffer);
+
+    queue.submit(submitInfo, vk::Fence());
+    queue.waitIdle();
+
+    context.getDevice().freeCommandBuffers(commandPool.getHandler(), commandBuffer);
 }

@@ -1,14 +1,10 @@
 #include "resources/TextureManager.hpp"
 #include "vulkan/buffer/BufferHelper.hpp"
 #include "vulkan/image/ImageHelper.hpp"
-#include "vulkan/image/Image.hpp"
 
 #include <cstring>
-
-#ifndef STB_LOADED
-#define STB_LOADED
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#endif
 
 void TextureManager::create(VulkanContext& context) {
     mContext = &context;
@@ -16,16 +12,16 @@ void TextureManager::create(VulkanContext& context) {
 
 void TextureManager::destroy() {
     for (auto it{mTextures.begin()};it != mTextures.end();++it) {
-        it->second.getImageView().destroy(mContext->getDevice());
-        it->second.getSampler().destroy(mContext->getDevice());
-        mContext->getMemoryManager().freeImage(it->second.getImage().getHandler());
+        mContext->getDevice().destroyImageView(it->second.getImageView());
+        mContext->getDevice().destroySampler(it->second.getSampler());
+        mContext->getMemoryManager().freeImage(it->second.getImage());
     }
 }
 
 Texture& TextureManager::load(std::string name, std::string filename) {
-    Image image = _createImage(filename);
-    ImageView imageView = _createImageView(image);
-    Sampler sampler = _createSampler();
+    vk::Image image = _createImage(filename);
+    vk::ImageView imageView = _createImageView(image);
+    vk::Sampler sampler = _createSampler();
 
     Texture t;
     t.setImage(image);
@@ -41,7 +37,7 @@ Texture& TextureManager::getTexture(std::string name) {
     return mTextures.at(name);
 }
 
-VkBuffer TextureManager::_loadToStaging(std::string& filename,
+vk::Buffer TextureManager::_loadToStaging(std::string& filename,
                                         uint32_t& width,
                                         uint32_t& height) {
     int _width, _height, _bpp;
@@ -50,12 +46,12 @@ VkBuffer TextureManager::_loadToStaging(std::string& filename,
     width = static_cast<uint32_t>(_width);
     height = static_cast<uint32_t>(_height);
     
-    VkDeviceSize size = width * height * 4;
-    VkBuffer stagingBuffer;
+    vk::DeviceSize size = width * height * 4;
+    vk::Buffer stagingBuffer;
     BufferHelper::createBuffer(*mContext, size,
-                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                               VK_SHARING_MODE_EXCLUSIVE,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                               vk::BufferUsageFlagBits::eTransferSrc,
+                               vk::SharingMode::eExclusive,
+                               vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                                stagingBuffer, filename);
 
     void* data;
@@ -67,69 +63,62 @@ VkBuffer TextureManager::_loadToStaging(std::string& filename,
     return stagingBuffer;
 }
 
-Image TextureManager::_createImage(std::string& filename) {
+vk::Image TextureManager::_createImage(std::string& filename) {
     uint32_t width, height;
-    VkBuffer stagingBuffer = _loadToStaging(filename, width, height);
+    vk::Buffer stagingBuffer = _loadToStaging(filename, width, height);
 
-    Image image;
-    image.setImageType(VK_IMAGE_TYPE_2D);
-    image.setExtent({width, height, 1});
-    image.setMipLevels(1);
-    image.setArrayLayers(1);
-    image.setFormat(VK_FORMAT_R8G8B8A8_UNORM);
-    image.setTiling(VK_IMAGE_TILING_OPTIMAL);
-    image.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
-    image.setUsage(VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-    image.setSharingMode(VK_SHARING_MODE_EXCLUSIVE);
-    image.setSamples(VK_SAMPLE_COUNT_1_BIT);
-    image.create(*mContext);
+    vk::ImageCreateInfo imageCreateInfo;
+    imageCreateInfo.setImageType(vk::ImageType::e2D);
+    imageCreateInfo.setExtent({width, height, 1});
+    imageCreateInfo.setMipLevels(1);
+    imageCreateInfo.setArrayLayers(1);
+    imageCreateInfo.setFormat(vk::Format::eR8G8B8A8Unorm);
+    imageCreateInfo.setTiling(vk::ImageTiling::eOptimal);
+    imageCreateInfo.setInitialLayout(vk::ImageLayout::eUndefined);
+    imageCreateInfo.setUsage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled);
+    imageCreateInfo.setSharingMode(vk::SharingMode::eExclusive);
+    imageCreateInfo.setSamples(vk::SampleCountFlagBits::e1);
 
-    VkMemoryRequirements memoryRequirements;
-    vkGetImageMemoryRequirements(mContext->getDevice(), image.getHandler(), &memoryRequirements);
+    vk::Image image = mContext->getDevice().createImage(imageCreateInfo);
 
-    mContext->getMemoryManager().allocateForImage(image.getHandler(), memoryRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, filename);
+    vk::MemoryRequirements memoryRequirements = mContext->getDevice().getImageMemoryRequirements(image);
 
-    ImageHelper::transitionImageLayout(*mContext, image.getHandler(), VK_FORMAT_R8G8B8A8_UNORM,
-                                 VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    mContext->getMemoryManager().allocateForImage(
+        image, memoryRequirements, vk::MemoryPropertyFlagBits::eDeviceLocal, filename);
+
+    ImageHelper::transitionImageLayout(*mContext, image, vk::Format::eR8G8B8A8Unorm,
+                                 vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
     CommandPool& transferCommandPool = mContext->getTransferCommandPool();
 
     transferCommandPool.lock();
     BufferHelper::copyBufferToImage(*mContext, transferCommandPool,
                                     mContext->getTransferQueue(), stagingBuffer,
-                                    image.getHandler(), width, height);
+                                    image, width, height);
     transferCommandPool.unlock();
 
-    ImageHelper::transitionImageLayout(*mContext, image.getHandler(), VK_FORMAT_R8G8B8A8_UNORM,
-                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    ImageHelper::transitionImageLayout(*mContext, image, vk::Format::eR8G8B8A8Unorm,
+                                 vk::ImageLayout::eTransferDstOptimal,
+                                 vk::ImageLayout::eShaderReadOnlyOptimal);
     mContext->getMemoryManager().freeBuffer(stagingBuffer);
     return image;
 }
 
-ImageView TextureManager::_createImageView(Image& image) {
-    ImageView imageView;
-    imageView.setImage(image.getHandler());
-    imageView.setImageViewType(VK_IMAGE_VIEW_TYPE_2D);
-    imageView.setFormat(VK_FORMAT_R8G8B8A8_UNORM);
-    VkImageSubresourceRange subresourceRange;
-    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    subresourceRange.baseMipLevel = 0;
-    subresourceRange.levelCount = 1;
-    subresourceRange.baseArrayLayer = 0;
-    subresourceRange.layerCount = 1;
-    imageView.setSubresourceRange(subresourceRange);
-    imageView.create(mContext->getDevice());
-    return imageView;
+vk::ImageView TextureManager::_createImageView(vk::Image& image) {
+    vk::ImageViewCreateInfo createInfo;
+    createInfo.setImage(image);
+    createInfo.setViewType(vk::ImageViewType::e2D);
+    createInfo.setFormat(vk::Format::eR8G8B8A8Unorm);
+    createInfo.setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1));
+    return mContext->getDevice().createImageView(createInfo);
 }
 
-Sampler TextureManager::_createSampler() {
-    Sampler sampler;
-    sampler.setMinFilter(VK_FILTER_NEAREST);
-    sampler.setMagFilter(VK_FILTER_NEAREST);
-    sampler.setAnisotropyEnable(VK_FALSE);
-    sampler.setAddressModeU(VK_SAMPLER_ADDRESS_MODE_REPEAT);
-    sampler.setAddressModeV(VK_SAMPLER_ADDRESS_MODE_REPEAT);
-    sampler.setAddressModeW(VK_SAMPLER_ADDRESS_MODE_REPEAT);
-    sampler.create(mContext->getDevice());
-    return sampler;
+vk::Sampler TextureManager::_createSampler() {
+    vk::SamplerCreateInfo createInfo;
+    createInfo.setMinFilter(vk::Filter::eNearest);
+    createInfo.setMagFilter(vk::Filter::eNearest);
+    createInfo.setAnisotropyEnable(VK_FALSE);
+    createInfo.setAddressModeU(vk::SamplerAddressMode::eRepeat);
+    createInfo.setAddressModeV(vk::SamplerAddressMode::eRepeat);
+    createInfo.setAddressModeW(vk::SamplerAddressMode::eRepeat);
+    return mContext->getDevice().createSampler(createInfo);
 }

@@ -8,8 +8,10 @@
 #include <atomic>
 #include <queue>
 
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan.h>
 
+#include "vulkan/VulkanContext.hpp"
 #include "renderer/mesh/Mesh.hpp"
 
 struct MeshData {
@@ -19,8 +21,8 @@ struct MeshData {
 };
 
 struct RenderBuffers {
-    VkBuffer vertexBuffer;
-    VkBuffer indexBuffer;
+    vk::Buffer vertexBuffer;
+    vk::Buffer indexBuffer;
     uint32_t vertexBufferSize{0};
     uint32_t vertexBufferSizeInBytes{0};
     uint32_t indexBufferSize{0};
@@ -58,7 +60,7 @@ class MeshManager {
             std::vector<RenderBuffers> renderBuffers;
             RenderBuffers stagingBuffers;
 
-            VkBuffer modelTransformBuffer;
+            vk::Buffer modelTransformBuffer;
             uint32_t modelTransformBufferSize{0};
             VkDescriptorSetLayout descriptorSetLayout;
             std::array<MeshData, MaximumMeshCount> meshDataPool;
@@ -67,7 +69,7 @@ class MeshManager {
 
         bool mNeedStagingUpdate{false};
 
-        std::queue<VkBuffer> mToFreeQueue;
+        std::queue<vk::Buffer> mToFreeQueue;
         std::vector<RenderBuffers> mTemporaryStaticBuffers;
         std::vector<bool> mShouldSwapBuffers;
         std::vector<bool> mFirstTransfer;

@@ -17,7 +17,6 @@
 #include <GLFW/glfw3.h>
 
 #include "vulkan/VulkanContext.hpp"
-#include "vulkan/image/Image.hpp"
 #include "resources/TextureManager.hpp"
 #include "renderer/camera/Camera.hpp"
 #include "renderer/Renderer.hpp"

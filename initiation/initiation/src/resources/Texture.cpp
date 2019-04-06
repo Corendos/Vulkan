@@ -1,26 +1,26 @@
 #include "resources/Texture.hpp"
 
 
-Image& Texture::getImage() {
+vk::Image& Texture::getImage() {
     return mImage;
 }
 
-ImageView& Texture::getImageView() {
+vk::ImageView& Texture::getImageView() {
     return mImageView;
 }
 
-Sampler& Texture::getSampler() {
+vk::Sampler& Texture::getSampler() {
     return mSampler;
 }
 
-void Texture::setImageView(ImageView imageView) {
+void Texture::setImageView(vk::ImageView imageView) {
     mImageView = imageView;
 }
 
-void Texture::setSampler(Sampler sampler) {
+void Texture::setSampler(vk::Sampler sampler) {
     mSampler = sampler;
 }
 
-void Texture::setImage(Image image) {
+void Texture::setImage(vk::Image image) {
     mImage = image;
 }

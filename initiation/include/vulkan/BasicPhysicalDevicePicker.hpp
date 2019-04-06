@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <functional>
 
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan.h>
 
 #include "vulkan/PhysicalDeviceInfo.hpp"
@@ -13,24 +14,24 @@
 
 class BasicPhysicalDevicePicker {
     public:
-        BasicPhysicalDevicePicker(VkInstance instance, VkSurfaceKHR surface, std::vector<const char*> requiredExtensions);
+        BasicPhysicalDevicePicker(vk::Instance instance, vk::SurfaceKHR surface, std::vector<const char*> requiredExtensions);
         PhysicalDeviceChoice pick();
 
     private:
         std::vector<PhysicalDeviceInfo> getDeviceInfoList();
-        VkPhysicalDeviceProperties getDeviceProperties(VkPhysicalDevice physicalDevice);
-        VkPhysicalDeviceFeatures getDeviceFeatures(VkPhysicalDevice physicalDevice);
-        QueueFamilyIndices getFamiliesIndices(VkPhysicalDevice physicalDevice);
-        std::vector<std::string> getSupportedExtensions(VkPhysicalDevice physicalDevice);
+        vk::PhysicalDeviceProperties getDeviceProperties(vk::PhysicalDevice physicalDevice);
+        vk::PhysicalDeviceFeatures getDeviceFeatures(vk::PhysicalDevice physicalDevice);
+        QueueFamilyIndices getFamiliesIndices(vk::PhysicalDevice physicalDevice);
+        std::vector<std::string> getSupportedExtensions(vk::PhysicalDevice physicalDevice);
 
-        bool hasGraphicsSupport(VkQueueFamilyProperties properties);
-        bool hasTransferSupport(VkQueueFamilyProperties properties);
-        bool hasPresentSupport(VkQueueFamilyProperties properties, VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex);
+        bool hasGraphicsSupport(vk::QueueFamilyProperties properties);
+        bool hasTransferSupport(vk::QueueFamilyProperties properties);
+        bool hasPresentSupport(vk::QueueFamilyProperties properties, vk::PhysicalDevice physicalDevice, uint32_t queueFamilyIndex);
 
         static bool isPhysicalDeviceNotSuitable(PhysicalDeviceInfo info, BasicPhysicalDevicePicker& picker);
 
-        VkInstance mInstance;
-        VkSurfaceKHR mSurface;
+        vk::Instance mInstance;
+        vk::SurfaceKHR mSurface;
         std::vector<std::string> mRequiredExtensions;
 };
 

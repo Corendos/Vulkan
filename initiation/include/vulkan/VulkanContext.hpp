@@ -20,9 +20,9 @@ class VulkanContext {
         void create(GLFWwindow* window);
         void destroy();
 
-        VkInstance getInstance() const;
-        VkPhysicalDevice getPhysicalDevice() const;
-        VkDevice getDevice() const;
+        vk::Instance getInstance() const;
+        vk::PhysicalDevice getPhysicalDevice() const;
+        vk::Device getDevice() const;
         VkPhysicalDeviceLimits getLimits() const;
         VkQueue getPresentQueue() const;
         VkQueue getTransferQueue() const;
@@ -37,8 +37,8 @@ class VulkanContext {
     private:
         GLFWwindow* mWindow;
         vk::Instance mInstance;                               // Vulkan instance
-        VkPhysicalDevice mPhysicalDevice{VK_NULL_HANDLE};   // Vulkan physical device handler
-        VkDevice mDevice;                                   // Vulkan logical device handler
+        vk::PhysicalDevice mPhysicalDevice;   // Vulkan physical device handler
+        vk::Device mDevice;                                   // Vulkan logical device handler
         VkQueue mPresentQueue;                              // Device present queue
         VkQueue mTransferQueue;                             // Device transfer queue
         VkQueue mGraphicsQueue;                             // Device graphics queue

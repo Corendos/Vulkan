@@ -1,15 +1,15 @@
 #ifndef PHYSICALDEVICEINFO
 #define PHYSICALDEVICEINFO
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 #include "vulkan/QueueFamilyIndices.hpp"
 
 struct PhysicalDeviceInfo {
-    VkPhysicalDevice device;
-    VkPhysicalDeviceProperties properties;
-    VkPhysicalDeviceFeatures features;
-    VkPhysicalDeviceLimits limits;
+    vk::PhysicalDevice device;
+    vk::PhysicalDeviceProperties properties;
+    vk::PhysicalDeviceFeatures features;
+    vk::PhysicalDeviceLimits limits;
     QueueFamilyIndices queueFamilyIndices;
     std::vector<std::string> supportedExtensions;
 };

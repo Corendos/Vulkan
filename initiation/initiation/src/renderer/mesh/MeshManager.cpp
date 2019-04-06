@@ -108,21 +108,20 @@ VkCommandBuffer MeshManager::render(const VkRenderPass renderPass, const VkFrame
             vkWaitForFences(mContext->getDevice(), 1, &mTransferCompleteFences[imageIndex], VK_TRUE, 1000000000);
             mFirstTransfer[imageIndex] = false;
 
-            mRenderData.renderBuffers[imageIndex] = mTemporaryStaticBuffers[imageIndex];
             mShouldSwapBuffers[imageIndex] = false;
 
+            mRenderData.renderBuffers[imageIndex] = mTemporaryStaticBuffers[imageIndex];
             while (!mTemporaryMeshes.empty()) {
                 mMeshes.push_back(mTemporaryMeshes.back());
                 mTemporaryMeshes.pop_back();
-            }
+            }           
 
             vkResetFences(mContext->getDevice(), 1, &mTransferCompleteFences[imageIndex]);
         } else {
             if (vkGetFenceStatus(mContext->getDevice(), mTransferCompleteFences[imageIndex]) == VK_SUCCESS) {
-                mRenderData.renderBuffers[imageIndex] = mTemporaryStaticBuffers[imageIndex];
                 mShouldSwapBuffers[imageIndex] = false;
 
-
+                mRenderData.renderBuffers[imageIndex] = mTemporaryStaticBuffers[imageIndex];
                 while (!mTemporaryMeshes.empty()) {
                     mMeshes.push_back(mTemporaryMeshes.back());
                     mTemporaryMeshes.pop_back();
@@ -166,7 +165,8 @@ VkCommandBuffer MeshManager::render(const VkRenderPass renderPass, const VkFrame
 
     uint32_t offset{0};
     VkDeviceSize vertexOffset{0};
-    vkCmdBindVertexBuffers(staticCommandBuffer, 0, 1, &mRenderData.renderBuffers[imageIndex].vertexBuffer, &vertexOffset);
+    VkBuffer b = mRenderData.renderBuffers[imageIndex].vertexBuffer;
+    vkCmdBindVertexBuffers(staticCommandBuffer, 0, 1, &b, &vertexOffset);
     vkCmdBindIndexBuffer(staticCommandBuffer, mRenderData.renderBuffers[imageIndex].indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     for (Mesh* mesh : mMeshes) {
@@ -233,9 +233,9 @@ void MeshManager::allocateUniformBuffer() {
     else
         size = mContext->getLimits().minUniformBufferOffsetAlignment * MaximumMeshCount;
 
-    BufferHelper::createBuffer(*mContext, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                               VK_SHARING_MODE_EXCLUSIVE,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+    BufferHelper::createBuffer(*mContext, size, vk::BufferUsageFlagBits::eUniformBuffer,
+                               vk::SharingMode::eExclusive,
+                               vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                                mRenderData.modelTransformBuffer, "MeshManager::modelTransformBuffer");
     mRenderData.modelTransformBufferSize = size;
 }
@@ -291,16 +291,16 @@ void MeshManager::updateStagingBuffers() {
     /* Allocate the device local buffers */
     BufferHelper::createBuffer(
         *mContext, vertexBufferSizeInBytes,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_SHARING_MODE_EXCLUSIVE,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        vk::BufferUsageFlagBits::eTransferSrc,
+        vk::SharingMode::eExclusive,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
         mRenderData.stagingBuffers.vertexBuffer,
         "MeshRenderer::stagingVertexBuffer");
     BufferHelper::createBuffer(
         *mContext, indexBufferSizeInBytes,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_SHARING_MODE_EXCLUSIVE,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        vk::BufferUsageFlagBits::eTransferSrc,
+        vk::SharingMode::eExclusive,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
         mRenderData.stagingBuffers.indexBuffer,
         "MeshRenderer::stagingIndexBuffer");
     
@@ -357,8 +357,8 @@ void MeshManager::updateDescriptorSet(Mesh& mesh, MeshData& meshData) {
     /* Texture info */
     VkDescriptorImageInfo info{};
     info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    info.imageView = mesh.getTexture().getImageView().getHandler();
-    info.sampler = mesh.getTexture().getSampler().getHandler();
+    info.imageView = mesh.getTexture().getImageView();
+    info.sampler = mesh.getTexture().getSampler();
 
     /* Uniform buffer info */
     VkDescriptorBufferInfo bufferInfo{};
@@ -393,16 +393,16 @@ void MeshManager::updateStaticBuffers(uint32_t imageIndex) {
     renderBuffer.needUpdate = false;
     BufferHelper::createBuffer(
         *mContext, mRenderData.stagingBuffers.vertexBufferSizeInBytes,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_SHARING_MODE_EXCLUSIVE,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+        vk::SharingMode::eExclusive,
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
         renderBuffer.vertexBuffer,
         "MeshRenderer::vertexBuffer");
     BufferHelper::createBuffer(
         *mContext, mRenderData.stagingBuffers.indexBufferSizeInBytes,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        VK_SHARING_MODE_EXCLUSIVE,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+        vk::SharingMode::eExclusive,
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
         renderBuffer.indexBuffer,
         "MeshRenderer::indexBuffer");
 

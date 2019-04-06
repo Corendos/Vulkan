@@ -10,23 +10,23 @@
 class BufferHelper {
     public:
         static void createBuffer(VulkanContext& context,
-                                 VkDeviceSize size,
-                                 VkBufferUsageFlags usage,
-                                VkSharingMode sharingMode,
-                                 VkMemoryPropertyFlags properties,
-                                 VkBuffer& buffer,
+                                 vk::DeviceSize size,
+                                 vk::BufferUsageFlags usage,
+                                 vk::SharingMode sharingMode,
+                                 vk::MemoryPropertyFlags properties,
+                                 vk::Buffer& buffer,
                                  std::string name);
         static void copyBuffer(VulkanContext& context,
                                CommandPool& commandPool,
-                               VkQueue queue,
-                               VkBuffer srcBuffer,
-                               VkBuffer dstBuffer,
-                               VkDeviceSize size);
+                               vk::Queue queue,
+                               vk::Buffer srcBuffer,
+                               vk::Buffer dstBuffer,
+                               vk::DeviceSize size);
         static void copyBufferToImage(VulkanContext& context,
                                       CommandPool& commandPool,
-                                      VkQueue queue,
-                                      VkBuffer buffer,
-                                      VkImage image,
+                                      vk::Queue queue,
+                                      vk::Buffer buffer,
+                                      vk::Image image,
                                       uint32_t width,
                                       uint32_t height);
 };

@@ -71,10 +71,10 @@ void Renderer::recreate() {
     /* Destroying resources that need to be recreated */
 
     for (auto& framebufferAttachment : mFramebufferAttachments) {
-        framebufferAttachment.normal.image.destroy(*mContext);
-        framebufferAttachment.normal.imageView.destroy(mContext->getDevice());
-        framebufferAttachment.depth.image.destroy(*mContext);
-        framebufferAttachment.depth.imageView.destroy(mContext->getDevice());
+        mContext->getDevice().destroyImage(framebufferAttachment.normal.image);
+        mContext->getDevice().destroyImageView(framebufferAttachment.normal.imageView);
+        mContext->getDevice().destroyImage(framebufferAttachment.depth.image);
+        mContext->getDevice().destroyImageView(framebufferAttachment.depth.imageView);
     }
 
     for (auto& framebuffer : mFrameBuffers) {
@@ -106,10 +106,10 @@ void Renderer::destroy() {
         }
 
         for (auto& framebufferAttachment : mFramebufferAttachments) {
-            framebufferAttachment.normal.image.destroy(*mContext);
-            framebufferAttachment.normal.imageView.destroy(mContext->getDevice());
-            framebufferAttachment.depth.image.destroy(*mContext);
-            framebufferAttachment.depth.imageView.destroy(mContext->getDevice());
+        mContext->getDevice().destroyImage(framebufferAttachment.normal.image);
+        mContext->getDevice().destroyImageView(framebufferAttachment.normal.imageView);
+        mContext->getDevice().destroyImage(framebufferAttachment.depth.image);
+        mContext->getDevice().destroyImageView(framebufferAttachment.depth.imageView);
         }
 
         for (auto& framebuffer : mFrameBuffers) {
@@ -299,7 +299,7 @@ void Renderer::createRenderPass() {
     /* Create the render pass attachments */
     std::vector<Attachment> attachments(3);
     std::vector<VkAttachmentReference> attachmentReferences(3);
-    attachments[0].setFormat(mSwapChain.getFormat());
+    attachments[0].setFormat(static_cast<VkFormat>(mSwapChain.getFormat()));
     attachments[0].setSamples(VK_SAMPLE_COUNT_1_BIT);
     attachments[0].setLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
     attachments[0].setStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
@@ -386,8 +386,8 @@ void Renderer::createFramebuffers() {
     for (size_t i{0}; i < mSwapChain.getImageCount();++i) {
         std::vector<VkImageView> attachments = {
             mSwapChain.getImageView(i),
-            mFramebufferAttachments[i].normal.imageView.getHandler(),
-            mFramebufferAttachments[i].depth.imageView.getHandler(),
+            mFramebufferAttachments[i].normal.imageView,
+            mFramebufferAttachments[i].depth.imageView,
         };
 
         mFrameBuffers[i].setRenderPass(mRenderPass.getHandler());
@@ -444,11 +444,12 @@ void Renderer::createCameraUniformBuffers() {
     VkDeviceSize bufferSize = sizeof(RenderInfo);
 
     for (size_t i{0};i < mCameraUniformBuffers.size();++i) {
+        
         BufferHelper::createBuffer(*mContext,
                                bufferSize,
-                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                               VK_SHARING_MODE_EXCLUSIVE,
-                               VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+                               vk::BufferUsageFlagBits::eUniformBuffer,
+                               vk::SharingMode::eExclusive,
+                               vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostCached,
                                mCameraUniformBuffers[i],
                                "Camera Uniform Buffer");
     }
@@ -530,38 +531,37 @@ void Renderer::createCommandPools() {
 FrameBufferAttachment Renderer::createAttachment(VkFormat format,
                                                  VkImageUsageFlags usage,
                                                  VkImageAspectFlags aspect) {
-    VkMemoryRequirements memoryRequirements;
-    VkImageSubresourceRange subresourceRange{};
-
     FrameBufferAttachment attachment;
-    attachment.image.setImageType(VK_IMAGE_TYPE_2D);
-    attachment.image.setFormat(format);
-    attachment.image.setExtent({mExtent.width, mExtent.height, 1});
-    attachment.image.setMipLevels(1);
-    attachment.image.setArrayLayers(1);
-    attachment.image.setSamples(VK_SAMPLE_COUNT_1_BIT);
-    attachment.image.setTiling(VK_IMAGE_TILING_OPTIMAL);
-    attachment.image.setUsage(usage);
-    attachment.image.setInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
-    attachment.image.create(*mContext);
-    vkGetImageMemoryRequirements(mContext->getDevice(), attachment.image.getHandler(), &memoryRequirements);
+
+    vk::ImageCreateInfo createInfo;
+    createInfo.setImageType(vk::ImageType::e2D);
+    createInfo.setFormat(vk::Format(format));
+    createInfo.setExtent({mExtent.width, mExtent.height, 1});
+    createInfo.setMipLevels(1);
+    createInfo.setArrayLayers(1);
+    createInfo.setSamples(vk::SampleCountFlagBits::e1);
+    createInfo.setTiling(vk::ImageTiling::eOptimal);
+    createInfo.setUsage(vk::ImageUsageFlags(usage));
+    createInfo.setInitialLayout(vk::ImageLayout::eUndefined);
+    attachment.image = mContext->getDevice().createImage(createInfo);
+
+    vk::MemoryRequirements memoryRequirements = mContext->getDevice().getImageMemoryRequirements(attachment.image);
+
     mContext->getMemoryManager().allocateForImage(
-        attachment.image.getHandler(),
+        attachment.image,
         memoryRequirements,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
         "attachment"
     );
 
-    attachment.imageView.setImageViewType(VK_IMAGE_VIEW_TYPE_2D);
-    attachment.imageView.setFormat(format);
-    subresourceRange.aspectMask = aspect;
-    subresourceRange.baseMipLevel = 0;
-    subresourceRange.levelCount = 1;
-    subresourceRange.baseArrayLayer = 0;
-    subresourceRange.layerCount = 1;
-    attachment.imageView.setSubresourceRange(subresourceRange);
-    attachment.imageView.setImage(attachment.image.getHandler());
-    attachment.imageView.create(mContext->getDevice());
+    vk::ImageViewCreateInfo createInfo2;
+
+    createInfo2.setViewType(vk::ImageViewType::e2D);
+    createInfo2.setFormat(vk::Format(format));
+    createInfo2.setSubresourceRange(
+        vk::ImageSubresourceRange(vk::ImageAspectFlags(aspect), 0, 1, 0, 1));
+    createInfo2.setImage(attachment.image);
+    attachment.imageView = mContext->getDevice().createImageView(createInfo2);
 
     return attachment;
 }
