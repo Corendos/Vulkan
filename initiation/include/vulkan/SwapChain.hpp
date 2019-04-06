@@ -9,8 +9,6 @@
 #include <GLFW/glfw3.h>
 
 #include "vulkan/QueueFamilyIndices.hpp"
-#include "vulkan/RenderPass.hpp"
-#include "vulkan/Framebuffer.hpp"
 
 struct SwapChainSupportDetails {
     vk::SurfaceCapabilitiesKHR capabilities;
@@ -31,7 +29,7 @@ class SwapChain {
                     vk::Device device,
                     vk::SurfaceKHR surface,
                     QueueFamilyIndices indices,
-                    RenderPass& renderPass);
+                    vk::RenderPass& renderPass);
         void destroy(vk::Device device);
 
         vk::Extent2D getExtent() const;

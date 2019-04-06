@@ -29,11 +29,11 @@ void VulkanContext::destroy() {
     mMemoryManager.cleanup();
     mMemoryManager.memoryCheckLog();
     for (auto& pair : mTransferCommandPoolMap) {
-        pair.second.destroy(mDevice);
+        mDevice.destroyCommandPool(pair.second);
     }
-    mDescriptorPool.destroy(mDevice);
-    vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
-    vkDestroyDevice(mDevice, nullptr);
+    mDevice.destroyDescriptorPool(mDescriptorPool);
+    mInstance.destroySurfaceKHR(mSurface);
+    mDevice.destroy();
     mInstance.destroy();
 }
 
@@ -49,19 +49,19 @@ vk::Device VulkanContext::getDevice() const {
     return mDevice;
 }
 
-VkPhysicalDeviceLimits VulkanContext::getLimits() const {
+vk::PhysicalDeviceLimits VulkanContext::getLimits() const {
     return mPhysicalDeviceLimits;
 }
 
-VkQueue VulkanContext::getPresentQueue() const {
+vk::Queue VulkanContext::getPresentQueue() const {
     return mPresentQueue;
 }
 
-VkQueue VulkanContext::getTransferQueue() const {
+vk::Queue VulkanContext::getTransferQueue() const {
     return mTransferQueue;
 }
 
-VkQueue VulkanContext::getGraphicsQueue() const {
+vk::Queue VulkanContext::getGraphicsQueue() const {
     return mGraphicsQueue;
 }
 
@@ -69,16 +69,17 @@ QueueFamilyIndices VulkanContext::getQueueFamilyIndices() const {
     return mIndices;
 }
 
-CommandPool& VulkanContext::getTransferCommandPool() {
+vk::CommandPool& VulkanContext::getTransferCommandPool() {
     if (mTransferCommandPoolMap.find(std::this_thread::get_id()) == mTransferCommandPoolMap.end()) {
-        CommandPool transferCommandPool;
-        transferCommandPool.create(mDevice, mIndices.transferFamily.value());
+        vk::CommandPool transferCommandPool = mDevice.createCommandPool(
+            vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+            mIndices.transferFamily.value()));
         mTransferCommandPoolMap[std::this_thread::get_id()] = std::move(transferCommandPool);
     }
     return mTransferCommandPoolMap[std::this_thread::get_id()];
 }
 
-VkSurfaceKHR VulkanContext::getSurface() const {
+vk::SurfaceKHR VulkanContext::getSurface() const {
     return mSurface;
 }
 
@@ -90,7 +91,7 @@ MemoryManager& VulkanContext::getMemoryManager() {
     return mMemoryManager;
 }
 
-DescriptorPool& VulkanContext::getDescriptorPool() {
+vk::DescriptorPool& VulkanContext::getDescriptorPool() {
     return mDescriptorPool;
 }
 
@@ -142,9 +143,11 @@ void VulkanContext::setupDebugCallback() {
 }
 
 void VulkanContext::createSurface() {
-    if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface) != VK_SUCCESS) {
+    VkSurfaceKHR surface;
+    if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create the window surface");
     }
+    mSurface = surface;
 }
 
 void VulkanContext::pickPhysicalDevice() {
@@ -200,7 +203,6 @@ void VulkanContext::createLogicalDevice() {
 }
 
 bool VulkanContext::checkValidationLayerSupport() {
-    
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
     std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -243,24 +245,25 @@ void VulkanContext::createDescriptorPool() {
     uint32_t maxDescriptorSetSampledImages = 10000;
     uint32_t maxDescriptorSetDynamicUniformBuffers = 10000;
 
-    std::vector<VkDescriptorPoolSize> poolSizes = {
+    std::vector<vk::DescriptorPoolSize> poolSizes = {
         {
-            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            vk::DescriptorType::eUniformBuffer,
             maxDescriptorSetUniformBuffers
         },
         {
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            vk::DescriptorType::eCombinedImageSampler,
             maxDescriptorSetSampledImages
         },
         {
-            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+            vk::DescriptorType::eUniformBufferDynamic,
             maxDescriptorSetDynamicUniformBuffers
         },
     };
-    mDescriptorPool.setPoolSizes(poolSizes);
-    // TODO: remove this magical constant
-    mDescriptorPool.setMaxSets(100000);
-    mDescriptorPool.create(mDevice);
+    vk::DescriptorPoolCreateInfo createInfo{
+        vk::DescriptorPoolCreateFlags(),
+        100000, 3, poolSizes.data()
+    };
+    mDescriptorPool = mDevice.createDescriptorPool(createInfo);
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanContext::debugCallback(

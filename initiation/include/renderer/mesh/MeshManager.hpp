@@ -9,13 +9,12 @@
 #include <queue>
 
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan.h>
 
 #include "vulkan/VulkanContext.hpp"
 #include "renderer/mesh/Mesh.hpp"
 
 struct MeshData {
-    VkDescriptorSet descriptorSet{VK_NULL_HANDLE};
+    vk::DescriptorSet descriptorSet;
     uint32_t uniformBufferDynamicOffset{0};
     bool free{true};
 };
@@ -49,10 +48,10 @@ class MeshManager {
 
         void update(uint32_t imageIndex);
 
-        VkCommandBuffer render(VkRenderPass renderPass, VkFramebuffer frameBuffer, VkCommandPool commandPool,
-                               VkDescriptorSet cameraDescriptorSet, VkPipelineLayout pipelineLayout, VkPipeline pipeline,
+        vk::CommandBuffer render(vk::RenderPass renderPass, vk::Framebuffer frameBuffer, vk::CommandPool commandPool,
+                               vk::DescriptorSet cameraDescriptorSet, vk::PipelineLayout pipelineLayout, vk::Pipeline pipeline,
                                uint32_t imageIndex);
-        VkDescriptorSetLayout getDescriptorSetLayout() const;
+        vk::DescriptorSetLayout getDescriptorSetLayout() const;
 
         static constexpr size_t MaximumMeshCount{1024};
     private:
@@ -62,7 +61,7 @@ class MeshManager {
 
             vk::Buffer modelTransformBuffer;
             uint32_t modelTransformBufferSize{0};
-            VkDescriptorSetLayout descriptorSetLayout;
+            vk::DescriptorSetLayout descriptorSetLayout;
             std::array<MeshData, MaximumMeshCount> meshDataPool;
             std::map<Mesh*, MeshData*> meshDataBinding;
         } mRenderData;
@@ -78,8 +77,8 @@ class MeshManager {
 
         VulkanContext* mContext;
 
-        std::vector<VkFence> mTransferCompleteFences;
-        std::vector<VkEvent> mEvents;
+        std::vector<vk::Fence> mTransferCompleteFences;
+        std::vector<vk::Event> mEvents;
 
         std::vector<Mesh*> mMeshes;
 

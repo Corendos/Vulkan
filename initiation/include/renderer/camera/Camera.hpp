@@ -2,13 +2,13 @@
 #define CAMERA
 
 #include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 class Camera {
     public:
         Camera();
         void update(double deltaPitch, double deltaYaw);
-        void setExtent(VkExtent2D extent);
+        void setExtent(vk::Extent2D extent);
         void setFov(double fov);
         glm::mat4 getView() const;
         glm::mat4 getProj() const;
@@ -19,7 +19,7 @@ class Camera {
         glm::mat4 mProj;
         glm::vec3 mPosition;
 
-        VkExtent2D mExtent;
+        vk::Extent2D mExtent;
         double mFov;
 
         double mPitch;

@@ -88,13 +88,11 @@ vk::Image TextureManager::_createImage(std::string& filename) {
 
     ImageHelper::transitionImageLayout(*mContext, image, vk::Format::eR8G8B8A8Unorm,
                                  vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-    CommandPool& transferCommandPool = mContext->getTransferCommandPool();
+    vk::CommandPool& transferCommandPool = mContext->getTransferCommandPool();
 
-    transferCommandPool.lock();
     BufferHelper::copyBufferToImage(*mContext, transferCommandPool,
                                     mContext->getTransferQueue(), stagingBuffer,
                                     image, width, height);
-    transferCommandPool.unlock();
 
     ImageHelper::transitionImageLayout(*mContext, image, vk::Format::eR8G8B8A8Unorm,
                                  vk::ImageLayout::eTransferDstOptimal,

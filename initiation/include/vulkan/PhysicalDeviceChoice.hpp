@@ -6,12 +6,13 @@
 #include "vulkan/QueueFamilyIndices.hpp"
 
 struct PhysicalDeviceChoice {
-    VkPhysicalDevice physicalDevice{VK_NULL_HANDLE};
-    VkPhysicalDeviceLimits limits;
+    vk::PhysicalDevice physicalDevice;
+    vk::PhysicalDeviceLimits limits;
     QueueFamilyIndices queueFamilyIndices;
 
     bool isComplete() {
-        return queueFamilyIndices.isComplete() && (physicalDevice != VK_NULL_HANDLE);
+        return queueFamilyIndices.isComplete()
+            && (static_cast<VkPhysicalDevice>(physicalDevice) != VK_NULL_HANDLE);
     }
 };
 

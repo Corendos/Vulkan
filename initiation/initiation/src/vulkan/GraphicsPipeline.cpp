@@ -10,7 +10,7 @@ void GraphicsPipeline::create(VkDevice device) {
         return;
     }
 
-    if (mRenderPass == nullptr) {
+    if (mRenderPass == vk::RenderPass()) {
         throw std::runtime_error("Missing mandatory pointer");
     }
 
@@ -148,7 +148,7 @@ void GraphicsPipeline::create(VkDevice device) {
     mInfo.pColorBlendState = &colorBlending;
     mInfo.pDynamicState = nullptr;
     mInfo.layout = mLayout.getHandler();
-    mInfo.renderPass = mRenderPass->getHandler();
+    mInfo.renderPass = mRenderPass;
     mInfo.subpass = 0;
     mInfo.basePipelineHandle = VK_NULL_HANDLE;
     mInfo.basePipelineIndex = -1;
@@ -173,8 +173,8 @@ void GraphicsPipeline::addShader(Shader& shader) {
     mShaders.push_back(&shader);
 }
 
-void GraphicsPipeline::setRenderPass(RenderPass& renderPass) {
-    mRenderPass = &renderPass;
+void GraphicsPipeline::setRenderPass(vk::RenderPass& renderPass) {
+    mRenderPass = renderPass;
 }
 
 void GraphicsPipeline::setExtent(VkExtent2D extent) {

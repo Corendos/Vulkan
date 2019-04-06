@@ -21,14 +21,14 @@ void BufferHelper::createBuffer(VulkanContext& context,
 }
 
 void BufferHelper::copyBuffer(VulkanContext& context,
-                              CommandPool& commandPool,
+                              vk::CommandPool& commandPool,
                               vk::Queue queue,
                               vk::Buffer srcBuffer,
                               vk::Buffer dstBuffer,
                               vk::DeviceSize size) {
     vk::CommandBufferAllocateInfo allocateInfo;
     allocateInfo.setLevel(vk::CommandBufferLevel::ePrimary);
-    allocateInfo.setCommandPool(commandPool.getHandler());
+    allocateInfo.setCommandPool(commandPool);
     allocateInfo.setCommandBufferCount(1);
 
     vk::CommandBuffer commandBuffer = context.getDevice().allocateCommandBuffers(allocateInfo)[0];
@@ -50,11 +50,11 @@ void BufferHelper::copyBuffer(VulkanContext& context,
     queue.submit(submitInfo, vk::Fence());
     queue.waitIdle();
 
-    context.getDevice().freeCommandBuffers(commandPool.getHandler(), commandBuffer);
+    context.getDevice().freeCommandBuffers(commandPool, commandBuffer);
 }
 
 void BufferHelper::copyBufferToImage(VulkanContext& context,
-                                     CommandPool& commandPool,
+                                     vk::CommandPool& commandPool,
                                      vk::Queue queue,
                                      vk::Buffer buffer,
                                      vk::Image image,
@@ -62,7 +62,7 @@ void BufferHelper::copyBufferToImage(VulkanContext& context,
                                      uint32_t height) {
     vk::CommandBufferAllocateInfo allocateInfo;
     allocateInfo.setLevel(vk::CommandBufferLevel::ePrimary);
-    allocateInfo.setCommandPool(commandPool.getHandler());
+    allocateInfo.setCommandPool(commandPool);
     allocateInfo.setCommandBufferCount(1);
 
     vk::CommandBuffer commandBuffer = context.getDevice().allocateCommandBuffers(allocateInfo)[0];
@@ -87,5 +87,5 @@ void BufferHelper::copyBufferToImage(VulkanContext& context,
     queue.submit(submitInfo, vk::Fence());
     queue.waitIdle();
 
-    context.getDevice().freeCommandBuffers(commandPool.getHandler(), commandBuffer);
+    context.getDevice().freeCommandBuffers(commandPool, commandBuffer);
 }

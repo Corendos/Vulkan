@@ -1,10 +1,9 @@
 #ifndef BUFFERHELPER
 #define BUFFERHELPER
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 #include "memory/MemoryManager.hpp"
-#include "vulkan/CommandPool.hpp"
 #include "vulkan/VulkanContext.hpp"
 
 class BufferHelper {
@@ -17,13 +16,13 @@ class BufferHelper {
                                  vk::Buffer& buffer,
                                  std::string name);
         static void copyBuffer(VulkanContext& context,
-                               CommandPool& commandPool,
+                               vk::CommandPool& commandPool,
                                vk::Queue queue,
                                vk::Buffer srcBuffer,
                                vk::Buffer dstBuffer,
                                vk::DeviceSize size);
         static void copyBufferToImage(VulkanContext& context,
-                                      CommandPool& commandPool,
+                                      vk::CommandPool& commandPool,
                                       vk::Queue queue,
                                       vk::Buffer buffer,
                                       vk::Image image,

@@ -25,7 +25,7 @@ void SwapChain::create(GLFWwindow* window,
                        vk::Device device,
                        vk::SurfaceKHR surface,
                        QueueFamilyIndices indices,
-                       RenderPass& renderPass) {
+                       vk::RenderPass& renderPass) {
     if (mCreated) {
         return;
     }

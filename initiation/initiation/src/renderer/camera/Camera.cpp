@@ -35,7 +35,7 @@ void Camera::update(double deltaPitch, double deltaYaw) {
                         glm::vec3(0.0, 0.0, 1.0));
 }
 
-void Camera::setExtent(VkExtent2D extent) {
+void Camera::setExtent(vk::Extent2D extent) {
     mExtent = extent;
     mProj = glm::vulkanPerspective(glm::radians(mFov), (double)mExtent.width / (double)mExtent.height, 0.1, 100.0);
 }

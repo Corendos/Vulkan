@@ -5,13 +5,10 @@
 #include <memory>
 #include <future>
 
-#include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
 #include "vulkan/SwapChain.hpp"
-#include "vulkan/CommandPool.hpp"
-#include "vulkan/RenderPass.hpp"
 #include "vulkan/GraphicsPipeline.hpp"
 #include "vulkan/Shader.hpp"
 #include "vulkan/VulkanContext.hpp"
@@ -34,10 +31,8 @@ struct RendererAttachments {
 
 struct FenceInfo {
     bool submitted{false};
-    VkFence fence;
+    vk::Fence fence;
 };
-
-using AsyncUpdateResult = std::vector<VkCommandBuffer>;
 
 enum CommandBufferState { NotReady, Ready, Size };
 
@@ -54,21 +49,21 @@ class Renderer {
         void setLight(Light& light);
 
         MemoryManager& getMemoryManager();
-        VkDescriptorPool getDescriptorPool() const;
+        vk::DescriptorPool getDescriptorPool() const;
         SwapChain& getSwapChain();
 
     private:
-        VkSemaphore mImageAvailableSemaphore;
-        std::vector<VkSemaphore> mRenderFinishedSemaphores;
-        VkDescriptorPool mDescriptorPool;
-        VkDescriptorSetLayout mCameraDescriptorSetLayout;
-        VkDescriptorSet mDescriptorSet;
-        VkExtent2D mExtent;
+        vk::Semaphore mImageAvailableSemaphore;
+        std::vector<vk::Semaphore> mRenderFinishedSemaphores;
+        vk::DescriptorPool mDescriptorPool;
+        vk::DescriptorSetLayout mCameraDescriptorSetLayout;
+        vk::DescriptorSet mDescriptorSet;
+        vk::Extent2D mExtent;
         std::vector<FenceInfo> mFencesInfo;
-        std::vector<VkCommandPool> mCommandPools;
-        std::vector<VkCommandBuffer> mCommandBuffers;
+        std::vector<vk::CommandPool> mCommandPools;
+        std::vector<vk::CommandBuffer> mCommandBuffers;
 
-        std::vector<Framebuffer> mFrameBuffers;
+        std::vector<vk::Framebuffer> mFrameBuffers;
 
         Camera* mCamera;
         Light* mLight;
@@ -76,7 +71,7 @@ class Renderer {
         TextureManager* mTextureManager;
 
         SwapChain mSwapChain;
-        RenderPass mRenderPass;
+        vk::RenderPass mRenderPass;
         GraphicsPipeline mPipeline;
 
         Shader mVertexShader;
@@ -85,14 +80,14 @@ class Renderer {
         MeshManager* mMeshManager;
 
         uint32_t mNextImageIndex;
-        std::array<VkClearValue, 3> mClearValues;
+        std::array<vk::ClearValue, 3> mClearValues;
 
         std::vector<vk::Buffer> mCameraUniformBuffers;
-        std::vector<VkDescriptorSet> mCameraDescriptorSets;
+        std::vector<vk::DescriptorSet> mCameraDescriptorSets;
 
         std::vector<RendererAttachments> mFramebufferAttachments;
 
-        std::vector<VkSemaphore> mToWaitSemaphores;
+        std::vector<vk::Semaphore> mToWaitSemaphores;
 
         bool mCreated{false};
         bool mBypassRendering{false};
@@ -114,13 +109,15 @@ class Renderer {
         void createFences();
         void createCommandPools();
 
-        FrameBufferAttachment createAttachment(VkFormat format,
-                                               VkImageUsageFlags usage,
-                                               VkImageAspectFlags aspect);
+        FrameBufferAttachment createAttachment(vk::Format format,
+                                               vk::ImageUsageFlags usage,
+                                               vk::ImageAspectFlags aspect);
         void updateUniformBuffer(uint32_t index);
 
-        VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-        VkFormat findDepthFormat();
+        vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates,
+                                       vk::ImageTiling tiling,
+                                       vk::FormatFeatureFlags features);
+        vk::Format findDepthFormat();
 };
 
 #endif

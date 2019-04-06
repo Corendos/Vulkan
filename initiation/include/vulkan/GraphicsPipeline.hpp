@@ -5,8 +5,8 @@
 #include <algorithm>
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include "vulkan/PipelineLayout.hpp"
-#include "vulkan/RenderPass.hpp"
 #include "vulkan/Shader.hpp"
 
 class GraphicsPipeline {
@@ -16,7 +16,7 @@ class GraphicsPipeline {
         void destroy(VkDevice device);
 
         void addShader(Shader& shader);
-        void setRenderPass(RenderPass& renderPass);
+        void setRenderPass(vk::RenderPass& renderPass);
         void setExtent(VkExtent2D extent);
         void setPipelineLayout(PipelineLayout& layout);
 
@@ -27,7 +27,7 @@ class GraphicsPipeline {
         VkPipeline mHandler;
         VkGraphicsPipelineCreateInfo mInfo{};
         std::vector<Shader*> mShaders;
-        RenderPass* mRenderPass{nullptr};
+        vk::RenderPass mRenderPass;
 
         VkExtent2D mExtent;
 

@@ -10,8 +10,6 @@
 #include <GLFW/glfw3.h>
 
 #include "vulkan/QueueFamilyIndices.hpp"
-#include "vulkan/CommandPool.hpp"
-#include "vulkan/DescriptorPool.hpp"
 #include "memory/MemoryManager.hpp"
 
 class VulkanContext {
@@ -23,32 +21,32 @@ class VulkanContext {
         vk::Instance getInstance() const;
         vk::PhysicalDevice getPhysicalDevice() const;
         vk::Device getDevice() const;
-        VkPhysicalDeviceLimits getLimits() const;
-        VkQueue getPresentQueue() const;
-        VkQueue getTransferQueue() const;
-        VkQueue getGraphicsQueue() const;
+        vk::PhysicalDeviceLimits getLimits() const;
+        vk::Queue getPresentQueue() const;
+        vk::Queue getTransferQueue() const;
+        vk::Queue getGraphicsQueue() const;
         QueueFamilyIndices getQueueFamilyIndices() const;
-        CommandPool& getTransferCommandPool();
-        VkSurfaceKHR getSurface() const;
+        vk::CommandPool& getTransferCommandPool();
+        vk::SurfaceKHR getSurface() const;
         GLFWwindow* getWindow() const;
         MemoryManager& getMemoryManager();
-        DescriptorPool& getDescriptorPool();
+        vk::DescriptorPool& getDescriptorPool();
 
     private:
         GLFWwindow* mWindow;
         vk::Instance mInstance;                               // Vulkan instance
         vk::PhysicalDevice mPhysicalDevice;   // Vulkan physical device handler
         vk::Device mDevice;                                   // Vulkan logical device handler
-        VkQueue mPresentQueue;                              // Device present queue
-        VkQueue mTransferQueue;                             // Device transfer queue
-        VkQueue mGraphicsQueue;                             // Device graphics queue
-        VkSurfaceKHR mSurface;                              // Vulkan surface handler
+        vk::Queue mPresentQueue;                              // Device present queue
+        vk::Queue mTransferQueue;                             // Device transfer queue
+        vk::Queue mGraphicsQueue;                             // Device graphics queue
+        vk::SurfaceKHR mSurface;                              // Vulkan surface handler
         QueueFamilyIndices mIndices;
-        std::unordered_map<std::thread::id, CommandPool> mTransferCommandPoolMap;
+        std::unordered_map<std::thread::id, vk::CommandPool> mTransferCommandPoolMap;
         VkDebugUtilsMessengerEXT mCallback;                 // Message callback for validation layer
         MemoryManager mMemoryManager;
-        VkPhysicalDeviceLimits mPhysicalDeviceLimits;
-        DescriptorPool mDescriptorPool;
+        vk::PhysicalDeviceLimits mPhysicalDeviceLimits;
+        vk::DescriptorPool mDescriptorPool;
 
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_LUNARG_standard_validation"

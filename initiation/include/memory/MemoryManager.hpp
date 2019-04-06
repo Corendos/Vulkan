@@ -5,11 +5,8 @@
 #include <map>
 #include <tuple>
 
-#include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
 
-#include "MemoryBlock.hpp"
-#include "MemoryHeapOccupation.hpp"
 #include "BufferInfo.hpp"
 
 #include "memory/Chunk.hpp"
