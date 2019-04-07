@@ -1,7 +1,7 @@
 #ifndef IMAGEHELPER
 #define IMAGEHELPER
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 #include "vulkan/VulkanContext.hpp"
 

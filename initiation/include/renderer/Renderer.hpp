@@ -72,10 +72,11 @@ class Renderer {
 
         SwapChain mSwapChain;
         vk::RenderPass mRenderPass;
-        GraphicsPipeline mPipeline;
+        vk::Pipeline mPipeline;
+        vk::PipelineLayout mPipelineLayout;
 
-        Shader mVertexShader;
-        Shader mFragmentShader;
+        Shader::Pair mVertexShader;
+        Shader::Pair mFragmentShader;
 
         MeshManager* mMeshManager;
 

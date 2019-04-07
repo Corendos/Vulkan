@@ -6,7 +6,6 @@
 #include <functional>
 
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan.h>
 
 #include "vulkan/PhysicalDeviceInfo.hpp"
 #include "vulkan/PhysicalDeviceChoice.hpp"

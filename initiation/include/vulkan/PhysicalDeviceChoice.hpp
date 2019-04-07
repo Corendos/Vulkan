@@ -12,7 +12,7 @@ struct PhysicalDeviceChoice {
 
     bool isComplete() {
         return queueFamilyIndices.isComplete()
-            && (static_cast<VkPhysicalDevice>(physicalDevice) != VK_NULL_HANDLE);
+            && (physicalDevice != vk::PhysicalDevice());
     }
 };
 

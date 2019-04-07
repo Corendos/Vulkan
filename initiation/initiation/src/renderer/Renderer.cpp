@@ -13,9 +13,6 @@
 #include "environment.hpp"
 
 Renderer::Renderer() {
-    mVertexShader = Shader(shaderPath + "vert.spv", VK_SHADER_STAGE_VERTEX_BIT, "main");
-    mFragmentShader = Shader(shaderPath + "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, "main");
-
     mClearValues[0].color = std::array<float, 4>({0.325f, 0.694f, 0.937f, 1.0f});
     mClearValues[1].color = vk::ClearColorValue();
     mClearValues[2].depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
@@ -82,7 +79,8 @@ void Renderer::recreate() {
     
     mSwapChain.destroy(mContext->getDevice());
     mContext->getDevice().destroyRenderPass(mRenderPass);
-    mPipeline.destroy(mContext->getDevice());
+    mContext->getDevice().destroyPipeline(mPipeline);
+    mContext->getDevice().destroyPipelineLayout(mPipelineLayout);
 
     /* Recreate the resources */
 
@@ -114,8 +112,9 @@ void Renderer::destroy() {
         for (auto& framebuffer : mFrameBuffers) {
         mContext->getDevice().destroyFramebuffer(framebuffer);
         }
-        mVertexShader.destroy(mContext->getDevice());
-        mFragmentShader.destroy(mContext->getDevice());
+
+        mContext->getDevice().destroyShaderModule(mVertexShader.first);
+        mContext->getDevice().destroyShaderModule(mFragmentShader.first);
 
         for (auto& commandPool : mCommandPools) {
             vkDestroyCommandPool(mContext->getDevice(), commandPool, nullptr);
@@ -126,7 +125,8 @@ void Renderer::destroy() {
 
         mSwapChain.destroy(mContext->getDevice());
         mContext->getDevice().destroyRenderPass(mRenderPass);
-        mPipeline.destroy(mContext->getDevice());
+        mContext->getDevice().destroyPipeline(mPipeline);
+        mContext->getDevice().destroyPipelineLayout(mPipelineLayout);
         
         vkDestroySemaphore(mContext->getDevice(), mImageAvailableSemaphore, nullptr);
         for (size_t i{0};i < mRenderFinishedSemaphores.size();++i) {
@@ -191,7 +191,7 @@ void Renderer::update(double dt) {
     vk::CommandBuffer staticBuffer = mMeshManager->render(
         mRenderPass, mFrameBuffers[mNextImageIndex],
         mCommandPools[mNextImageIndex], mCameraDescriptorSets[mNextImageIndex],
-        mPipeline.getLayout().getHandler(), mPipeline.getHandler(), mNextImageIndex);
+        mPipelineLayout, mPipeline, mNextImageIndex);
 
     vk::CommandBufferAllocateInfo allocateInfo;
     allocateInfo.setCommandPool(mCommandPools[mNextImageIndex]);
@@ -268,7 +268,6 @@ void Renderer::createRenderPass() {
     mFramebufferAttachments.resize(mSwapChain.getImageCount());
     
     vk::MemoryRequirements memoryRequirements;
-    VkImageSubresourceRange subresourceRange{};
     for (auto& framebufferAttachment : mFramebufferAttachments) {
         /* Create the normal attachment */
         framebufferAttachment.normal = createAttachment(
@@ -345,24 +344,25 @@ void Renderer::createRenderPass() {
 }
 
 void Renderer::createGraphicsPipeline() {
-    mVertexShader.create(mContext->getDevice());
-    mFragmentShader.create(mContext->getDevice());
+    mVertexShader = Shader::create(
+        *mContext, shaderPath + "vert.spv", vk::ShaderStageFlagBits::eVertex, "main");
+    mFragmentShader = Shader::create(
+        *mContext, shaderPath + "frag.spv", vk::ShaderStageFlagBits::eFragment, "main");
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
+    std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = {
         mMeshManager->getDescriptorSetLayout(),
         mCameraDescriptorSetLayout
     };
 
-    PipelineLayout layout;
-    layout.setDescriptorSetLayouts(descriptorSetLayouts);
-    layout.create(mContext->getDevice());
+    vk::PipelineLayoutCreateInfo createInfo;
+    createInfo.setSetLayoutCount(descriptorSetLayouts.size());
+    createInfo.setPSetLayouts(descriptorSetLayouts.data());
 
-    mPipeline.setPipelineLayout(layout);
-    mPipeline.addShader(mVertexShader);
-    mPipeline.addShader(mFragmentShader);
-    mPipeline.setRenderPass(mRenderPass);
-    mPipeline.setExtent(mExtent);
-    mPipeline.create(mContext->getDevice());
+    mPipelineLayout = mContext->getDevice().createPipelineLayout(createInfo);
+
+    mPipeline = GraphicsPipeline::create(
+        *mContext, mRenderPass, mExtent,
+        mPipelineLayout, mVertexShader.second, mFragmentShader.second);
 }
 
 void Renderer::createFramebuffers() {

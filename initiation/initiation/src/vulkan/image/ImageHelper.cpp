@@ -18,7 +18,7 @@ vk::Image ImageHelper::create(VulkanContext& context,
     imageCreateInfo.setSharingMode(vk::SharingMode::eExclusive);
     imageCreateInfo.setSamples(vk::SampleCountFlagBits::e1);
 
-    VkImage image = context.getDevice().createImage(imageCreateInfo);
+    vk::Image image = context.getDevice().createImage(imageCreateInfo);
 
     vk::MemoryRequirements memoryRequirements = context.getDevice().getImageMemoryRequirements(image);
 

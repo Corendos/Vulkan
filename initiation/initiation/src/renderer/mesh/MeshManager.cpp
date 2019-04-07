@@ -144,7 +144,7 @@ vk::CommandBuffer MeshManager::render(const vk::RenderPass renderPass, const vk:
     staticCommandBuffer.bindIndexBuffer(
         mRenderData.renderBuffers[imageIndex].indexBuffer, vk::DeviceSize(), vk::IndexType::eUint32);
 
-    VkDeviceSize offset{0};
+    vk::DeviceSize offset{0};
     for (Mesh* mesh : mMeshes) {
         staticCommandBuffer.bindDescriptorSets(
             vk::PipelineBindPoint::eGraphics, pipelineLayout,
